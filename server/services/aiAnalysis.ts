@@ -1,0 +1,228 @@
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+export interface RequirementAnalysis {
+  scope: string;
+  technicalRequirements: string[];
+  evaluationCriteria: {
+    name: string;
+    weight: number;
+    description: string;
+  }[];
+  successMetrics: string[];
+}
+
+export interface ProposalAnalysis {
+  vendorName: string;
+  capabilities: string[];
+  technicalApproach: string;
+  integrations: string[];
+  security: string;
+  support: string;
+  costStructure: string;
+  timeline: string;
+}
+
+export interface VendorEvaluation {
+  overallScore: number;
+  technicalFit: number;
+  deliveryRisk: number;
+  cost: string;
+  compliance: number;
+  status: "recommended" | "under-review" | "risk-flagged";
+  rationale: string;
+  roleInsights: {
+    delivery: string[];
+    product: string[];
+    architecture: string[];
+    engineering: string[];
+    procurement: string[];
+  };
+  detailedScores: {
+    integration: number;
+    support: number;
+    scalability: number;
+    documentation: number;
+  };
+}
+
+export async function analyzeRequirements(documentText: string): Promise<RequirementAnalysis> {
+  const prompt = `Analyze the following requirements document and extract key information.
+  
+Document:
+${documentText}
+
+Please provide a structured analysis including:
+1. Project scope and objectives
+2. Technical requirements (NFRs, tech stack, capabilities needed)
+3. Evaluation criteria with weights (technical fit, delivery risk, cost, compliance, etc.)
+4. Success metrics
+
+Return your analysis in JSON format with the following structure:
+{
+  "scope": "Brief project scope",
+  "technicalRequirements": ["requirement 1", "requirement 2"],
+  "evaluationCriteria": [
+    {"name": "Technical Fit", "weight": 30, "description": "How well the solution meets technical needs"},
+    {"name": "Delivery Risk", "weight": 25, "description": "Risk factors in implementation"}
+  ],
+  "successMetrics": ["metric 1", "metric 2"]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert requirements analyst for enterprise procurement. Extract and structure requirement information from documents.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.3,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error("No response from AI");
+  }
+
+  return JSON.parse(content) as RequirementAnalysis;
+}
+
+export async function analyzeProposal(documentText: string, fileName: string): Promise<ProposalAnalysis> {
+  const prompt = `Analyze the following vendor proposal document and extract key information.
+
+Document:
+${documentText}
+
+Please provide a structured analysis including:
+1. Vendor name (extract from document or use filename)
+2. Key capabilities and features offered
+3. Technical approach and architecture
+4. Integration capabilities
+5. Security and compliance features
+6. Support model
+7. Cost structure
+8. Estimated timeline
+
+Return your analysis in JSON format with the following structure:
+{
+  "vendorName": "Vendor Name",
+  "capabilities": ["capability 1", "capability 2"],
+  "technicalApproach": "Description of technical approach",
+  "integrations": ["integration 1", "integration 2"],
+  "security": "Security features and compliance",
+  "support": "Support model description",
+  "costStructure": "Pricing model",
+  "timeline": "Implementation timeline"
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert at analyzing vendor proposals. Extract and structure key information from proposal documents.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.3,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error("No response from AI");
+  }
+
+  const analysis = JSON.parse(content) as ProposalAnalysis;
+  
+  // If vendor name not found, extract from filename
+  if (!analysis.vendorName || analysis.vendorName === "Unknown" || analysis.vendorName === "Vendor Name") {
+    analysis.vendorName = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+  }
+
+  return analysis;
+}
+
+export async function evaluateProposal(
+  requirementAnalysis: RequirementAnalysis,
+  proposalAnalysis: ProposalAnalysis
+): Promise<VendorEvaluation> {
+  const prompt = `You are an expert procurement evaluation system. Evaluate how well this vendor proposal meets the requirements.
+
+Requirements:
+${JSON.stringify(requirementAnalysis, null, 2)}
+
+Vendor Proposal:
+${JSON.stringify(proposalAnalysis, null, 2)}
+
+Provide a comprehensive evaluation with:
+1. Overall fit score (0-100)
+2. Technical fit score (0-100) - how well capabilities match requirements
+3. Delivery risk score (0-100) - higher means more risk
+4. Cost estimate range
+5. Compliance score (0-100) - security, standards adherence
+6. Status: "recommended" (score >80), "under-review" (60-80), or "risk-flagged" (<60)
+7. AI rationale explaining the scores
+8. Role-specific insights for: delivery, product, architecture, engineering, procurement teams
+9. Detailed scores for: integration complexity, support quality, scalability, documentation
+
+Return JSON with this structure:
+{
+  "overallScore": 85,
+  "technicalFit": 90,
+  "deliveryRisk": 25,
+  "cost": "$150K - $180K",
+  "compliance": 95,
+  "status": "recommended",
+  "rationale": "Detailed explanation of scores and recommendation",
+  "roleInsights": {
+    "delivery": ["insight 1", "insight 2"],
+    "product": ["insight 1"],
+    "architecture": ["insight 1"],
+    "engineering": ["insight 1"],
+    "procurement": ["insight 1"]
+  },
+  "detailedScores": {
+    "integration": 90,
+    "support": 85,
+    "scalability": 88,
+    "documentation": 92
+  }
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert procurement evaluation system that provides objective, unbiased assessments of vendor proposals against requirements.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.2,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error("No response from AI");
+  }
+
+  return JSON.parse(content) as VendorEvaluation;
+}
