@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, TrendingUp, FileText, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building2, TrendingUp, FileText, CheckCircle2, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Loader2 } from "lucide-react";
@@ -87,6 +88,12 @@ export default function HomePage() {
                 AI-Powered Vendor Shortlisting for Enterprise Teams
               </p>
             </div>
+            <Link href="/standards">
+              <Button variant="outline" className="gap-2" data-testid="button-standards">
+                <Shield className="h-4 w-4" />
+                Standards & Compliance
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

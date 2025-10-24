@@ -11,12 +11,14 @@ import PortfolioPage from "@/pages/PortfolioPage";
 import NewProjectPage from "@/pages/NewProjectPage";
 import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
+import StandardsPage from "@/pages/StandardsPage";
 import { Sparkles } from "lucide-react";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
+      <Route path="/standards" component={StandardsPage} />
       <Route path="/portfolio/:id" component={PortfolioPage} />
       <Route path="/portfolio/:id/new-project" component={NewProjectPage} />
       <Route path="/portfolio/:id/upload" component={UploadPage} />
