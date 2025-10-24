@@ -10,6 +10,15 @@ export const portfolios = pgTable("portfolios", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const standards = pgTable("standards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  sections: jsonb("sections").notNull(),
+  isActive: text("is_active").notNull().default("true"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   portfolioId: varchar("portfolio_id").notNull(),
@@ -27,6 +36,8 @@ export const requirements = pgTable("requirements", {
   fileName: text("file_name").notNull(),
   extractedData: jsonb("extracted_data"),
   evaluationCriteria: jsonb("evaluation_criteria"),
+  standardId: varchar("standard_id"),
+  taggedSections: jsonb("tagged_sections"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -37,6 +48,8 @@ export const proposals = pgTable("proposals", {
   documentType: text("document_type").notNull(),
   fileName: text("file_name").notNull(),
   extractedData: jsonb("extracted_data"),
+  standardId: varchar("standard_id"),
+  taggedSections: jsonb("tagged_sections"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -54,6 +67,11 @@ export const evaluations = pgTable("evaluations", {
   roleInsights: jsonb("role_insights"),
   detailedScores: jsonb("detailed_scores"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStandardSchema = createInsertSchema(standards).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
@@ -80,6 +98,9 @@ export const insertEvaluationSchema = createInsertSchema(evaluations).omit({
   id: true,
   createdAt: true,
 });
+
+export type InsertStandard = z.infer<typeof insertStandardSchema>;
+export type Standard = typeof standards.$inferSelect;
 
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;

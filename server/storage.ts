@@ -1,6 +1,8 @@
 import {
   type Portfolio,
   type InsertPortfolio,
+  type Standard,
+  type InsertStandard,
   type Project,
   type InsertProject,
   type Requirement,
@@ -18,6 +20,14 @@ export interface IStorage {
   getPortfolio(id: string): Promise<Portfolio | undefined>;
   getAllPortfolios(): Promise<Portfolio[]>;
   getPortfolioByName(name: string): Promise<Portfolio | undefined>;
+
+  // Standards
+  createStandard(standard: InsertStandard): Promise<Standard>;
+  getStandard(id: string): Promise<Standard | undefined>;
+  getAllStandards(): Promise<Standard[]>;
+  getActiveStandards(): Promise<Standard[]>;
+  updateStandard(id: string, updates: Partial<InsertStandard>): Promise<void>;
+  deactivateStandard(id: string): Promise<void>;
 
   // Projects
   createProject(project: InsertProject): Promise<Project>;
@@ -43,6 +53,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private portfolios: Map<string, Portfolio>;
+  private standards: Map<string, Standard>;
   private projects: Map<string, Project>;
   private requirements: Map<string, Requirement>;
   private proposals: Map<string, Proposal>;
@@ -50,6 +61,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.portfolios = new Map();
+    this.standards = new Map();
     this.projects = new Map();
     this.requirements = new Map();
     this.proposals = new Map();
@@ -78,6 +90,48 @@ export class MemStorage implements IStorage {
 
   async getPortfolioByName(name: string): Promise<Portfolio | undefined> {
     return Array.from(this.portfolios.values()).find(p => p.name === name);
+  }
+
+  async createStandard(insertStandard: InsertStandard): Promise<Standard> {
+    const id = randomUUID();
+    const standard: Standard = {
+      id,
+      name: insertStandard.name,
+      description: insertStandard.description || null,
+      sections: insertStandard.sections,
+      isActive: insertStandard.isActive || "true",
+      createdAt: new Date(),
+    };
+    this.standards.set(id, standard);
+    return standard;
+  }
+
+  async getStandard(id: string): Promise<Standard | undefined> {
+    return this.standards.get(id);
+  }
+
+  async getAllStandards(): Promise<Standard[]> {
+    return Array.from(this.standards.values());
+  }
+
+  async getActiveStandards(): Promise<Standard[]> {
+    return Array.from(this.standards.values()).filter(s => s.isActive === "true");
+  }
+
+  async updateStandard(id: string, updates: Partial<InsertStandard>): Promise<void> {
+    const standard = this.standards.get(id);
+    if (standard) {
+      const updated = { ...standard, ...updates };
+      this.standards.set(id, updated);
+    }
+  }
+
+  async deactivateStandard(id: string): Promise<void> {
+    const standard = this.standards.get(id);
+    if (standard) {
+      standard.isActive = "false";
+      this.standards.set(id, standard);
+    }
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
@@ -122,9 +176,12 @@ export class MemStorage implements IStorage {
     const requirement: Requirement = {
       id,
       projectId: insertRequirement.projectId,
+      documentType: insertRequirement.documentType || "RFT",
       fileName: insertRequirement.fileName,
       extractedData: insertRequirement.extractedData || null,
       evaluationCriteria: insertRequirement.evaluationCriteria || null,
+      standardId: insertRequirement.standardId || null,
+      taggedSections: insertRequirement.taggedSections || null,
       createdAt: new Date(),
     };
     this.requirements.set(id, requirement);
@@ -143,8 +200,11 @@ export class MemStorage implements IStorage {
       id,
       projectId: insertProposal.projectId,
       vendorName: insertProposal.vendorName,
+      documentType: insertProposal.documentType,
       fileName: insertProposal.fileName,
       extractedData: insertProposal.extractedData || null,
+      standardId: insertProposal.standardId || null,
+      taggedSections: insertProposal.taggedSections || null,
       createdAt: new Date(),
     };
     this.proposals.set(id, proposal);
