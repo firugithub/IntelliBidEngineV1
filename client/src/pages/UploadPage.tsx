@@ -3,12 +3,15 @@ import { FileUploadZone } from "@/components/FileUploadZone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Loader2, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ArrowLeft, Sparkles, Shield } from "lucide-react";
 import { useLocation, useParams } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { Standard } from "@shared/schema";
 
 interface VendorDocuments {
   sow: File[];
@@ -16,6 +19,12 @@ interface VendorDocuments {
   functionalRequirement: File[];
   nonFunctionalRequirement: File[];
   csocSheet: File[];
+}
+
+interface Section {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export default function UploadPage() {
@@ -26,6 +35,13 @@ export default function UploadPage() {
   const [rftFiles, setRftFiles] = useState<File[]>([]);
   const [vendorDocuments, setVendorDocuments] = useState<Record<string, VendorDocuments>>({});
   const [projectData, setProjectData] = useState<any>(null);
+  const [selectedStandard, setSelectedStandard] = useState<string>("");
+  const [rftTaggedSections, setRftTaggedSections] = useState<string[]>([]);
+  const [vendorTaggedSections, setVendorTaggedSections] = useState<Record<string, Record<string, string[]>>>({});
+
+  const { data: standards = [] } = useQuery<Standard[]>({
+    queryKey: ["/api/standards/active"],
+  });
 
   useEffect(() => {
     const data = sessionStorage.getItem("newProjectData");
@@ -35,6 +51,7 @@ export default function UploadPage() {
       
       // Initialize vendor documents structure
       const initialDocs: Record<string, VendorDocuments> = {};
+      const initialTags: Record<string, Record<string, string[]>> = {};
       parsed.vendorList?.forEach((vendor: string) => {
         initialDocs[vendor] = {
           sow: [],
@@ -43,8 +60,16 @@ export default function UploadPage() {
           nonFunctionalRequirement: [],
           csocSheet: [],
         };
+        initialTags[vendor] = {
+          sow: [],
+          productQuestionnaire: [],
+          functionalRequirement: [],
+          nonFunctionalRequirement: [],
+          csocSheet: [],
+        };
       });
       setVendorDocuments(initialDocs);
+      setVendorTaggedSections(initialTags);
     } else {
       setLocation(`/portfolio/${portfolioId}/new-project`);
     }
@@ -58,6 +83,37 @@ export default function UploadPage() {
         [docType]: files,
       },
     }));
+  };
+
+  const toggleVendorSection = (vendor: string, docType: string, sectionId: string) => {
+    setVendorTaggedSections(prev => {
+      const current = prev[vendor]?.[docType] || [];
+      const updated = current.includes(sectionId)
+        ? current.filter(id => id !== sectionId)
+        : [...current, sectionId];
+      
+      return {
+        ...prev,
+        [vendor]: {
+          ...prev[vendor],
+          [docType]: updated,
+        },
+      };
+    });
+  };
+
+  const toggleRftSection = (sectionId: string) => {
+    setRftTaggedSections(prev =>
+      prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
+  const getSelectedStandardSections = (): Section[] => {
+    if (!selectedStandard) return [];
+    const standard = standards.find(s => s.id === selectedStandard);
+    return (standard?.sections as Section[]) || [];
   };
 
   const analyzeMutation = useMutation({
@@ -82,6 +138,12 @@ export default function UploadPage() {
           rftFormData.append("files", file);
         });
         rftFormData.append("documentType", "RFT");
+        if (selectedStandard) {
+          rftFormData.append("standardId", selectedStandard);
+          if (rftTaggedSections.length > 0) {
+            rftFormData.append("taggedSections", JSON.stringify(rftTaggedSections));
+          }
+        }
 
         await fetch(`/api/projects/${projectId}/requirements`, {
           method: "POST",
@@ -99,6 +161,13 @@ export default function UploadPage() {
           docs.sow.forEach(file => formData.append("files", file));
           formData.append("vendorName", vendor);
           formData.append("documentType", "SOW");
+          if (selectedStandard) {
+            formData.append("standardId", selectedStandard);
+            const sections = vendorTaggedSections[vendor]?.sow || [];
+            if (sections.length > 0) {
+              formData.append("taggedSections", JSON.stringify(sections));
+            }
+          }
           await fetch(`/api/projects/${projectId}/proposals`, {
             method: "POST",
             body: formData,
@@ -111,6 +180,13 @@ export default function UploadPage() {
           docs.productQuestionnaire.forEach(file => formData.append("files", file));
           formData.append("vendorName", vendor);
           formData.append("documentType", "Product Questionnaire");
+          if (selectedStandard) {
+            formData.append("standardId", selectedStandard);
+            const sections = vendorTaggedSections[vendor]?.productQuestionnaire || [];
+            if (sections.length > 0) {
+              formData.append("taggedSections", JSON.stringify(sections));
+            }
+          }
           await fetch(`/api/projects/${projectId}/proposals`, {
             method: "POST",
             body: formData,
@@ -123,6 +199,13 @@ export default function UploadPage() {
           docs.functionalRequirement.forEach(file => formData.append("files", file));
           formData.append("vendorName", vendor);
           formData.append("documentType", "Functional Requirement");
+          if (selectedStandard) {
+            formData.append("standardId", selectedStandard);
+            const sections = vendorTaggedSections[vendor]?.functionalRequirement || [];
+            if (sections.length > 0) {
+              formData.append("taggedSections", JSON.stringify(sections));
+            }
+          }
           await fetch(`/api/projects/${projectId}/proposals`, {
             method: "POST",
             body: formData,
@@ -135,6 +218,13 @@ export default function UploadPage() {
           docs.nonFunctionalRequirement.forEach(file => formData.append("files", file));
           formData.append("vendorName", vendor);
           formData.append("documentType", "Non-Functional Requirement");
+          if (selectedStandard) {
+            formData.append("standardId", selectedStandard);
+            const sections = vendorTaggedSections[vendor]?.nonFunctionalRequirement || [];
+            if (sections.length > 0) {
+              formData.append("taggedSections", JSON.stringify(sections));
+            }
+          }
           await fetch(`/api/projects/${projectId}/proposals`, {
             method: "POST",
             body: formData,
@@ -147,6 +237,13 @@ export default function UploadPage() {
           docs.csocSheet.forEach(file => formData.append("files", file));
           formData.append("vendorName", vendor);
           formData.append("documentType", "CSOC Sheet");
+          if (selectedStandard) {
+            formData.append("standardId", selectedStandard);
+            const sections = vendorTaggedSections[vendor]?.csocSheet || [];
+            if (sections.length > 0) {
+              formData.append("taggedSections", JSON.stringify(sections));
+            }
+          }
           await fetch(`/api/projects/${projectId}/proposals`, {
             method: "POST",
             body: formData,
@@ -232,6 +329,56 @@ export default function UploadPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="space-y-8">
+          {/* Standards Selection Section */}
+          {standards.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle>Compliance Standard (Optional)</CardTitle>
+                </div>
+                <CardDescription>
+                  Select an organization standard to evaluate vendors against specific compliance sections
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Standard</label>
+                  <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+                    <SelectTrigger data-testid="select-standard">
+                      <SelectValue placeholder="Choose a compliance standard..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {standards.map((standard) => (
+                        <SelectItem key={standard.id} value={standard.id}>
+                          {standard.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedStandard && getSelectedStandardSections().length > 0 && (
+                  <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm font-medium">Compliance Sections</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Tag documents against relevant sections during upload
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {getSelectedStandardSections().map((section) => (
+                        <div key={section.id} className="text-sm p-2 bg-background rounded">
+                          <p className="font-medium">{section.name}</p>
+                          {section.description && (
+                            <p className="text-xs text-muted-foreground">{section.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* RFT Requirements Section */}
           <Card>
             <CardHeader>
@@ -240,12 +387,38 @@ export default function UploadPage() {
                 Upload your RFT document containing project requirements
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <FileUploadZone
                 title="Drop RFT Document Here"
                 description="PDF, Word, or Excel files supported"
                 onFilesChange={setRftFiles}
               />
+              {selectedStandard && rftFiles.length > 0 && getSelectedStandardSections().length > 0 && (
+                <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">Tag Compliance Sections</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Select which sections this RFT addresses
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {getSelectedStandardSections().map((section) => (
+                      <div key={section.id} className="flex items-start gap-2">
+                        <Checkbox
+                          id={`rft-${section.id}`}
+                          checked={rftTaggedSections.includes(section.id)}
+                          onCheckedChange={() => toggleRftSection(section.id)}
+                          data-testid={`checkbox-rft-${section.id}`}
+                        />
+                        <label htmlFor={`rft-${section.id}`} className="text-sm cursor-pointer">
+                          <p className="font-medium">{section.name}</p>
+                          {section.description && (
+                            <p className="text-xs text-muted-foreground">{section.description}</p>
+                          )}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
