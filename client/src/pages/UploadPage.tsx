@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FileUploadZone } from "@/components/FileUploadZone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Loader2, ArrowLeft } from "lucide-react";
+import { ArrowRight, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";

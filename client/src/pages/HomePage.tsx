@@ -4,8 +4,8 @@ import { Building2, TrendingUp, FileText, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useState, useRef } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Department {
   id: string;
@@ -21,6 +21,9 @@ interface Project {
 }
 
 export default function HomePage() {
+  const [isSeeding, setIsSeeding] = useState(false);
+  const hasSeededRef = useRef(false);
+  
   const { data: departments, isLoading: departmentsLoading } = useQuery<Department[]>({
     queryKey: ["/api/departments"],
   });
@@ -29,19 +32,36 @@ export default function HomePage() {
     queryKey: ["/api/projects"],
   });
 
-  // Seed departments on first load if empty
+  // Seed departments on first load if empty (one-shot)
   useEffect(() => {
-    if (departments && departments.length === 0) {
-      apiRequest("POST", "/api/seed-departments");
-    }
+    const seedDepartments = async () => {
+      if (departments && departments.length === 0 && !hasSeededRef.current) {
+        hasSeededRef.current = true;
+        setIsSeeding(true);
+        try {
+          await apiRequest("POST", "/api/seed-departments");
+          // Refetch departments to get the seeded data
+          await queryClient.refetchQueries({ queryKey: ["/api/departments"] });
+        } catch (error) {
+          console.error("Failed to seed departments:", error);
+          hasSeededRef.current = false; // Reset flag on error to allow retry
+        } finally {
+          setIsSeeding(false);
+        }
+      }
+    };
+    
+    seedDepartments();
   }, [departments]);
 
-  if (departmentsLoading) {
+  if (departmentsLoading || isSeeding) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading departments...</p>
+          <p className="text-muted-foreground">
+            {isSeeding ? "Setting up departments..." : "Loading departments..."}
+          </p>
         </div>
       </div>
     );

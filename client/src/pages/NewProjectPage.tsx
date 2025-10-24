@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,23 @@ export default function NewProjectPage() {
   const [initiativeName, setInitiativeName] = useState("");
   const [vendorInput, setVendorInput] = useState("");
   const [vendorList, setVendorList] = useState<string[]>([]);
+
+  // Rehydrate form from sessionStorage on mount
+  useEffect(() => {
+    const savedData = sessionStorage.getItem("newProjectData");
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        if (data.departmentId === departmentId) {
+          setProjectName(data.projectName || "");
+          setInitiativeName(data.initiativeName || "");
+          setVendorList(data.vendorList || []);
+        }
+      } catch (error) {
+        console.error("Failed to parse saved project data:", error);
+      }
+    }
+  }, [departmentId]);
 
   const handleAddVendor = () => {
     if (vendorInput.trim() && !vendorList.includes(vendorInput.trim())) {
