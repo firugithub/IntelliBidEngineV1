@@ -7,7 +7,7 @@ import { Link, useParams, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
-interface Department {
+interface Portfolio {
   id: string;
   name: string;
   description: string | null;
@@ -15,7 +15,7 @@ interface Department {
 
 interface Project {
   id: string;
-  departmentId: string;
+  portfolioId: string;
   name: string;
   initiativeName: string | null;
   vendorList: string[] | null;
@@ -23,37 +23,37 @@ interface Project {
   createdAt: string;
 }
 
-export default function DepartmentPage() {
+export default function PortfolioPage() {
   const params = useParams();
-  const departmentId = params.id;
+  const portfolioId = params.id;
   const [, setLocation] = useLocation();
 
-  const { data: department, isLoading: deptLoading } = useQuery<Department>({
-    queryKey: ["/api/departments", departmentId],
-    enabled: !!departmentId,
+  const { data: portfolio, isLoading: portfolioLoading } = useQuery<Portfolio>({
+    queryKey: ["/api/portfolios", portfolioId],
+    enabled: !!portfolioId,
   });
 
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
-    queryKey: ["/api/departments", departmentId, "projects"],
-    enabled: !!departmentId,
+    queryKey: ["/api/portfolios", portfolioId, "projects"],
+    enabled: !!portfolioId,
   });
 
-  if (deptLoading || projectsLoading) {
+  if (portfolioLoading || projectsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading department...</p>
+          <p className="text-muted-foreground">Loading portfolio...</p>
         </div>
       </div>
     );
   }
 
-  if (!department) {
+  if (!portfolio) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-muted-foreground">Department not found</p>
+          <p className="text-muted-foreground">Portfolio not found</p>
           <Button onClick={() => setLocation("/")}>Back to Home</Button>
         </div>
       </div>
@@ -80,16 +80,16 @@ export default function DepartmentPage() {
               <Link href="/">
                 <Button variant="ghost" size="sm" className="gap-2 mb-2" data-testid="button-back-home">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Departments
+                  Back to Portfolios
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">{department.name}</h1>
-              {department.description && (
-                <p className="text-muted-foreground">{department.description}</p>
+              <h1 className="text-3xl font-bold">{portfolio.name}</h1>
+              {portfolio.description && (
+                <p className="text-muted-foreground">{portfolio.description}</p>
               )}
             </div>
             <Button
-              onClick={() => setLocation(`/department/${departmentId}/new-project`)}
+              onClick={() => setLocation(`/portfolio/${portfolioId}/new-project`)}
               className="gap-2"
               data-testid="button-new-project"
             >
@@ -170,10 +170,10 @@ export default function DepartmentPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-1">No projects yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Start your first vendor shortlisting project for {department.name}
+                  Start your first vendor shortlisting project for {portfolio.name}
                 </p>
                 <Button
-                  onClick={() => setLocation(`/department/${departmentId}/new-project`)}
+                  onClick={() => setLocation(`/portfolio/${portfolioId}/new-project`)}
                   className="gap-2"
                 >
                   <Plus className="h-4 w-4" />

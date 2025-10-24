@@ -9,19 +9,19 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 
-interface Department {
+interface Portfolio {
   id: string;
   name: string;
 }
 
 export default function NewProjectPage() {
   const params = useParams();
-  const departmentId = params.id;
+  const portfolioId = params.id;
   const [, setLocation] = useLocation();
 
-  const { data: department } = useQuery<Department>({
-    queryKey: ["/api/departments", departmentId],
-    enabled: !!departmentId,
+  const { data: portfolio } = useQuery<Portfolio>({
+    queryKey: ["/api/portfolios", portfolioId],
+    enabled: !!portfolioId,
   });
 
   const [projectName, setProjectName] = useState("");
@@ -35,7 +35,7 @@ export default function NewProjectPage() {
     if (savedData) {
       try {
         const data = JSON.parse(savedData);
-        if (data.departmentId === departmentId) {
+        if (data.portfolioId === portfolioId) {
           setProjectName(data.projectName || "");
           setInitiativeName(data.initiativeName || "");
           setVendorList(data.vendorList || []);
@@ -44,7 +44,7 @@ export default function NewProjectPage() {
         console.error("Failed to parse saved project data:", error);
       }
     }
-  }, [departmentId]);
+  }, [portfolioId]);
 
   const handleAddVendor = () => {
     if (vendorInput.trim() && !vendorList.includes(vendorInput.trim())) {
@@ -67,13 +67,13 @@ export default function NewProjectPage() {
   const handleProceed = () => {
     // Store project details in session storage to use in upload page
     const projectData = {
-      departmentId,
+      portfolioId,
       projectName,
       initiativeName,
       vendorList,
     };
     sessionStorage.setItem("newProjectData", JSON.stringify(projectData));
-    setLocation(`/department/${departmentId}/upload`);
+    setLocation(`/portfolio/${portfolioId}/upload`);
   };
 
   const canProceed = projectName.trim() && vendorList.length > 0;
@@ -85,12 +85,12 @@ export default function NewProjectPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLocation(`/department/${departmentId}`)}
+            onClick={() => setLocation(`/portfolio/${portfolioId}`)}
             className="gap-2 mb-2"
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to {department?.name}
+            Back to {portfolio?.name}
           </Button>
           <h1 className="text-3xl font-bold">New Vendor Shortlisting Project</h1>
           <p className="text-muted-foreground mt-1">
@@ -194,7 +194,7 @@ export default function NewProjectPage() {
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
                   variant="outline"
-                  onClick={() => setLocation(`/department/${departmentId}`)}
+                  onClick={() => setLocation(`/portfolio/${portfolioId}`)}
                 >
                   Cancel
                 </Button>

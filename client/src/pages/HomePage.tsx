@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-interface Department {
+interface Portfolio {
   id: string;
   name: string;
   description: string | null;
@@ -15,7 +15,7 @@ interface Department {
 
 interface Project {
   id: string;
-  departmentId: string;
+  portfolioId: string;
   name: string;
   status: string;
 }
@@ -24,26 +24,26 @@ export default function HomePage() {
   const [isSeeding, setIsSeeding] = useState(false);
   const hasSeededRef = useRef(false);
   
-  const { data: departments, isLoading: departmentsLoading } = useQuery<Department[]>({
-    queryKey: ["/api/departments"],
+  const { data: portfolios, isLoading: portfoliosLoading } = useQuery<Portfolio[]>({
+    queryKey: ["/api/portfolios"],
   });
 
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
 
-  // Seed departments on first load if empty (one-shot)
+  // Seed portfolios on first load if empty (one-shot)
   useEffect(() => {
-    const seedDepartments = async () => {
-      if (departments && departments.length === 0 && !hasSeededRef.current) {
+    const seedPortfolios = async () => {
+      if (portfolios && portfolios.length === 0 && !hasSeededRef.current) {
         hasSeededRef.current = true;
         setIsSeeding(true);
         try {
-          await apiRequest("POST", "/api/seed-departments");
-          // Refetch departments to get the seeded data
-          await queryClient.refetchQueries({ queryKey: ["/api/departments"] });
+          await apiRequest("POST", "/api/seed-portfolios");
+          // Refetch portfolios to get the seeded data
+          await queryClient.refetchQueries({ queryKey: ["/api/portfolios"] });
         } catch (error) {
-          console.error("Failed to seed departments:", error);
+          console.error("Failed to seed portfolios:", error);
           hasSeededRef.current = false; // Reset flag on error to allow retry
         } finally {
           setIsSeeding(false);
@@ -51,27 +51,27 @@ export default function HomePage() {
       }
     };
     
-    seedDepartments();
-  }, [departments]);
+    seedPortfolios();
+  }, [portfolios]);
 
-  if (departmentsLoading || isSeeding) {
+  if (portfoliosLoading || isSeeding) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">
-            {isSeeding ? "Setting up departments..." : "Loading departments..."}
+            {isSeeding ? "Setting up portfolios..." : "Loading portfolios..."}
           </p>
         </div>
       </div>
     );
   }
 
-  const getDepartmentStats = (deptId: string) => {
-    const deptProjects = projects?.filter(p => p.departmentId === deptId) || [];
-    const totalProjects = deptProjects.length;
-    const completedProjects = deptProjects.filter(p => p.status === "completed").length;
-    const activeProjects = deptProjects.filter(p => p.status === "analyzing").length;
+  const getPortfolioStats = (portfolioId: string) => {
+    const portfolioProjects = projects?.filter(p => p.portfolioId === portfolioId) || [];
+    const totalProjects = portfolioProjects.length;
+    const completedProjects = portfolioProjects.filter(p => p.status === "completed").length;
+    const activeProjects = portfolioProjects.filter(p => p.status === "analyzing").length;
 
     return { totalProjects, completedProjects, activeProjects };
   };
@@ -93,21 +93,21 @@ export default function HomePage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-2">Departments</h2>
+          <h2 className="text-2xl font-semibold mb-2">Portfolios</h2>
           <p className="text-muted-foreground">
-            Select a department to view projects and start vendor shortlisting
+            Select a portfolio to view projects and start vendor shortlisting
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {departments?.map((department) => {
-            const stats = getDepartmentStats(department.id);
+          {portfolios?.map((portfolio) => {
+            const stats = getPortfolioStats(portfolio.id);
             
             return (
               <Link
-                key={department.id}
-                href={`/department/${department.id}`}
-                data-testid={`link-department-${department.id}`}
+                key={portfolio.id}
+                href={`/portfolio/${portfolio.id}`}
+                data-testid={`link-portfolio-${portfolio.id}`}
               >
                 <Card className="h-full hover-elevate active-elevate-2 cursor-pointer transition-all">
                   <CardHeader className="pb-4">
@@ -117,12 +117,12 @@ export default function HomePage() {
                           <div className="rounded-lg bg-primary/10 p-2">
                             <Building2 className="h-5 w-5 text-primary" />
                           </div>
-                          <CardTitle className="text-lg" data-testid={`text-dept-${department.id}`}>
-                            {department.name}
+                          <CardTitle className="text-lg" data-testid={`text-portfolio-${portfolio.id}`}>
+                            {portfolio.name}
                           </CardTitle>
                         </div>
                         <CardDescription className="text-sm">
-                          {department.description}
+                          {portfolio.description}
                         </CardDescription>
                       </div>
                     </div>
@@ -134,7 +134,7 @@ export default function HomePage() {
                           <FileText className="h-3 w-3" />
                           <span>Total</span>
                         </div>
-                        <p className="text-xl font-bold font-mono" data-testid={`stat-total-${department.id}`}>
+                        <p className="text-xl font-bold font-mono" data-testid={`stat-total-${portfolio.id}`}>
                           {stats.totalProjects}
                         </p>
                       </div>

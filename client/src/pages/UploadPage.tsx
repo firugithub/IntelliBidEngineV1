@@ -20,7 +20,7 @@ interface VendorDocuments {
 
 export default function UploadPage() {
   const params = useParams();
-  const departmentId = params.id;
+  const portfolioId = params.id;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [rftFiles, setRftFiles] = useState<File[]>([]);
@@ -46,9 +46,9 @@ export default function UploadPage() {
       });
       setVendorDocuments(initialDocs);
     } else {
-      setLocation(`/department/${departmentId}/new-project`);
+      setLocation(`/portfolio/${portfolioId}/new-project`);
     }
-  }, [departmentId, setLocation]);
+  }, [portfolioId, setLocation]);
 
   const updateVendorDocuments = (vendor: string, docType: keyof VendorDocuments, files: File[]) => {
     setVendorDocuments(prev => ({
@@ -66,7 +66,7 @@ export default function UploadPage() {
 
       // Create project
       const projectResponse = await apiRequest("POST", "/api/projects", {
-        departmentId: projectData.departmentId,
+        portfolioId: projectData.portfolioId,
         name: projectData.projectName,
         initiativeName: projectData.initiativeName,
         vendorList: projectData.vendorList,
@@ -215,7 +215,7 @@ export default function UploadPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLocation(`/department/${departmentId}/new-project`)}
+            onClick={() => setLocation(`/portfolio/${portfolioId}/new-project`)}
             className="gap-2 mb-2"
             data-testid="button-back"
           >

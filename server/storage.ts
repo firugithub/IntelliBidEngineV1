@@ -1,6 +1,6 @@
 import {
-  type Department,
-  type InsertDepartment,
+  type Portfolio,
+  type InsertPortfolio,
   type Project,
   type InsertProject,
   type Requirement,
@@ -13,17 +13,17 @@ import {
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  // Departments
-  createDepartment(department: InsertDepartment): Promise<Department>;
-  getDepartment(id: string): Promise<Department | undefined>;
-  getAllDepartments(): Promise<Department[]>;
-  getDepartmentByName(name: string): Promise<Department | undefined>;
+  // Portfolios
+  createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
+  getPortfolio(id: string): Promise<Portfolio | undefined>;
+  getAllPortfolios(): Promise<Portfolio[]>;
+  getPortfolioByName(name: string): Promise<Portfolio | undefined>;
 
   // Projects
   createProject(project: InsertProject): Promise<Project>;
   getProject(id: string): Promise<Project | undefined>;
   getAllProjects(): Promise<Project[]>;
-  getProjectsByDepartment(departmentId: string): Promise<Project[]>;
+  getProjectsByPortfolio(portfolioId: string): Promise<Project[]>;
   updateProjectStatus(id: string, status: string): Promise<void>;
 
   // Requirements
@@ -42,49 +42,49 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private departments: Map<string, Department>;
+  private portfolios: Map<string, Portfolio>;
   private projects: Map<string, Project>;
   private requirements: Map<string, Requirement>;
   private proposals: Map<string, Proposal>;
   private evaluations: Map<string, Evaluation>;
 
   constructor() {
-    this.departments = new Map();
+    this.portfolios = new Map();
     this.projects = new Map();
     this.requirements = new Map();
     this.proposals = new Map();
     this.evaluations = new Map();
   }
 
-  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
+  async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
     const id = randomUUID();
-    const department: Department = {
+    const portfolio: Portfolio = {
       id,
-      name: insertDepartment.name,
-      description: insertDepartment.description || null,
+      name: insertPortfolio.name,
+      description: insertPortfolio.description || null,
       createdAt: new Date(),
     };
-    this.departments.set(id, department);
-    return department;
+    this.portfolios.set(id, portfolio);
+    return portfolio;
   }
 
-  async getDepartment(id: string): Promise<Department | undefined> {
-    return this.departments.get(id);
+  async getPortfolio(id: string): Promise<Portfolio | undefined> {
+    return this.portfolios.get(id);
   }
 
-  async getAllDepartments(): Promise<Department[]> {
-    return Array.from(this.departments.values());
+  async getAllPortfolios(): Promise<Portfolio[]> {
+    return Array.from(this.portfolios.values());
   }
 
-  async getDepartmentByName(name: string): Promise<Department | undefined> {
-    return Array.from(this.departments.values()).find(d => d.name === name);
+  async getPortfolioByName(name: string): Promise<Portfolio | undefined> {
+    return Array.from(this.portfolios.values()).find(p => p.name === name);
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
     const id = randomUUID();
     const project: Project = {
       id,
-      departmentId: insertProject.departmentId,
+      portfolioId: insertProject.portfolioId,
       name: insertProject.name,
       initiativeName: insertProject.initiativeName || null,
       vendorList: insertProject.vendorList || null,
@@ -103,9 +103,9 @@ export class MemStorage implements IStorage {
     return Array.from(this.projects.values());
   }
 
-  async getProjectsByDepartment(departmentId: string): Promise<Project[]> {
+  async getProjectsByPortfolio(portfolioId: string): Promise<Project[]> {
     return Array.from(this.projects.values()).filter(
-      (project) => project.departmentId === departmentId
+      (project) => project.portfolioId === portfolioId
     );
   }
 

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
-import { seedSampleData, seedDepartments } from "./services/sampleData";
+import { seedSampleData, seedPortfolios } from "./services/sampleData";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -12,14 +12,14 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Seed departments endpoint
-  app.post("/api/seed-departments", async (req, res) => {
+  // Seed portfolios endpoint
+  app.post("/api/seed-portfolios", async (req, res) => {
     try {
-      const departments = await seedDepartments();
-      res.json({ departments, message: "Departments seeded successfully" });
+      const portfolios = await seedPortfolios();
+      res.json({ portfolios, message: "Portfolios seeded successfully" });
     } catch (error) {
-      console.error("Error seeding departments:", error);
-      res.status(500).json({ error: "Failed to seed departments" });
+      console.error("Error seeding portfolios:", error);
+      res.status(500).json({ error: "Failed to seed portfolios" });
     }
   });
 
@@ -34,48 +34,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all departments
-  app.get("/api/departments", async (req, res) => {
+  // Get all portfolios
+  app.get("/api/portfolios", async (req, res) => {
     try {
-      const departments = await storage.getAllDepartments();
-      res.json(departments);
+      const portfolios = await storage.getAllPortfolios();
+      res.json(portfolios);
     } catch (error) {
-      console.error("Error fetching departments:", error);
-      res.status(500).json({ error: "Failed to fetch departments" });
+      console.error("Error fetching portfolios:", error);
+      res.status(500).json({ error: "Failed to fetch portfolios" });
     }
   });
 
-  // Get department by ID
-  app.get("/api/departments/:id", async (req, res) => {
+  // Get portfolio by ID
+  app.get("/api/portfolios/:id", async (req, res) => {
     try {
-      const department = await storage.getDepartment(req.params.id);
-      if (!department) {
-        return res.status(404).json({ error: "Department not found" });
+      const portfolio = await storage.getPortfolio(req.params.id);
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
       }
-      res.json(department);
+      res.json(portfolio);
     } catch (error) {
-      console.error("Error fetching department:", error);
-      res.status(500).json({ error: "Failed to fetch department" });
+      console.error("Error fetching portfolio:", error);
+      res.status(500).json({ error: "Failed to fetch portfolio" });
     }
   });
 
-  // Get projects by department
-  app.get("/api/departments/:id/projects", async (req, res) => {
+  // Get projects by portfolio
+  app.get("/api/portfolios/:id/projects", async (req, res) => {
     try {
-      const projects = await storage.getProjectsByDepartment(req.params.id);
+      const projects = await storage.getProjectsByPortfolio(req.params.id);
       res.json(projects);
     } catch (error) {
-      console.error("Error fetching department projects:", error);
-      res.status(500).json({ error: "Failed to fetch department projects" });
+      console.error("Error fetching portfolio projects:", error);
+      res.status(500).json({ error: "Failed to fetch portfolio projects" });
     }
   });
 
   // Create a new project
   app.post("/api/projects", async (req, res) => {
     try {
-      const { departmentId, name, initiativeName, vendorList } = req.body;
+      const { portfolioId, name, initiativeName, vendorList } = req.body;
       const project = await storage.createProject({
-        departmentId,
+        portfolioId,
         name,
         initiativeName,
         vendorList,

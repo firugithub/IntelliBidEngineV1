@@ -1,6 +1,6 @@
 import { storage } from "../storage";
 
-const DEPARTMENTS = [
+const PORTFOLIOS = [
   { name: "Group Services", description: "Corporate services and group-wide initiatives" },
   { name: "Operations, Safety & Security", description: "Operational excellence and safety management" },
   { name: "Customer Brand and Experience", description: "Customer experience and brand management" },
@@ -13,31 +13,31 @@ const DEPARTMENTS = [
   { name: "Data(EDH)", description: "Enterprise data and analytics" },
 ];
 
-export async function seedDepartments() {
+export async function seedPortfolios() {
   try {
-    const departments = await storage.getAllDepartments();
+    const portfolios = await storage.getAllPortfolios();
     
-    // Only seed if departments don't exist
-    if (departments.length === 0) {
-      for (const dept of DEPARTMENTS) {
-        await storage.createDepartment(dept);
+    // Only seed if portfolios don't exist
+    if (portfolios.length === 0) {
+      for (const portfolio of PORTFOLIOS) {
+        await storage.createPortfolio(portfolio);
       }
-      console.log(`Seeded ${DEPARTMENTS.length} departments`);
+      console.log(`Seeded ${PORTFOLIOS.length} portfolios`);
     }
     
-    return await storage.getAllDepartments();
+    return await storage.getAllPortfolios();
   } catch (error) {
-    console.error("Error seeding departments:", error);
+    console.error("Error seeding portfolios:", error);
     throw error;
   }
 }
 
 export async function seedSampleData() {
   try {
-    // Create or get Enterprise Technology department
-    let department = await storage.getDepartmentByName("Enterprise Technology");
-    if (!department) {
-      department = await storage.createDepartment({
+    // Create or get Enterprise Technology portfolio
+    let portfolio = await storage.getPortfolioByName("Enterprise Technology");
+    if (!portfolio) {
+      portfolio = await storage.createPortfolio({
         name: "Enterprise Technology",
         description: "Enterprise technology solutions and infrastructure",
       });
@@ -45,7 +45,7 @@ export async function seedSampleData() {
 
     // Create a sample project
     const project = await storage.createProject({
-      departmentId: department.id,
+      portfolioId: portfolio.id,
       name: "Cloud Platform Evaluation",
       initiativeName: "Digital Transformation 2025",
       vendorList: ["TechVendor Pro", "CloudSolutions Inc", "Enterprise Systems"],

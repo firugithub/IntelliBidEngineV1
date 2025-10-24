@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
-import DepartmentPage from "@/pages/DepartmentPage";
+import PortfolioPage from "@/pages/PortfolioPage";
 import NewProjectPage from "@/pages/NewProjectPage";
 import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -17,9 +17,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
-      <Route path="/department/:id" component={DepartmentPage} />
-      <Route path="/department/:id/new-project" component={NewProjectPage} />
-      <Route path="/department/:id/upload" component={UploadPage} />
+      <Route path="/portfolio/:id" component={PortfolioPage} />
+      <Route path="/portfolio/:id/new-project" component={NewProjectPage} />
+      <Route path="/portfolio/:id/upload" component={UploadPage} />
       <Route path="/dashboard/:id" component={DashboardPage} />
       <Route component={NotFound} />
     </Switch>
