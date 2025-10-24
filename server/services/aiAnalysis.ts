@@ -48,6 +48,25 @@ export interface VendorEvaluation {
     scalability: number;
     documentation: number;
   };
+  sectionCompliance?: {
+    sectionId: string;
+    sectionName: string;
+    score: number;
+    findings: string;
+  }[];
+}
+
+export interface StandardSection {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface StandardData {
+  id: string;
+  name: string;
+  sections: StandardSection[];
+  taggedSectionIds: string[];
 }
 
 export async function analyzeRequirements(documentText: string): Promise<RequirementAnalysis> {
@@ -158,26 +177,46 @@ Return your analysis in JSON format with the following structure:
 
 export async function evaluateProposal(
   requirementAnalysis: RequirementAnalysis,
-  proposalAnalysis: ProposalAnalysis
+  proposalAnalysis: ProposalAnalysis,
+  standardData?: StandardData
 ): Promise<VendorEvaluation> {
+  let standardSection = '';
+  let standardInstructions = '';
+  
+  if (standardData && standardData.taggedSectionIds.length > 0) {
+    const taggedSections = standardData.sections.filter(s => 
+      standardData.taggedSectionIds.includes(s.id)
+    );
+    
+    standardSection = `
+
+Compliance Standard: ${standardData.name}
+Tagged Sections:
+${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : ''}`).join('\n')}`;
+
+    standardInstructions = `
+10. Section-specific compliance scores (0-100) for each tagged section with detailed findings
+   Add "sectionCompliance" array with: sectionId, sectionName, score, findings`;
+  }
+
   const prompt = `You are an expert procurement evaluation system. Evaluate how well this vendor proposal meets the requirements.
 
 Requirements:
 ${JSON.stringify(requirementAnalysis, null, 2)}
 
 Vendor Proposal:
-${JSON.stringify(proposalAnalysis, null, 2)}
+${JSON.stringify(proposalAnalysis, null, 2)}${standardSection}
 
 Provide a comprehensive evaluation with:
 1. Overall fit score (0-100)
 2. Technical fit score (0-100) - how well capabilities match requirements
 3. Delivery risk score (0-100) - higher means more risk
 4. Cost estimate range
-5. Compliance score (0-100) - security, standards adherence
+5. Compliance score (0-100) - security, standards adherence${standardData ? ' (factor in section compliance)' : ''}
 6. Status: "recommended" (score >80), "under-review" (60-80), or "risk-flagged" (<60)
 7. AI rationale explaining the scores
 8. Role-specific insights for: delivery, product, architecture, engineering, procurement teams
-9. Detailed scores for: integration complexity, support quality, scalability, documentation
+9. Detailed scores for: integration complexity, support quality, scalability, documentation${standardInstructions}
 
 Return JSON with this structure:
 {
@@ -200,7 +239,10 @@ Return JSON with this structure:
     "support": 85,
     "scalability": 88,
     "documentation": 92
-  }
+  }${standardData && standardData.taggedSectionIds.length > 0 ? `,
+  "sectionCompliance": [
+    {"sectionId": "section-id", "sectionName": "Section Name", "score": 85, "findings": "Detailed findings"}
+  ]` : ''}
 }`;
 
   const response = await openai.chat.completions.create({

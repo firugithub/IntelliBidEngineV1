@@ -290,12 +290,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use first requirement for evaluation criteria
       const requirementAnalysis = requirements[0].extractedData as any;
 
+      // Check if there's a standard associated with requirements or proposals
+      let standardData = null;
+      const requirement = requirements[0];
+      if (requirement.standardId) {
+        const standard = await storage.getStandard(requirement.standardId);
+        if (standard && standard.status === "active") {
+          standardData = {
+            id: standard.id,
+            name: standard.name,
+            sections: standard.sections || [],
+            taggedSectionIds: requirement.taggedSections || [],
+          };
+        }
+      }
+
       // Evaluate each proposal
       const evaluations = [];
       for (const proposal of proposals) {
         const proposalAnalysis = proposal.extractedData as any;
         
-        const evaluation = await evaluateProposal(requirementAnalysis, proposalAnalysis);
+        // Use proposal's tagged sections if available, otherwise use requirement's
+        let proposalStandardData = standardData;
+        if (standardData && proposal.standardId === standardData.id) {
+          proposalStandardData = {
+            ...standardData,
+            taggedSectionIds: proposal.taggedSections || standardData.taggedSectionIds,
+          };
+        }
+        
+        const evaluation = await evaluateProposal(
+          requirementAnalysis, 
+          proposalAnalysis,
+          proposalStandardData || undefined
+        );
 
         const savedEvaluation = await storage.createEvaluation({
           projectId,

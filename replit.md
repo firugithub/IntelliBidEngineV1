@@ -113,6 +113,43 @@ Preferred communication style: Simple, everyday language.
 
 **Rationale:** Multi-stage pipeline allows for transparent, auditable decision-making. Role-specific insights ensure each stakeholder gets relevant information without information overload. Weighted scoring accommodates different organizational priorities.
 
+### Standards & Compliance Framework
+
+**Purpose:** Enable organizations to define reusable compliance standards and evaluate vendor proposals against specific regulatory, security, or organizational requirements.
+
+**Key Features:**
+- **Standards Management:** Admin interface to create and manage organization-wide compliance standards
+- **Section-Based Structure:** Each standard contains multiple sections (e.g., "Data Security", "API Standards", "Performance Requirements")
+- **Document Tagging:** During upload, users can tag which standard sections each document addresses
+- **Section-Level Compliance Scoring:** AI evaluates vendor proposals against each tagged section independently
+- **Enhanced Reporting:** Evaluation results include section-by-section compliance scores with detailed findings
+
+**Implementation:**
+- **Database Schema:**
+  - `standards` table: Stores compliance standards with JSONB sections array, status (active/inactive)
+  - `requirements` and `proposals` tables: Include `standardId` and `taggedSections` (JSONB array) fields
+- **Frontend:**
+  - **StandardsPage** (`/standards`): CRUD interface for managing standards with expandable section lists
+  - **UploadPage**: Standard selection dropdown and per-document section tagging checkboxes
+  - Navigation includes "Standards & Compliance" button on HomePage
+- **Backend:**
+  - RESTful API endpoints: `GET/POST /api/standards`, `GET/PATCH /api/standards/:id`, `POST /api/standards/:id/deactivate`
+  - Upload endpoints persist `standardId` and `taggedSections` metadata for all document types
+  - Analysis endpoint fetches standard data and passes to AI evaluation
+- **AI Integration:**
+  - `evaluateProposal` function accepts optional `StandardData` parameter
+  - Prompt includes tagged sections with descriptions
+  - Response includes `sectionCompliance` array with per-section scores and findings
+  - Overall compliance score factors in section-level compliance
+
+**Use Cases:**
+- Organizations with industry-specific compliance requirements (healthcare, finance, aviation)
+- Teams evaluating vendors against internal architecture standards
+- Projects requiring security certifications or regulatory compliance
+- Multi-criteria evaluation with objective, section-based scoring
+
+**Navigation:** HomePage → "Standards & Compliance" button → StandardsPage for admin management
+
 ## External Dependencies
 
 ### Third-Party Services
@@ -125,14 +162,15 @@ Preferred communication style: Simple, everyday language.
 ### Database
 
 **PostgreSQL (Neon Serverless):**
-- **Purpose:** Primary data storage for portfolios, projects, requirements, proposals, and evaluations
+- **Purpose:** Primary data storage for portfolios, projects, requirements, proposals, evaluations, and standards
 - **Configuration:** Requires `DATABASE_URL` environment variable
-- **Schema:** Five main tables with JSONB fields for flexible structured data:
+- **Schema:** Six main tables with JSONB fields for flexible structured data:
   - portfolios: Organizational units (10 predefined portfolios: Group Services, Operations Safety & Security, Customer Brand and Experience, Commercial, Web and Mobile, Enterprise Technology, Dnata & Dnata International, Dnata Travel, CyberSecurity, Data(EDH))
   - projects: Vendor evaluation projects with portfolioId, initiativeName, vendorList
-  - requirements: RFT documents with documentType field
-  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
+  - requirements: RFT documents with documentType field, standardId, taggedSections (JSONB)
+  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet), standardId, taggedSections (JSONB)
   - evaluations: AI-generated vendor assessments with role-specific insights
+  - standards: Compliance standards with name, description, sections (JSONB array), status (active/inactive)
 - **Migration:** Uses Drizzle Kit for schema management
 
 ### UI Component Libraries
