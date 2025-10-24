@@ -57,13 +57,20 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
     return variants[status as keyof typeof variants] || "secondary";
   };
 
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score: number, inverse = false) => {
+    if (inverse) {
+      // For risk metrics where lower is better
+      if (score <= 30) return "text-green-500";
+      if (score <= 60) return "text-yellow-500";
+      return "text-red-500";
+    }
+    // For normal metrics where higher is better
     if (score >= 80) return "text-green-500";
     if (score >= 60) return "text-yellow-500";
     return "text-red-500";
   };
 
-  const renderVendorCard = (evaluation: VendorEvaluation, relevantInsights: string[], metrics?: { label: string; value: number | string }[]) => (
+  const renderVendorCard = (evaluation: VendorEvaluation, relevantInsights: string[], metrics?: { label: string; value: number | string; inverse?: boolean }[]) => (
     <Card key={evaluation.vendorName} className="hover-elevate">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
@@ -83,7 +90,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {metrics.map((metric, idx) => (
               <div key={idx} className="space-y-1">
                 <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className={`text-sm font-semibold ${typeof metric.value === 'number' ? getScoreColor(metric.value) : ''}`}>
+                <p className={`text-sm font-semibold ${typeof metric.value === 'number' ? getScoreColor(metric.value, metric.inverse) : ''}`}>
                   {typeof metric.value === 'number' ? `${metric.value}%` : metric.value}
                 </p>
               </div>
@@ -165,7 +172,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                 evaluation,
                 evaluation.roleInsights?.delivery || [],
                 [
-                  { label: "Delivery Risk", value: evaluation.deliveryRisk },
+                  { label: "Delivery Risk", value: evaluation.deliveryRisk, inverse: true },
                   { label: "Overall Fit", value: evaluation.overallScore },
                 ]
               )
@@ -292,7 +299,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Overall Risk</p>
-                      <p className={`text-sm font-semibold ${getScoreColor(100 - evaluation.deliveryRisk)}`}>
+                      <p className={`text-sm font-semibold ${getScoreColor(evaluation.deliveryRisk, true)}`}>
                         {evaluation.deliveryRisk < 30 ? "Low" : evaluation.deliveryRisk < 60 ? "Medium" : "High"}
                       </p>
                     </div>
