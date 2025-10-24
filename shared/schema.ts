@@ -66,6 +66,7 @@ export const evaluations = pgTable("evaluations", {
   aiRationale: text("ai_rationale"),
   roleInsights: jsonb("role_insights"),
   detailedScores: jsonb("detailed_scores"),
+  sectionCompliance: jsonb("section_compliance"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

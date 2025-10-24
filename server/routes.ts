@@ -290,13 +290,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use first requirement for evaluation criteria
       const requirementAnalysis = requirements[0].extractedData as any;
 
-      // Check if there's a standard associated with requirements or proposals
-      let standardData = null;
+      // Check if there's a standard associated with requirements
+      let requirementStandardData = null;
       const requirement = requirements[0];
       if (requirement.standardId) {
         const standard = await storage.getStandard(requirement.standardId);
         if (standard && standard.status === "active") {
-          standardData = {
+          requirementStandardData = {
             id: standard.id,
             name: standard.name,
             sections: standard.sections || [],
@@ -310,13 +310,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const proposal of proposals) {
         const proposalAnalysis = proposal.extractedData as any;
         
-        // Use proposal's tagged sections if available, otherwise use requirement's
-        let proposalStandardData = standardData;
-        if (standardData && proposal.standardId === standardData.id) {
-          proposalStandardData = {
-            ...standardData,
-            taggedSectionIds: proposal.taggedSections || standardData.taggedSectionIds,
-          };
+        // Determine which standard to use for this proposal
+        let proposalStandardData = null;
+        
+        if (proposal.standardId) {
+          // Proposal has its own standard reference
+          if (requirementStandardData && proposal.standardId === requirementStandardData.id) {
+            // Use requirement standard with proposal's tagged sections
+            proposalStandardData = {
+              ...requirementStandardData,
+              taggedSectionIds: proposal.taggedSections || requirementStandardData.taggedSectionIds,
+            };
+          } else {
+            // Fetch proposal's standard independently
+            const proposalStandard = await storage.getStandard(proposal.standardId);
+            if (proposalStandard && proposalStandard.status === "active") {
+              proposalStandardData = {
+                id: proposalStandard.id,
+                name: proposalStandard.name,
+                sections: proposalStandard.sections || [],
+                taggedSectionIds: proposal.taggedSections || [],
+              };
+            }
+          }
+        } else if (requirementStandardData) {
+          // Fall back to requirement standard
+          proposalStandardData = requirementStandardData;
         }
         
         const evaluation = await evaluateProposal(
@@ -337,6 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           aiRationale: evaluation.rationale,
           roleInsights: evaluation.roleInsights,
           detailedScores: evaluation.detailedScores,
+          sectionCompliance: evaluation.sectionCompliance || null,
         });
 
         evaluations.push({
