@@ -15,6 +15,7 @@ interface VendorDocuments {
   productQuestionnaire: File[];
   functionalRequirement: File[];
   nonFunctionalRequirement: File[];
+  csocSheet: File[];
 }
 
 export default function UploadPage() {
@@ -40,6 +41,7 @@ export default function UploadPage() {
           productQuestionnaire: [],
           functionalRequirement: [],
           nonFunctionalRequirement: [],
+          csocSheet: [],
         };
       });
       setVendorDocuments(initialDocs);
@@ -138,6 +140,18 @@ export default function UploadPage() {
             body: formData,
           });
         }
+
+        // Upload CSOC Sheet
+        if (docs.csocSheet.length > 0) {
+          const formData = new FormData();
+          docs.csocSheet.forEach(file => formData.append("files", file));
+          formData.append("vendorName", vendor);
+          formData.append("documentType", "CSOC Sheet");
+          await fetch(`/api/projects/${projectId}/proposals`, {
+            method: "POST",
+            body: formData,
+          });
+        }
       }
 
       // Trigger analysis
@@ -178,7 +192,8 @@ export default function UploadPage() {
         docs.sow.length > 0 ||
         docs.productQuestionnaire.length > 0 ||
         docs.functionalRequirement.length > 0 ||
-        docs.nonFunctionalRequirement.length > 0
+        docs.nonFunctionalRequirement.length > 0 ||
+        docs.csocSheet.length > 0
       );
     });
   };
@@ -304,6 +319,19 @@ export default function UploadPage() {
                           title="Drop Non-Functional Requirement Sheet Here"
                           description="PDF, Word, or Excel files"
                           onFilesChange={(files) => updateVendorDocuments(vendor, "nonFunctionalRequirement", files)}
+                        />
+                      </div>
+
+                      {/* CSOC Sheet */}
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="text-sm font-semibold mb-1">CSOC Sheet</h3>
+                          <p className="text-xs text-muted-foreground">Upload CSOC sheet from {vendor}</p>
+                        </div>
+                        <FileUploadZone
+                          title="Drop CSOC Sheet Here"
+                          description="PDF, Word, or Excel files"
+                          onFilesChange={(files) => updateVendorDocuments(vendor, "csocSheet", files)}
                         />
                       </div>
                     </div>

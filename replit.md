@@ -45,11 +45,12 @@ Preferred communication style: Simple, everyday language.
 - **NewProjectPage:** Multi-step form for project details (name, initiative, vendor list)
 - **UploadPage:** Structured document upload with RFT section and vendor-specific tabs
   - RFT (Request for Tender) upload section
-  - Per-vendor tabs with 4 document types each:
+  - Per-vendor tabs with 5 document types each:
     1. SOW (Statement of Work)
     2. Product Questionnaire
     3. Functional Requirement Sheet
     4. Non-Functional Requirement Sheet
+    5. CSOC Sheet
 - **DashboardPage:** Evaluation results with multiple visualization types and role-based tabbed views
 
 **Rationale:** React with TypeScript provides type safety and component reusability. shadcn/ui offers accessible, customizable components that maintain consistency. TanStack Query simplifies server state management with built-in caching and optimistic updates. The design system prioritizes enterprise users who need to process complex information quickly.
@@ -68,7 +69,7 @@ Preferred communication style: Simple, everyday language.
 - PostgreSQL database (configured for Neon serverless)
 - In-memory storage fallback (MemStorage) for development/testing
 - Session storage using connect-pg-simple
-- Document type categorization (RFT, SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement)
+- Document type categorization (RFT, SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
 
 **API Structure:**
 - RESTful endpoints for departments, projects, requirements, proposals, and evaluations
@@ -130,7 +131,7 @@ Preferred communication style: Simple, everyday language.
   - departments: Organizational units (10 predefined departments)
   - projects: Vendor evaluation projects with departmentId, initiativeName, vendorList
   - requirements: RFT documents with documentType field
-  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement)
+  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
   - evaluations: AI-generated vendor assessments with role-specific insights
 - **Migration:** Uses Drizzle Kit for schema management
 
