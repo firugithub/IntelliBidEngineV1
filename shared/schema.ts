@@ -23,6 +23,7 @@ export const projects = pgTable("projects", {
 export const requirements = pgTable("requirements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull(),
+  documentType: text("document_type").notNull().default("RFT"),
   fileName: text("file_name").notNull(),
   extractedData: jsonb("extracted_data"),
   evaluationCriteria: jsonb("evaluation_criteria"),
@@ -33,6 +34,7 @@ export const proposals = pgTable("proposals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull(),
   vendorName: text("vendor_name").notNull(),
+  documentType: text("document_type").notNull(),
   fileName: text("file_name").notNull(),
   extractedData: jsonb("extracted_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -118,6 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = req.params.id;
       const files = req.files as Express.Multer.File[];
+      const documentType = req.body.documentType || "RFT";
 
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
@@ -130,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const requirement = await storage.createRequirement({
           projectId,
+          documentType,
           fileName: file.originalname,
           extractedData: parsed,
           evaluationCriteria: analysis.evaluationCriteria,
@@ -150,9 +152,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = req.params.id;
       const files = req.files as Express.Multer.File[];
+      const vendorName = req.body.vendorName;
+      const documentType = req.body.documentType || "SOW";
 
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
+      }
+
+      if (!vendorName) {
+        return res.status(400).json({ error: "Vendor name is required" });
       }
 
       const proposals = [];
@@ -162,7 +170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const proposal = await storage.createProposal({
           projectId,
-          vendorName: analysis.vendorName,
+          vendorName,
+          documentType,
           fileName: file.originalname,
           extractedData: analysis,
         });
