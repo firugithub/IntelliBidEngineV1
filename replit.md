@@ -40,8 +40,8 @@ Preferred communication style: Simple, everyday language.
 - Information-dense layouts with contextual spacing
 
 **Key Pages:**
-- **HomePage:** Displays 10 department cards with project statistics
-- **DepartmentPage:** Shows all projects within a department
+- **HomePage:** Displays 10 portfolio cards with project statistics
+- **PortfolioPage:** Shows all projects within a portfolio
 - **NewProjectPage:** Multi-step form for project details (name, initiative, vendor list)
 - **UploadPage:** Structured document upload with RFT section and vendor-specific tabs
   - RFT (Request for Tender) upload section
@@ -72,10 +72,10 @@ Preferred communication style: Simple, everyday language.
 - Document type categorization (RFT, SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
 
 **API Structure:**
-- RESTful endpoints for departments, projects, requirements, proposals, and evaluations
-- Department-based project filtering and statistics
+- RESTful endpoints for portfolios, projects, requirements, proposals, and evaluations
+- Portfolio-based project filtering and statistics
 - File upload endpoints with 10MB size limit, supporting vendor-specific document types
-- Sample data seeding endpoints for departments and demonstration projects
+- Sample data seeding endpoints for portfolios and demonstration projects
 
 **Key Services:**
 - **documentParser:** Extracts text from uploaded documents (PDF, TXT, Word, Excel)
@@ -91,9 +91,9 @@ Preferred communication style: Simple, everyday language.
 ### AI Analysis Pipeline
 
 **Document Understanding Flow:**
-1. Select department and create project with vendor list
+1. Select portfolio and create project with vendor list
 2. Upload RFT document → Parse and extract evaluation criteria, weights, technical requirements
-3. Upload vendor-specific documents (SOW, Product Questionnaire, Functional Requirements, Non-Functional Requirements) → Extract capabilities, pricing, technical approach per vendor
+3. Upload vendor-specific documents (SOW, Product Questionnaire, Functional Requirements, Non-Functional Requirements, CSOC Sheet) → Extract capabilities, pricing, technical approach per vendor
 4. Semantic matching → AI compares vendor proposals against RFT requirements
 5. Scoring generation → Weighted evaluation across multiple dimensions
 6. Role-specific insights → Generate tailored summaries for each stakeholder role (Delivery/PMO, Procurement, Product, Architecture, Engineering/QA)
@@ -125,11 +125,11 @@ Preferred communication style: Simple, everyday language.
 ### Database
 
 **PostgreSQL (Neon Serverless):**
-- **Purpose:** Primary data storage for departments, projects, requirements, proposals, and evaluations
+- **Purpose:** Primary data storage for portfolios, projects, requirements, proposals, and evaluations
 - **Configuration:** Requires `DATABASE_URL` environment variable
 - **Schema:** Five main tables with JSONB fields for flexible structured data:
-  - departments: Organizational units (10 predefined departments)
-  - projects: Vendor evaluation projects with departmentId, initiativeName, vendorList
+  - portfolios: Organizational units (10 predefined portfolios: Group Services, Operations Safety & Security, Customer Brand and Experience, Commercial, Web and Mobile, Enterprise Technology, Dnata & Dnata International, Dnata Travel, CyberSecurity, Data(EDH))
+  - projects: Vendor evaluation projects with portfolioId, initiativeName, vendorList
   - requirements: RFT documents with documentType field
   - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
   - evaluations: AI-generated vendor assessments with role-specific insights
