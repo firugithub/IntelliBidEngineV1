@@ -70,6 +70,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Standards routes
+  app.get("/api/standards", async (req, res) => {
+    try {
+      const standards = await storage.getAllStandards();
+      res.json(standards);
+    } catch (error) {
+      console.error("Error fetching standards:", error);
+      res.status(500).json({ error: "Failed to fetch standards" });
+    }
+  });
+
+  app.get("/api/standards/active", async (req, res) => {
+    try {
+      const standards = await storage.getActiveStandards();
+      res.json(standards);
+    } catch (error) {
+      console.error("Error fetching active standards:", error);
+      res.status(500).json({ error: "Failed to fetch active standards" });
+    }
+  });
+
+  app.get("/api/standards/:id", async (req, res) => {
+    try {
+      const standard = await storage.getStandard(req.params.id);
+      if (!standard) {
+        return res.status(404).json({ error: "Standard not found" });
+      }
+      res.json(standard);
+    } catch (error) {
+      console.error("Error fetching standard:", error);
+      res.status(500).json({ error: "Failed to fetch standard" });
+    }
+  });
+
+  app.post("/api/standards", async (req, res) => {
+    try {
+      const { name, description, sections } = req.body;
+      const standard = await storage.createStandard({
+        name,
+        description,
+        sections,
+        isActive: "true",
+      });
+      res.json(standard);
+    } catch (error) {
+      console.error("Error creating standard:", error);
+      res.status(500).json({ error: "Failed to create standard" });
+    }
+  });
+
+  app.patch("/api/standards/:id", async (req, res) => {
+    try {
+      const { name, description, sections } = req.body;
+      await storage.updateStandard(req.params.id, {
+        name,
+        description,
+        sections,
+      });
+      const updated = await storage.getStandard(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating standard:", error);
+      res.status(500).json({ error: "Failed to update standard" });
+    }
+  });
+
+  app.delete("/api/standards/:id", async (req, res) => {
+    try {
+      await storage.deactivateStandard(req.params.id);
+      res.json({ message: "Standard deactivated successfully" });
+    } catch (error) {
+      console.error("Error deactivating standard:", error);
+      res.status(500).json({ error: "Failed to deactivate standard" });
+    }
+  });
+
   // Create a new project
   app.post("/api/projects", async (req, res) => {
     try {
@@ -119,6 +195,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = req.params.id;
       const files = req.files as Express.Multer.File[];
       const documentType = req.body.documentType || "RFT";
+      const standardId = req.body.standardId;
+      const taggedSections = req.body.taggedSections ? JSON.parse(req.body.taggedSections) : null;
 
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
@@ -135,6 +213,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileName: file.originalname,
           extractedData: parsed,
           evaluationCriteria: analysis.evaluationCriteria,
+          standardId,
+          taggedSections,
         });
 
         requirements.push({ ...requirement, analysis });
@@ -154,6 +234,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const files = req.files as Express.Multer.File[];
       const vendorName = req.body.vendorName;
       const documentType = req.body.documentType || "SOW";
+      const standardId = req.body.standardId;
+      const taggedSections = req.body.taggedSections ? JSON.parse(req.body.taggedSections) : null;
 
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
@@ -174,6 +256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           documentType,
           fileName: file.originalname,
           extractedData: { ...parsed, aiAnalysis: analysis },
+          standardId,
+          taggedSections,
         });
 
         proposals.push({ ...proposal, analysis });
