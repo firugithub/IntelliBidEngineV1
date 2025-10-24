@@ -3,6 +3,7 @@ import { ScoreCard } from "@/components/ScoreCard";
 import { ComparisonTable } from "@/components/ComparisonTable";
 import { RoleViewTabs } from "@/components/RoleViewTabs";
 import { RadarChart } from "@/components/RadarChart";
+import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +28,26 @@ interface Evaluation {
   compliance: number;
   status: "recommended" | "under-review" | "risk-flagged";
   aiRationale: string | null;
-  roleInsights: any;
-  detailedScores: any;
+  roleInsights: {
+    delivery?: string[];
+    product?: string[];
+    architecture?: string[];
+    engineering?: string[];
+    procurement?: string[];
+    security?: string[];
+  };
+  detailedScores: {
+    integration?: number;
+    support?: number;
+    scalability?: number;
+    documentation?: number;
+  };
+  sectionCompliance?: {
+    sectionId: string;
+    sectionName: string;
+    score: number;
+    findings: string;
+  }[];
 }
 
 export default function DashboardPage() {
@@ -90,9 +109,9 @@ export default function DashboardPage() {
     deliveryRisk: e.deliveryRisk,
     cost: e.cost,
     compliance: e.compliance,
-    integration: e.detailedScores?.integration > 80 ? ("easy" as const) : 
-                 e.detailedScores?.integration > 60 ? ("moderate" as const) : ("complex" as const),
-    support: e.detailedScores?.support > 80 ? ("24/7" as const) : ("business-hours" as const),
+    integration: (e.detailedScores?.integration || 0) > 80 ? ("easy" as const) : 
+                 (e.detailedScores?.integration || 0) > 60 ? ("moderate" as const) : ("complex" as const),
+    support: (e.detailedScores?.support || 0) > 80 ? ("24/7" as const) : ("business-hours" as const),
   }));
 
   // Prepare radar chart data
@@ -235,51 +254,8 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">Role-Specific Insights</h2>
-            <RoleViewTabs
-              deliveryInsights={{
-                title: "Delivery & PMO Assessment",
-                items: topVendor.roleInsights?.delivery || [
-                  "Analysis based on vendor proposals and requirements",
-                  "Timeline and resource allocation considerations",
-                  "Risk factors and mitigation strategies identified",
-                ],
-              }}
-              productInsights={{
-                title: "Product Requirements Coverage",
-                items: topVendor.roleInsights?.product || [
-                  "Feature coverage analysis across proposals",
-                  "Product roadmap alignment considerations",
-                  "Customization and flexibility assessment",
-                ],
-              }}
-              architectureInsights={{
-                title: "Architecture & Security Analysis",
-                items: topVendor.roleInsights?.architecture || [
-                  "Technical architecture evaluation",
-                  "Security and compliance assessment",
-                  "Integration complexity analysis",
-                ],
-              }}
-              engineeringInsights={{
-                title: "Engineering & Quality Assessment",
-                items: topVendor.roleInsights?.engineering || [
-                  "Development toolkit and SDK quality",
-                  "Testing and quality assurance capabilities",
-                  "Documentation and developer experience",
-                ],
-              }}
-              procurementInsights={{
-                title: "Commercial & TCO Analysis",
-                items: topVendor.roleInsights?.procurement || [
-                  "Total cost of ownership assessment",
-                  "Contract terms and pricing structure",
-                  "SLA and support model evaluation",
-                ],
-              }}
-            />
-          </div>
+          {/* Role-Based Evaluation Reports - Comparative View */}
+          <RoleBasedEvaluationReport evaluations={evaluations} />
 
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>

@@ -41,6 +41,7 @@ export interface VendorEvaluation {
     architecture: string[];
     engineering: string[];
     procurement: string[];
+    security: string[];
   };
   detailedScores: {
     integration: number;
@@ -215,7 +216,7 @@ Provide a comprehensive evaluation with:
 5. Compliance score (0-100) - security, standards adherence${standardData ? ' (factor in section compliance)' : ''}
 6. Status: "recommended" (score >80), "under-review" (60-80), or "risk-flagged" (<60)
 7. AI rationale explaining the scores
-8. Role-specific insights for: delivery, product, architecture, engineering, procurement teams
+8. Role-specific insights for: delivery, product, architecture, engineering, procurement, security/QA teams
 9. Detailed scores for: integration complexity, support quality, scalability, documentation${standardInstructions}
 
 Return JSON with this structure:
@@ -232,7 +233,8 @@ Return JSON with this structure:
     "product": ["insight 1"],
     "architecture": ["insight 1"],
     "engineering": ["insight 1"],
-    "procurement": ["insight 1"]
+    "procurement": ["insight 1"],
+    "security": ["insight 1"]
   },
   "detailedScores": {
     "integration": 90,
