@@ -14,11 +14,30 @@ IntelliBid is an AI-powered platform that transforms the vendor evaluation proce
 
 **Target Users:** Delivery Managers, Procurement teams, Product Managers, Architects, Engineers, and QA teams involved in vendor selection decisions.
 
-**Current Status:** ✅ Fully functional MVP with complete frontend, backend, AI analysis, and sample data seeding. Ready for testing and deployment.
+**Current Status:** ✅ Fully functional MVP with complete frontend, backend, AI analysis, and sample data seeding. Enhanced with comprehensive role-based evaluation reports showing comparative vendor analysis across all stakeholder perspectives. Ready for testing and deployment.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (October 24, 2025)
+
+**Role-Based Evaluation Reports:**
+- Created RoleBasedEvaluationReport component with tabbed interface for 6 stakeholder roles: Delivery, Product, Architecture, Engineering, Security, Procurement
+- Implemented comparative vendor view showing ALL vendors side-by-side for each role perspective
+- Added role-specific metrics display with proper color coding (green=good, yellow=medium, red=bad)
+- Implemented inverse color coding for risk metrics (deliveryRisk, securityRisk) where lower values = green/better
+- Enhanced AI analysis to generate Security and QA insights alongside existing roles
+- Replaced single-vendor RoleViewTabs with multi-vendor comparative analysis in DashboardPage
+
+**Technical Fixes:**
+- Fixed pdf-parse integration to use v2 API (PDFParse class-based approach)
+- Updated document parser to properly extract text and page count from PDF files
+- Added TypeScript type safety for optional metrics in evaluation interface
+
+**Standards & Compliance:**
+- Comprehensive Standards & Compliance feature with admin management, document tagging, and AI integration
+- Added sectionCompliance field to evaluation schema for section-by-section compliance tracking
 
 ## System Architecture
 

@@ -1,4 +1,4 @@
-import * as pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 
 export interface ParsedDocument {
   text: string;
@@ -11,11 +11,14 @@ export async function parseDocument(buffer: Buffer, fileName: string): Promise<P
 
   try {
     if (fileExtension === 'pdf') {
-      const data = await pdf(buffer);
+      const parser = new PDFParse({ data: buffer });
+      const textResult = await parser.getText();
+      await parser.destroy();
+      
       return {
-        text: data.text,
+        text: textResult.text,
         fileName,
-        pageCount: data.numpages,
+        pageCount: textResult.pages.length,
       };
     } else if (fileExtension === 'txt') {
       return {
