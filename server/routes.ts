@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vendorName,
           documentType,
           fileName: file.originalname,
-          extractedData: analysis,
+          extractedData: { ...parsed, aiAnalysis: analysis },
         });
 
         proposals.push({ ...proposal, analysis });
