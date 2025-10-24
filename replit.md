@@ -40,9 +40,17 @@ Preferred communication style: Simple, everyday language.
 - Information-dense layouts with contextual spacing
 
 **Key Pages:**
-- Upload page for requirements and proposal documents
-- Dashboard page displaying evaluation results with multiple visualization types
-- Role-based tabbed views for different stakeholder perspectives
+- **HomePage:** Displays 10 department cards with project statistics
+- **DepartmentPage:** Shows all projects within a department
+- **NewProjectPage:** Multi-step form for project details (name, initiative, vendor list)
+- **UploadPage:** Structured document upload with RFT section and vendor-specific tabs
+  - RFT (Request for Tender) upload section
+  - Per-vendor tabs with 4 document types each:
+    1. SOW (Statement of Work)
+    2. Product Questionnaire
+    3. Functional Requirement Sheet
+    4. Non-Functional Requirement Sheet
+- **DashboardPage:** Evaluation results with multiple visualization types and role-based tabbed views
 
 **Rationale:** React with TypeScript provides type safety and component reusability. shadcn/ui offers accessible, customizable components that maintain consistency. TanStack Query simplifies server state management with built-in caching and optimistic updates. The design system prioritizes enterprise users who need to process complex information quickly.
 
@@ -60,11 +68,13 @@ Preferred communication style: Simple, everyday language.
 - PostgreSQL database (configured for Neon serverless)
 - In-memory storage fallback (MemStorage) for development/testing
 - Session storage using connect-pg-simple
+- Document type categorization (RFT, SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement)
 
 **API Structure:**
-- RESTful endpoints for project, requirement, proposal, and evaluation resources
-- File upload endpoints with 10MB size limit
-- Sample data seeding endpoint for testing
+- RESTful endpoints for departments, projects, requirements, proposals, and evaluations
+- Department-based project filtering and statistics
+- File upload endpoints with 10MB size limit, supporting vendor-specific document types
+- Sample data seeding endpoints for departments and demonstration projects
 
 **Key Services:**
 - **documentParser:** Extracts text from uploaded documents (PDF, TXT, Word, Excel)
@@ -80,11 +90,12 @@ Preferred communication style: Simple, everyday language.
 ### AI Analysis Pipeline
 
 **Document Understanding Flow:**
-1. Upload and parse requirements document → Extract evaluation criteria, weights, technical requirements
-2. Upload and parse vendor proposals → Extract capabilities, pricing, technical approach
-3. Semantic matching → AI compares proposals against requirements
-4. Scoring generation → Weighted evaluation across multiple dimensions
-5. Role-specific insights → Generate tailored summaries for each stakeholder role
+1. Select department and create project with vendor list
+2. Upload RFT document → Parse and extract evaluation criteria, weights, technical requirements
+3. Upload vendor-specific documents (SOW, Product Questionnaire, Functional Requirements, Non-Functional Requirements) → Extract capabilities, pricing, technical approach per vendor
+4. Semantic matching → AI compares vendor proposals against RFT requirements
+5. Scoring generation → Weighted evaluation across multiple dimensions
+6. Role-specific insights → Generate tailored summaries for each stakeholder role (Delivery/PMO, Procurement, Product, Architecture, Engineering/QA)
 
 **Scoring Dimensions:**
 - Overall Score (0-100)
@@ -113,9 +124,14 @@ Preferred communication style: Simple, everyday language.
 ### Database
 
 **PostgreSQL (Neon Serverless):**
-- **Purpose:** Primary data storage for projects, requirements, proposals, and evaluations
+- **Purpose:** Primary data storage for departments, projects, requirements, proposals, and evaluations
 - **Configuration:** Requires `DATABASE_URL` environment variable
-- **Schema:** Four main tables (projects, requirements, proposals, evaluations) with JSONB fields for flexible structured data
+- **Schema:** Five main tables with JSONB fields for flexible structured data:
+  - departments: Organizational units (10 predefined departments)
+  - projects: Vendor evaluation projects with departmentId, initiativeName, vendorList
+  - requirements: RFT documents with documentType field
+  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement)
+  - evaluations: AI-generated vendor assessments with role-specific insights
 - **Migration:** Uses Drizzle Kit for schema management
 
 ### UI Component Libraries
