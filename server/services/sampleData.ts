@@ -434,8 +434,8 @@ export async function wipeAllData() {
     for (const project of projects) {
       const proposals = await storage.getProposalsByProject(project.id);
       for (const proposal of proposals) {
-        const evaluations = await storage.getEvaluationsByProposal(proposal.id);
-        for (const evaluation of evaluations) {
+        const evaluation = await storage.getEvaluationByProposal(proposal.id);
+        if (evaluation) {
           await storage.deleteEvaluation(evaluation.id);
         }
       }

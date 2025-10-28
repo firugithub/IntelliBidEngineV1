@@ -40,8 +40,9 @@ function DataManagementButtons() {
     mutationFn: async () => {
       return await apiRequest("POST", "/api/generate-mock-data");
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries();
+    onSuccess: async () => {
+      await queryClient.invalidateQueries();
+      await queryClient.refetchQueries();
       toast({ title: "Mock data generated successfully!" });
     },
     onError: () => {
@@ -53,8 +54,9 @@ function DataManagementButtons() {
     mutationFn: async () => {
       return await apiRequest("POST", "/api/wipe-data");
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries();
+    onSuccess: async () => {
+      await queryClient.invalidateQueries();
+      await queryClient.refetchQueries();
       setIsWipeDialogOpen(false);
       toast({ title: "All data wiped successfully" });
     },

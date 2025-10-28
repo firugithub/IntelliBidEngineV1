@@ -22,6 +22,7 @@ export interface IStorage {
   getPortfolio(id: string): Promise<Portfolio | undefined>;
   getAllPortfolios(): Promise<Portfolio[]>;
   getPortfolioByName(name: string): Promise<Portfolio | undefined>;
+  deletePortfolio(id: string): Promise<void>;
 
   // Standards
   createStandard(standard: InsertStandard): Promise<Standard>;
@@ -45,20 +46,24 @@ export interface IStorage {
   getAllProjects(): Promise<Project[]>;
   getProjectsByPortfolio(portfolioId: string): Promise<Project[]>;
   updateProjectStatus(id: string, status: string): Promise<void>;
+  deleteProject(id: string): Promise<void>;
 
   // Requirements
   createRequirement(requirement: InsertRequirement): Promise<Requirement>;
   getRequirementsByProject(projectId: string): Promise<Requirement[]>;
+  deleteRequirement(id: string): Promise<void>;
 
   // Proposals
   createProposal(proposal: InsertProposal): Promise<Proposal>;
   getProposalsByProject(projectId: string): Promise<Proposal[]>;
   getProposal(id: string): Promise<Proposal | undefined>;
+  deleteProposal(id: string): Promise<void>;
 
   // Evaluations
   createEvaluation(evaluation: InsertEvaluation): Promise<Evaluation>;
   getEvaluationsByProject(projectId: string): Promise<Evaluation[]>;
   getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined>;
+  deleteEvaluation(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -102,6 +107,10 @@ export class MemStorage implements IStorage {
 
   async getPortfolioByName(name: string): Promise<Portfolio | undefined> {
     return Array.from(this.portfolios.values()).find(p => p.name === name);
+  }
+
+  async deletePortfolio(id: string): Promise<void> {
+    this.portfolios.delete(id);
   }
 
   async createStandard(insertStandard: InsertStandard): Promise<Standard> {
@@ -226,6 +235,10 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async deleteProject(id: string): Promise<void> {
+    this.projects.delete(id);
+  }
+
   async createRequirement(insertRequirement: InsertRequirement): Promise<Requirement> {
     const id = randomUUID();
     const requirement: Requirement = {
@@ -247,6 +260,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.requirements.values()).filter(
       (req) => req.projectId === projectId
     );
+  }
+
+  async deleteRequirement(id: string): Promise<void> {
+    this.requirements.delete(id);
   }
 
   async createProposal(insertProposal: InsertProposal): Promise<Proposal> {
@@ -274,6 +291,10 @@ export class MemStorage implements IStorage {
 
   async getProposal(id: string): Promise<Proposal | undefined> {
     return this.proposals.get(id);
+  }
+
+  async deleteProposal(id: string): Promise<void> {
+    this.proposals.delete(id);
   }
 
   async createEvaluation(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
@@ -308,6 +329,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.evaluations.values()).find(
       (evaluation) => evaluation.proposalId === proposalId
     );
+  }
+
+  async deleteEvaluation(id: string): Promise<void> {
+    this.evaluations.delete(id);
   }
 }
 
