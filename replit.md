@@ -10,6 +10,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 28, 2025)
 
+**Data Management Features:**
+- Added comprehensive mock data generation system accessible via header button
+- **Generate Mock Data** button creates complete application dataset:
+  - 10 portfolios across different business categories (Group Services, Operations, Customer Brand, etc.)
+  - Projects with complete requirements, vendor proposals, and AI evaluations
+  - 3 compliance standards (ISO 27001, GDPR, SOC 2) with structured sections
+  - 3 MCP connectors (Confluence, Slack, GitHub) with demo API keys
+- **Wipe All Data** button with confirmation dialog for complete data reset:
+  - Cascade deletes all evaluations, proposals, requirements, projects, and portfolios
+  - Deactivates all compliance standards (soft delete)
+  - Removes all MCP connectors
+  - Proper cache invalidation ensures immediate UI updates after operations
+- Extended storage interface with delete methods for all entities (deletePortfolio, deleteProject, deleteRequirement, deleteProposal, deleteEvaluation)
+- Backend endpoints: POST `/api/generate-mock-data` and POST `/api/wipe-data`
+- UI components in App.tsx header with AlertDialog confirmation for destructive operations
+
 **Document Upload for Standards Creation:**
 - Transformed "Create New Standard" into dual-source document upload interface
 - Users can choose between:
