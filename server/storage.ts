@@ -5,6 +5,8 @@ import {
   type InsertStandard,
   type McpConnector,
   type InsertMcpConnector,
+  type SystemConfig,
+  type InsertSystemConfig,
   type Project,
   type InsertProject,
   type Requirement,
@@ -42,6 +44,13 @@ export interface IStorage {
   updateMcpConnector(id: string, updates: Partial<InsertMcpConnector>): Promise<void>;
   deleteMcpConnector(id: string): Promise<void>;
 
+  // System Configuration
+  upsertSystemConfig(config: InsertSystemConfig): Promise<SystemConfig>;
+  getSystemConfigByKey(key: string): Promise<SystemConfig | undefined>;
+  getAllSystemConfig(): Promise<SystemConfig[]>;
+  getSystemConfigByCategory(category: string): Promise<SystemConfig[]>;
+  deleteSystemConfig(key: string): Promise<void>;
+
   // Projects
   createProject(project: InsertProject): Promise<Project>;
   getProject(id: string): Promise<Project | undefined>;
@@ -78,6 +87,7 @@ export class MemStorage implements IStorage {
   private portfolios: Map<string, Portfolio>;
   private standards: Map<string, Standard>;
   private mcpConnectors: Map<string, McpConnector>;
+  private systemConfig: Map<string, SystemConfig>;
   private projects: Map<string, Project>;
   private requirements: Map<string, Requirement>;
   private proposals: Map<string, Proposal>;
@@ -88,6 +98,7 @@ export class MemStorage implements IStorage {
     this.portfolios = new Map();
     this.standards = new Map();
     this.mcpConnectors = new Map();
+    this.systemConfig = new Map();
     this.projects = new Map();
     this.requirements = new Map();
     this.proposals = new Map();
@@ -206,6 +217,38 @@ export class MemStorage implements IStorage {
 
   async deleteMcpConnector(id: string): Promise<void> {
     this.mcpConnectors.delete(id);
+  }
+
+  async upsertSystemConfig(insertConfig: InsertSystemConfig): Promise<SystemConfig> {
+    const existing = this.systemConfig.get(insertConfig.key);
+    const config: SystemConfig = {
+      id: existing?.id || randomUUID(),
+      category: insertConfig.category,
+      key: insertConfig.key,
+      value: insertConfig.value || null,
+      isEncrypted: insertConfig.isEncrypted || "false",
+      description: insertConfig.description || null,
+      updatedAt: new Date(),
+      createdAt: existing?.createdAt || new Date(),
+    };
+    this.systemConfig.set(insertConfig.key, config);
+    return config;
+  }
+
+  async getSystemConfigByKey(key: string): Promise<SystemConfig | undefined> {
+    return this.systemConfig.get(key);
+  }
+
+  async getAllSystemConfig(): Promise<SystemConfig[]> {
+    return Array.from(this.systemConfig.values());
+  }
+
+  async getSystemConfigByCategory(category: string): Promise<SystemConfig[]> {
+    return Array.from(this.systemConfig.values()).filter(c => c.category === category);
+  }
+
+  async deleteSystemConfig(key: string): Promise<void> {
+    this.systemConfig.delete(key);
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {

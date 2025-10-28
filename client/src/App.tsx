@@ -16,13 +16,16 @@ import NewProjectPage from "@/pages/NewProjectPage";
 import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
+import AdminConfigPage from "@/pages/AdminConfigPage";
 import DeepDivePage from "@/pages/DeepDivePage";
-import { Sparkles, Database, Trash2 } from "lucide-react";
+import { Sparkles, Database, Trash2, Settings } from "lucide-react";
+import { Link } from "wouter";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
+      <Route path="/admin-config" component={AdminConfigPage} />
       <Route path="/standards" component={StandardsPage} />
       <Route path="/portfolio/:id" component={PortfolioPage} />
       <Route path="/portfolio/:id/new-project" component={NewProjectPage} />
@@ -128,6 +131,17 @@ function App() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold">IntelliBid</span>
               </div>
+              <Link href="/admin-config">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  data-testid="button-admin-config"
+                >
+                  <Settings className="h-4 w-4" />
+                  Admin Config
+                </Button>
+              </Link>
               <DataManagementButtons />
               <ThemeToggle />
             </div>

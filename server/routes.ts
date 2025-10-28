@@ -559,6 +559,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Configuration endpoints
+  app.get("/api/system-config", async (req, res) => {
+    try {
+      const configs = await storage.getAllSystemConfig();
+      // Redact encrypted values
+      const sanitized = configs.map(c => ({
+        ...c,
+        value: c.isEncrypted === "true" ? "••••••••" : c.value,
+      }));
+      res.json(sanitized);
+    } catch (error) {
+      console.error("Error fetching system config:", error);
+      res.status(500).json({ error: "Failed to fetch system configuration" });
+    }
+  });
+
+  app.get("/api/system-config/category/:category", async (req, res) => {
+    try {
+      const configs = await storage.getSystemConfigByCategory(req.params.category);
+      const sanitized = configs.map(c => ({
+        ...c,
+        value: c.isEncrypted === "true" ? "••••••••" : c.value,
+      }));
+      res.json(sanitized);
+    } catch (error) {
+      console.error("Error fetching system config by category:", error);
+      res.status(500).json({ error: "Failed to fetch system configuration" });
+    }
+  });
+
+  app.post("/api/system-config", async (req, res) => {
+    try {
+      const { category, key, value, isEncrypted, description } = req.body;
+      const config = await storage.upsertSystemConfig({
+        category,
+        key,
+        value,
+        isEncrypted: isEncrypted || "false",
+        description,
+      });
+      // Redact encrypted values in response
+      res.json({
+        ...config,
+        value: config.isEncrypted === "true" ? "••••••••" : config.value,
+      });
+    } catch (error) {
+      console.error("Error upserting system config:", error);
+      res.status(500).json({ error: "Failed to save system configuration" });
+    }
+  });
+
+  app.delete("/api/system-config/:key", async (req, res) => {
+    try {
+      await storage.deleteSystemConfig(req.params.key);
+      res.json({ message: "Configuration deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting system config:", error);
+      res.status(500).json({ error: "Failed to delete configuration" });
+    }
+  });
+
   // Create a new project
   app.post("/api/projects", async (req, res) => {
     try {

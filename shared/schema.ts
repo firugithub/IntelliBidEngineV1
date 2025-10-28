@@ -33,6 +33,17 @@ export const mcpConnectors = pgTable("mcp_connectors", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const systemConfig = pgTable("system_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(), // 'azure_search', 'azure_storage', 'azure_openai', 'rag_settings'
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  isEncrypted: text("is_encrypted").notNull().default("false"),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   portfolioId: varchar("portfolio_id").notNull(),
@@ -132,6 +143,12 @@ export const insertMcpConnectorSchema = createInsertSchema(mcpConnectors).omit({
   createdAt: true,
 });
 
+export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertEvaluationCriteriaSchema = createInsertSchema(evaluationCriteria).omit({
   id: true,
   createdAt: true,
@@ -143,6 +160,9 @@ export type Standard = typeof standards.$inferSelect;
 
 export type InsertMcpConnector = z.infer<typeof insertMcpConnectorSchema>;
 export type McpConnector = typeof mcpConnectors.$inferSelect;
+
+export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
+export type SystemConfig = typeof systemConfig.$inferSelect;
 
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
