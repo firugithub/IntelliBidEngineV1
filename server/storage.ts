@@ -111,6 +111,9 @@ export class MemStorage implements IStorage {
       name: insertStandard.name,
       description: insertStandard.description || null,
       sections: insertStandard.sections,
+      tags: insertStandard.tags || null,
+      fileName: insertStandard.fileName || null,
+      documentContent: insertStandard.documentContent || null,
       isActive: insertStandard.isActive || "true",
       createdAt: new Date(),
     };

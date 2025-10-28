@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -30,11 +30,15 @@ export default function StandardsPage() {
     name: "",
     description: "",
     sections: [] as Section[],
+    tags: [] as string[],
+    file: null as File | null,
   });
   const [newSection, setNewSection] = useState({
     name: "",
     description: "",
   });
+  const [newTag, setNewTag] = useState("");
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // MCP Connectors state
   const [isConnectorDialogOpen, setIsConnectorDialogOpen] = useState(false);
@@ -58,17 +62,26 @@ export default function StandardsPage() {
 
   // Standards mutations
   const createStandardMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; sections: Section[] }) => {
-      return await apiRequest("POST", "/api/standards", data);
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch("/api/standards/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create standard");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/standards"] });
       toast({ title: "Standard created successfully" });
       resetStandardForm();
       setIsStandardDialogOpen(false);
+      setIsExtracting(false);
     },
     onError: () => {
       toast({ title: "Failed to create standard", variant: "destructive" });
+      setIsExtracting(false);
     },
   });
 
@@ -159,8 +172,9 @@ export default function StandardsPage() {
 
   // Standards handlers
   const resetStandardForm = () => {
-    setStandardFormData({ name: "", description: "", sections: [] });
+    setStandardFormData({ name: "", description: "", sections: [], tags: [], file: null });
     setNewSection({ name: "", description: "" });
+    setNewTag("");
     setEditingStandard(null);
   };
 
@@ -170,6 +184,8 @@ export default function StandardsPage() {
       name: standard.name,
       description: standard.description || "",
       sections: (standard.sections as Section[]) || [],
+      tags: (standard.tags as string[]) || [],
+      file: null,
     });
     setIsStandardDialogOpen(true);
   };
@@ -182,18 +198,30 @@ export default function StandardsPage() {
       return;
     }
 
-    if (standardFormData.sections.length === 0) {
-      toast({ title: "Please add at least one section", variant: "destructive" });
-      return;
-    }
-
     if (editingStandard) {
       updateStandardMutation.mutate({
         id: editingStandard.id,
-        data: standardFormData,
+        data: {
+          name: standardFormData.name,
+          description: standardFormData.description,
+          sections: standardFormData.sections,
+        },
       });
     } else {
-      createStandardMutation.mutate(standardFormData);
+      // For new standards, require file upload
+      if (!standardFormData.file) {
+        toast({ title: "Please upload a compliance document", variant: "destructive" });
+        return;
+      }
+
+      setIsExtracting(true);
+      const formData = new FormData();
+      formData.append("file", standardFormData.file);
+      formData.append("name", standardFormData.name);
+      formData.append("description", standardFormData.description);
+      formData.append("tags", JSON.stringify(standardFormData.tags));
+      
+      createStandardMutation.mutate(formData);
     }
   };
 
@@ -222,6 +250,35 @@ export default function StandardsPage() {
       ...prev,
       sections: prev.sections.filter(s => s.id !== sectionId),
     }));
+  };
+
+  const handleAddTag = () => {
+    if (!newTag.trim()) {
+      return;
+    }
+    if (standardFormData.tags.includes(newTag.trim())) {
+      toast({ title: "Tag already added", variant: "destructive" });
+      return;
+    }
+    setStandardFormData(prev => ({
+      ...prev,
+      tags: [...prev.tags, newTag.trim()],
+    }));
+    setNewTag("");
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setStandardFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag),
+    }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setStandardFormData(prev => ({ ...prev, file }));
+    }
   };
 
   const toggleExpandedStandard = (standardId: string) => {
@@ -373,73 +430,146 @@ export default function StandardsPage() {
                       />
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Compliance Sections</label>
-                        <p className="text-xs text-muted-foreground">
-                          {standardFormData.sections.length} section{standardFormData.sections.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-
-                      {standardFormData.sections.length > 0 && (
+                    {/* Show file upload for new standards, show sections for editing */}
+                    {!editingStandard ? (
+                      <>
                         <div className="space-y-2">
-                          {standardFormData.sections.map((section) => (
-                            <Card key={section.id} className="p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm" data-testid={`text-section-${section.id}`}>
-                                    {section.name}
-                                  </p>
-                                  {section.description && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {section.description}
-                                    </p>
-                                  )}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveSection(section.id)}
-                                  data-testid={`button-remove-section-${section.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-
-                      <Card className="p-4 bg-muted/50">
-                        <div className="space-y-3">
-                          <p className="text-sm font-medium">Add New Section</p>
+                          <label className="text-sm font-medium">Upload Compliance Document</label>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Upload a PDF or text document. AI will automatically extract compliance sections.
+                          </p>
                           <Input
-                            placeholder="Section name (e.g., Data Encryption)"
-                            value={newSection.name}
-                            onChange={(e) => setNewSection(prev => ({ ...prev, name: e.target.value }))}
-                            data-testid="input-new-section-name"
+                            type="file"
+                            accept=".pdf,.txt,.doc,.docx"
+                            onChange={handleFileChange}
+                            data-testid="input-standard-file"
                           />
-                          <Textarea
-                            placeholder="Section description (optional)"
-                            value={newSection.description}
-                            onChange={(e) => setNewSection(prev => ({ ...prev, description: e.target.value }))}
-                            rows={2}
-                            data-testid="input-new-section-description"
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={handleAddSection}
-                            className="w-full gap-2"
-                            data-testid="button-add-section"
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add Section
-                          </Button>
+                          {standardFormData.file && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Selected: {standardFormData.file.name}
+                            </p>
+                          )}
                         </div>
-                      </Card>
-                    </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Tags (Optional)</label>
+                          <p className="text-xs text-muted-foreground">
+                            Add tags to categorize this standard
+                          </p>
+                          {standardFormData.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {standardFormData.tags.map((tag) => (
+                                <div
+                                  key={tag}
+                                  className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs"
+                                  data-testid={`tag-${tag}`}
+                                >
+                                  {tag}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTag(tag)}
+                                    className="hover:text-destructive"
+                                    data-testid={`button-remove-tag-${tag}`}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g., ISO27001, GDPR, SOC2"
+                              value={newTag}
+                              onChange={(e) => setNewTag(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddTag();
+                                }
+                              }}
+                              data-testid="input-new-tag"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={handleAddTag}
+                              data-testid="button-add-tag"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Compliance Sections</label>
+                          <p className="text-xs text-muted-foreground">
+                            {standardFormData.sections.length} section{standardFormData.sections.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+
+                        {standardFormData.sections.length > 0 && (
+                          <div className="space-y-2">
+                            {standardFormData.sections.map((section) => (
+                              <Card key={section.id} className="p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm" data-testid={`text-section-${section.id}`}>
+                                      {section.name}
+                                    </p>
+                                    {section.description && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {section.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemoveSection(section.id)}
+                                    data-testid={`button-remove-section-${section.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+
+                        <Card className="p-4 bg-muted/50">
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium">Add New Section</p>
+                            <Input
+                              placeholder="Section name (e.g., Data Encryption)"
+                              value={newSection.name}
+                              onChange={(e) => setNewSection(prev => ({ ...prev, name: e.target.value }))}
+                              data-testid="input-new-section-name"
+                            />
+                            <Textarea
+                              placeholder="Section description (optional)"
+                              value={newSection.description}
+                              onChange={(e) => setNewSection(prev => ({ ...prev, description: e.target.value }))}
+                              rows={2}
+                              data-testid="input-new-section-description"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={handleAddSection}
+                              className="w-full gap-2"
+                              data-testid="button-add-section"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Add Section
+                            </Button>
+                          </div>
+                        </Card>
+                      </div>
+                    )}
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button
@@ -455,10 +585,10 @@ export default function StandardsPage() {
                       </Button>
                       <Button
                         type="submit"
-                        disabled={createStandardMutation.isPending || updateStandardMutation.isPending}
+                        disabled={createStandardMutation.isPending || updateStandardMutation.isPending || isExtracting}
                         data-testid="button-save-standard"
                       >
-                        {editingStandard ? "Update" : "Create"} Standard
+                        {isExtracting ? "Analyzing Document..." : editingStandard ? "Update" : "Create"} Standard
                       </Button>
                     </div>
                   </form>

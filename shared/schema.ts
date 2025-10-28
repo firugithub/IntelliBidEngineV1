@@ -15,6 +15,9 @@ export const standards = pgTable("standards", {
   name: text("name").notNull(),
   description: text("description"),
   sections: jsonb("sections").notNull(),
+  tags: text("tags").array(),
+  fileName: text("file_name"),
+  documentContent: text("document_content"),
   isActive: text("is_active").notNull().default("true"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

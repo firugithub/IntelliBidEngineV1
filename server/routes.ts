@@ -120,6 +120,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/standards/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { name, description, tags } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ error: "Standard name is required" });
+      }
+
+      // Parse the uploaded document
+      const parsedDocument = await parseDocument(req.file);
+      
+      // Use AI to extract compliance sections from the document
+      const { extractComplianceSections } = await import("./services/aiAnalysis");
+      const sections = await extractComplianceSections(parsedDocument.text, name);
+
+      // Parse tags from JSON string
+      const parsedTags = tags ? JSON.parse(tags) : [];
+
+      // Create the standard with extracted sections
+      const standard = await storage.createStandard({
+        name,
+        description: description || null,
+        sections: sections,
+        tags: parsedTags.length > 0 ? parsedTags : null,
+        fileName: req.file.originalname,
+        documentContent: parsedDocument.text,
+        isActive: "true",
+      });
+
+      res.json(standard);
+    } catch (error) {
+      console.error("Error creating standard from upload:", error);
+      res.status(500).json({ error: "Failed to create standard from upload" });
+    }
+  });
+
   app.patch("/api/standards/:id", async (req, res) => {
     try {
       const { name, description, sections } = req.body;

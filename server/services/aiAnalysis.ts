@@ -70,6 +70,62 @@ export interface StandardData {
   taggedSectionIds: string[];
 }
 
+export async function extractComplianceSections(documentText: string, standardName: string): Promise<StandardSection[]> {
+  const prompt = `Analyze the following compliance/standards document and extract its main sections.
+
+Document Name: ${standardName}
+
+Document Content:
+${documentText.substring(0, 15000)} 
+
+Please identify and extract the main compliance sections from this document. Each section should represent a distinct compliance area or requirement category.
+
+Return your analysis in JSON format with the following structure:
+{
+  "sections": [
+    {
+      "id": "unique-section-id",
+      "name": "Section Name",
+      "description": "Brief description of what this section covers"
+    }
+  ]
+}
+
+Examples of sections might include:
+- Data Security & Encryption
+- Access Control & Authentication
+- Audit & Logging
+- Data Privacy & GDPR
+- Network Security
+- Incident Response
+- Business Continuity
+etc.`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert compliance analyst specializing in extracting and structuring compliance requirements from standards documents. Extract meaningful sections that represent distinct compliance areas.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.3,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error("No response from AI");
+  }
+
+  const result = JSON.parse(content) as { sections: StandardSection[] };
+  return result.sections || [];
+}
+
 export async function analyzeRequirements(documentText: string): Promise<RequirementAnalysis> {
   const prompt = `Analyze the following requirements document and extract key information.
   
