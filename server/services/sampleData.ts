@@ -386,26 +386,26 @@ export async function seedAllMockData() {
     const connectors = await storage.getAllMcpConnectors();
     if (connectors.length === 0) {
       await storage.createMcpConnector({
-        name: "Confluence Documentation",
-        description: "Access to company knowledge base and documentation",
-        serverUrl: "https://company.atlassian.net/wiki",
-        apiKey: "demo-key-confluence-12345",
+        name: "Nujum Air Confluence",
+        description: "Access to airline operations documentation and technical knowledge base",
+        serverUrl: "https://nujumair.atlassian.net/wiki",
+        apiKey: "demo-key-nujum-confluence-12345",
         isActive: "true",
       });
       
       await storage.createMcpConnector({
-        name: "Slack Conversations",
-        description: "Integration with team communication channels",
-        serverUrl: "https://slack.com/api",
-        apiKey: "demo-key-slack-67890",
+        name: "Operations Slack Channel",
+        description: "Integration with flight ops, maintenance, and crew communication channels",
+        serverUrl: "https://nujumair.slack.com/api",
+        apiKey: "demo-key-nujum-slack-67890",
         isActive: "true",
       });
       
       await storage.createMcpConnector({
-        name: "GitHub Repositories",
-        description: "Source code and technical documentation access",
+        name: "Aviation Systems GitHub",
+        description: "Source code repositories for airline systems and integrations",
         serverUrl: "https://api.github.com",
-        apiKey: "demo-key-github-abcde",
+        apiKey: "demo-key-nujum-github-abcde",
         isActive: "false",
       });
       
