@@ -150,7 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/mcp-connectors", async (req, res) => {
     try {
       const connectors = await storage.getAllMcpConnectors();
-      res.json(connectors);
+      // Redact API keys for security
+      const redactedConnectors = connectors.map(c => ({
+        ...c,
+        apiKey: c.apiKey ? "••••••••" : null,
+      }));
+      res.json(redactedConnectors);
     } catch (error) {
       console.error("Error fetching MCP connectors:", error);
       res.status(500).json({ error: "Failed to fetch MCP connectors" });
@@ -160,7 +165,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/mcp-connectors/active", async (req, res) => {
     try {
       const connectors = await storage.getActiveMcpConnectors();
-      res.json(connectors);
+      // Redact API keys for security
+      const redactedConnectors = connectors.map(c => ({
+        ...c,
+        apiKey: c.apiKey ? "••••••••" : null,
+      }));
+      res.json(redactedConnectors);
     } catch (error) {
       console.error("Error fetching active MCP connectors:", error);
       res.status(500).json({ error: "Failed to fetch active MCP connectors" });
@@ -173,7 +183,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!connector) {
         return res.status(404).json({ error: "MCP connector not found" });
       }
-      res.json(connector);
+      // Redact API key for security
+      res.json({
+        ...connector,
+        apiKey: connector.apiKey ? "••••••••" : null,
+      });
     } catch (error) {
       console.error("Error fetching MCP connector:", error);
       res.status(500).json({ error: "Failed to fetch MCP connector" });
@@ -191,7 +205,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         config,
         isActive: "true",
       });
-      res.json(connector);
+      // Redact API key in response for security
+      res.json({
+        ...connector,
+        apiKey: connector.apiKey ? "••••••••" : null,
+      });
     } catch (error) {
       console.error("Error creating MCP connector:", error);
       res.status(500).json({ error: "Failed to create MCP connector" });
@@ -210,7 +228,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive,
       });
       const updated = await storage.getMcpConnector(req.params.id);
-      res.json(updated);
+      // Redact API key in response for security
+      res.json({
+        ...updated,
+        apiKey: updated.apiKey ? "••••••••" : null,
+      });
     } catch (error) {
       console.error("Error updating MCP connector:", error);
       res.status(500).json({ error: "Failed to update MCP connector" });
@@ -376,12 +398,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requirement = requirements[0];
       if (requirement.standardId) {
         const standard = await storage.getStandard(requirement.standardId);
-        if (standard && standard.status === "active") {
+        if (standard && standard.isActive === "true") {
           requirementStandardData = {
             id: standard.id,
             name: standard.name,
-            sections: standard.sections || [],
-            taggedSectionIds: requirement.taggedSections || [],
+            sections: (standard.sections || []) as any,
+            taggedSectionIds: (requirement.taggedSections || []) as any,
           };
         }
       }
@@ -405,12 +427,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             // Fetch proposal's standard independently
             const proposalStandard = await storage.getStandard(proposal.standardId);
-            if (proposalStandard && proposalStandard.status === "active") {
+            if (proposalStandard && proposalStandard.isActive === "true") {
               proposalStandardData = {
                 id: proposalStandard.id,
                 name: proposalStandard.name,
-                sections: proposalStandard.sections || [],
-                taggedSectionIds: proposal.taggedSections || [],
+                sections: (proposalStandard.sections || []) as any,
+                taggedSectionIds: (proposal.taggedSections || []) as any,
               };
             }
           }

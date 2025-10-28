@@ -288,6 +288,7 @@ export class MemStorage implements IStorage {
       aiRationale: insertEvaluation.aiRationale || null,
       roleInsights: insertEvaluation.roleInsights || null,
       detailedScores: insertEvaluation.detailedScores || null,
+      sectionCompliance: insertEvaluation.sectionCompliance || null,
       createdAt: new Date(),
     };
     this.evaluations.set(id, evaluation);
