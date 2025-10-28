@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Standard, McpConnector } from "@shared/schema";
@@ -26,12 +28,14 @@ export default function StandardsPage() {
   const [isStandardDialogOpen, setIsStandardDialogOpen] = useState(false);
   const [editingStandard, setEditingStandard] = useState<Standard | null>(null);
   const [expandedStandards, setExpandedStandards] = useState<Set<string>>(new Set());
+  const [uploadMethod, setUploadMethod] = useState<"file" | "url">("file");
   const [standardFormData, setStandardFormData] = useState({
     name: "",
     description: "",
     sections: [] as Section[],
     tags: [] as string[],
     file: null as File | null,
+    url: "",
   });
   const [newSection, setNewSection] = useState({
     name: "",
@@ -172,10 +176,11 @@ export default function StandardsPage() {
 
   // Standards handlers
   const resetStandardForm = () => {
-    setStandardFormData({ name: "", description: "", sections: [], tags: [], file: null });
+    setStandardFormData({ name: "", description: "", sections: [], tags: [], file: null, url: "" });
     setNewSection({ name: "", description: "" });
     setNewTag("");
     setEditingStandard(null);
+    setUploadMethod("file");
   };
 
   const handleEditStandard = (standard: Standard) => {
@@ -186,6 +191,7 @@ export default function StandardsPage() {
       sections: (standard.sections as Section[]) || [],
       tags: (standard.tags as string[]) || [],
       file: null,
+      url: "",
     });
     setIsStandardDialogOpen(true);
   };
@@ -208,15 +214,26 @@ export default function StandardsPage() {
         },
       });
     } else {
-      // For new standards, require file upload
-      if (!standardFormData.file) {
+      // For new standards, require either file upload or URL
+      if (uploadMethod === "file" && !standardFormData.file) {
         toast({ title: "Please upload a compliance document", variant: "destructive" });
+        return;
+      }
+      
+      if (uploadMethod === "url" && !standardFormData.url.trim()) {
+        toast({ title: "Please enter a document URL", variant: "destructive" });
         return;
       }
 
       setIsExtracting(true);
       const formData = new FormData();
-      formData.append("file", standardFormData.file);
+      
+      if (uploadMethod === "file" && standardFormData.file) {
+        formData.append("file", standardFormData.file);
+      } else if (uploadMethod === "url") {
+        formData.append("url", standardFormData.url);
+      }
+      
       formData.append("name", standardFormData.name);
       formData.append("description", standardFormData.description);
       formData.append("tags", JSON.stringify(standardFormData.tags));
@@ -433,21 +450,66 @@ export default function StandardsPage() {
                     {/* Show file upload for new standards, show sections for editing */}
                     {!editingStandard ? (
                       <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Upload Compliance Document</label>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Upload a PDF or text document. AI will automatically extract compliance sections.
-                          </p>
-                          <Input
-                            type="file"
-                            accept=".pdf,.txt,.doc,.docx"
-                            onChange={handleFileChange}
-                            data-testid="input-standard-file"
-                          />
-                          {standardFormData.file && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Selected: {standardFormData.file.name}
+                        <div className="space-y-4">
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium">Upload Compliance Document</label>
+                            <p className="text-xs text-muted-foreground">
+                              Choose how to provide your compliance document. AI will automatically extract compliance sections.
                             </p>
+                            
+                            <RadioGroup
+                              value={uploadMethod}
+                              onValueChange={(value: "file" | "url") => setUploadMethod(value)}
+                              className="flex gap-4"
+                              data-testid="radio-upload-method"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="file" id="upload-file" data-testid="radio-file" />
+                                <Label htmlFor="upload-file" className="flex items-center gap-2 cursor-pointer">
+                                  <Upload className="h-4 w-4" />
+                                  Upload File
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="url" id="upload-url" data-testid="radio-url" />
+                                <Label htmlFor="upload-url" className="flex items-center gap-2 cursor-pointer">
+                                  <LinkIcon className="h-4 w-4" />
+                                  Add Link
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          {uploadMethod === "file" ? (
+                            <div className="space-y-2">
+                              <Input
+                                type="file"
+                                accept=".pdf,.txt,.doc,.docx"
+                                onChange={handleFileChange}
+                                data-testid="input-standard-file"
+                              />
+                              {standardFormData.file && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Selected: {standardFormData.file.name}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Supported formats: PDF, TXT, DOC, DOCX
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Input
+                                type="url"
+                                placeholder="https://example.com/compliance-document.pdf"
+                                value={standardFormData.url}
+                                onChange={(e) => setStandardFormData(prev => ({ ...prev, url: e.target.value }))}
+                                data-testid="input-standard-url"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Enter a publicly accessible URL to a compliance document
+                              </p>
+                            </div>
                           )}
                         </div>
 
