@@ -432,15 +432,35 @@ async function executeAgent(
   role: AgentRole,
   requirements: RequirementAnalysis,
   proposal: ProposalAnalysis,
+  standardData?: StandardData,
   timeout: number = 30000
 ): Promise<AgentResult> {
   const startTime = Date.now();
   
   const prompt = AGENT_PROMPTS[role];
+  
+  // Build organization standards context
+  let standardsContext = '';
+  if (standardData && standardData.taggedSectionIds.length > 0) {
+    const taggedSections = standardData.sections.filter(s => 
+      standardData.taggedSectionIds.includes(s.id)
+    );
+    
+    standardsContext = `
+
+**ORGANIZATION-SPECIFIC COMPLIANCE REQUIREMENTS:**
+Standard: ${standardData.name}
+
+You MUST evaluate vendor compliance against these organization-specific sections:
+${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : ''}`).join('\n')}
+
+**IMPORTANT:** Your evaluation must explicitly address how the vendor meets (or fails to meet) EACH of these organization-specific requirements. These are mandatory, not optional.`;
+  }
+  
   const userMessage = prompt.userTemplate
     .replace('{requirements}', JSON.stringify(requirements, null, 2))
     .replace('{proposal}', JSON.stringify(proposal, null, 2))
-    .replace('{vendorName}', proposal.vendorName);
+    .replace('{vendorName}', proposal.vendorName) + standardsContext;
 
   try {
     const response = await Promise.race([
@@ -581,18 +601,30 @@ function aggregateResults(
   };
 }
 
+// Standard data interface
+interface StandardData {
+  name: string;
+  sections: Array<{ id: string; name: string; description?: string }>;
+  taggedSectionIds: string[];
+}
+
 // Main multiagent evaluator function
 export async function evaluateProposalMultiAgent(
   requirements: RequirementAnalysis,
-  proposal: ProposalAnalysis
+  proposal: ProposalAnalysis,
+  standardData?: StandardData
 ): Promise<{ evaluation: VendorEvaluation; diagnostics: AgentDiagnostics[] }> {
   console.log(`🤖 Starting multiagent evaluation for ${proposal.vendorName}...`);
+  
+  if (standardData) {
+    console.log(`   📋 Organization standards: ${standardData.name} (${standardData.taggedSectionIds.length} tagged sections)`);
+  }
   
   const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
   
   try {
     // Execute all agents in parallel with allSettled for resilience
-    const agentPromises = roles.map(role => executeAgent(role, requirements, proposal));
+    const agentPromises = roles.map(role => executeAgent(role, requirements, proposal, standardData));
     const settledResults = await Promise.allSettled(agentPromises);
     
     // Extract successful results and track failures

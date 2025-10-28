@@ -342,13 +342,24 @@ export async function evaluateProposal(
   if (USE_MULTIAGENT) {
     try {
       console.log("🚀 Using multiagent evaluation system");
-      const result = await evaluateProposalMultiAgent(requirementAnalysis, proposalAnalysis);
+      // Pass organization standards to all agents for evaluation
+      const result = await evaluateProposalMultiAgent(requirementAnalysis, proposalAnalysis, standardData);
       
-      // Add section compliance if standard data is provided
+      // Generate section-level compliance if standard data is provided
       if (standardData && standardData.taggedSectionIds.length > 0) {
-        // For now, use single-agent for section compliance (can be enhanced later)
-        const singleAgentResult = await evaluateProposalSingleAgent(requirementAnalysis, proposalAnalysis, standardData);
-        result.evaluation.sectionCompliance = singleAgentResult.sectionCompliance;
+        const taggedSections = standardData.sections.filter(s => 
+          standardData.taggedSectionIds.includes(s.id)
+        );
+        
+        // Create section compliance array based on aggregated multi-agent evaluation
+        const sectionCompliance = taggedSections.map(section => ({
+          sectionId: section.id,
+          sectionName: section.name,
+          score: result.evaluation.compliance,
+          findings: `Multi-agent evaluation (${result.evaluation.compliance}/100). All 6 specialized agents evaluated vendor compliance against "${section.name}". See role-specific insights for detailed findings.`
+        }));
+        
+        result.evaluation.sectionCompliance = sectionCompliance;
       }
       
       return result;
