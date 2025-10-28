@@ -84,6 +84,18 @@ export const evaluations = pgTable("evaluations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const evaluationCriteria = pgTable("evaluation_criteria", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  evaluationId: varchar("evaluation_id").notNull(),
+  role: text("role").notNull(), // 'product' or 'architecture'
+  section: text("section").notNull(),
+  question: text("question").notNull(),
+  score: integer("score").notNull(), // 100, 50, 25, or 0
+  scoreLabel: text("score_label").notNull(), // The dropdown label
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertStandardSchema = createInsertSchema(standards).omit({
   id: true,
   createdAt: true,
@@ -119,6 +131,12 @@ export const insertMcpConnectorSchema = createInsertSchema(mcpConnectors).omit({
   createdAt: true,
 });
 
+export const insertEvaluationCriteriaSchema = createInsertSchema(evaluationCriteria).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -139,3 +157,6 @@ export type Proposal = typeof proposals.$inferSelect;
 
 export type InsertEvaluation = z.infer<typeof insertEvaluationSchema>;
 export type Evaluation = typeof evaluations.$inferSelect;
+
+export type InsertEvaluationCriteria = z.infer<typeof insertEvaluationCriteriaSchema>;
+export type EvaluationCriteria = typeof evaluationCriteria.$inferSelect;

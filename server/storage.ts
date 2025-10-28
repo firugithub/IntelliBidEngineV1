@@ -13,6 +13,8 @@ import {
   type InsertProposal,
   type Evaluation,
   type InsertEvaluation,
+  type EvaluationCriteria,
+  type InsertEvaluationCriteria,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -64,6 +66,12 @@ export interface IStorage {
   getEvaluationsByProject(projectId: string): Promise<Evaluation[]>;
   getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined>;
   deleteEvaluation(id: string): Promise<void>;
+
+  // Evaluation Criteria
+  createEvaluationCriteria(criteria: InsertEvaluationCriteria): Promise<EvaluationCriteria>;
+  getEvaluationCriteriaByEvaluation(evaluationId: string, role?: string): Promise<EvaluationCriteria[]>;
+  updateEvaluationCriteria(id: string, updates: Partial<InsertEvaluationCriteria>): Promise<void>;
+  deleteEvaluationCriteria(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -74,6 +82,7 @@ export class MemStorage implements IStorage {
   private requirements: Map<string, Requirement>;
   private proposals: Map<string, Proposal>;
   private evaluations: Map<string, Evaluation>;
+  private evaluationCriteria: Map<string, EvaluationCriteria>;
 
   constructor() {
     this.portfolios = new Map();
@@ -83,6 +92,7 @@ export class MemStorage implements IStorage {
     this.requirements = new Map();
     this.proposals = new Map();
     this.evaluations = new Map();
+    this.evaluationCriteria = new Map();
   }
 
   async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
@@ -333,6 +343,49 @@ export class MemStorage implements IStorage {
 
   async deleteEvaluation(id: string): Promise<void> {
     this.evaluations.delete(id);
+  }
+
+  async createEvaluationCriteria(insertCriteria: InsertEvaluationCriteria): Promise<EvaluationCriteria> {
+    const id = randomUUID();
+    const criteria: EvaluationCriteria = {
+      id,
+      evaluationId: insertCriteria.evaluationId,
+      role: insertCriteria.role,
+      section: insertCriteria.section,
+      question: insertCriteria.question,
+      score: insertCriteria.score,
+      scoreLabel: insertCriteria.scoreLabel,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.evaluationCriteria.set(id, criteria);
+    return criteria;
+  }
+
+  async getEvaluationCriteriaByEvaluation(evaluationId: string, role?: string): Promise<EvaluationCriteria[]> {
+    let criteria = Array.from(this.evaluationCriteria.values()).filter(
+      (crit) => crit.evaluationId === evaluationId
+    );
+    if (role) {
+      criteria = criteria.filter((crit) => crit.role === role);
+    }
+    return criteria;
+  }
+
+  async updateEvaluationCriteria(id: string, updates: Partial<InsertEvaluationCriteria>): Promise<void> {
+    const criteria = this.evaluationCriteria.get(id);
+    if (criteria) {
+      const updated: EvaluationCriteria = {
+        ...criteria,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.evaluationCriteria.set(id, updated);
+    }
+  }
+
+  async deleteEvaluationCriteria(id: string): Promise<void> {
+    this.evaluationCriteria.delete(id);
   }
 }
 
