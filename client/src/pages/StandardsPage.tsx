@@ -387,7 +387,7 @@ export default function StandardsPage() {
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Standards & Compliance</h1>
+              <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Knowledge Pack</h1>
               <p className="text-muted-foreground">
                 Manage compliance standards and MCP connectors for vendor evaluation
               </p>

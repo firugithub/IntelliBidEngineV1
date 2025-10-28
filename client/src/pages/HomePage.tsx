@@ -96,7 +96,7 @@ export default function HomePage() {
             <Link href="/standards">
               <Button variant="outline" className="gap-2" data-testid="button-standards">
                 <Shield className="h-4 w-4" />
-                Standards & Compliance
+                Knowledge Pack
               </Button>
             </Link>
           </div>
