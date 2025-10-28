@@ -36,12 +36,17 @@ Preferred communication style: Simple, everyday language.
 
 **Scoring Dimensions:** Overall Score, Technical Fit, Delivery Risk, Cost, and Compliance, with statuses like "recommended," "under-review," and "risk-flagged."
 
-### Standards & Compliance Framework
+### Knowledge Pack (Standards & Compliance)
 
-**Purpose:** Defines and manages reusable compliance standards and integrates external Model Context Protocol (MCP) connectors.
+**Purpose:** Central hub for managing compliance standards and RAG document knowledge base. Integrates external Model Context Protocol (MCP) connectors for additional data sources.
 
 **Key Features:**
-- **Compliance Standards:** Admin interface for managing organization-wide compliance standards, including document upload (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction, tagging, and section-level compliance scoring.
+- **Compliance Standards with RAG Integration:** Admin interface for managing organization-wide compliance standards with automatic RAG ingestion. Features include:
+  - Document upload (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction
+  - Automatic ingestion into RAG system upon upload (Azure Blob Storage + AI Search)
+  - RAG status badges showing indexing state
+  - Tagging and section-level compliance scoring
+  - Linked to RAG documents via ragDocumentId for retrieval during evaluations
 - **MCP Connectors:** Management of external MCP server connections with secure API key handling (redacted in responses).
 
 ### RAG Infrastructure (Retrieval Augmented Generation)
@@ -52,6 +57,14 @@ Preferred communication style: Simple, everyday language.
 - **Azure Blob Storage Service:** Document storage in Azure for raw documents.
 - **Azure AI Search Service:** Vector database with hybrid search capabilities for efficient retrieval of relevant document chunks.
 - **Document Ingestion Pipeline:** A robust process for parsing, chunking, embedding, storing, and indexing documents, with progressive metadata persistence and reliable cleanup for failure scenarios.
+
+**Knowledge Pack Integration (RAG Phase 3):**
+- Compliance standards automatically ingested into RAG system upon upload
+- Standards table links to RAG documents via ragDocumentId field
+- Upload flow: Parse document → Extract sections → Create standard → Ingest into RAG → Update standard with RAG link
+- RAG status badges in UI showing indexing state (indexed/processing/failed)
+- Error handling: RAG failures logged but don't block standard creation
+- Supports both file uploads and URL-based document fetches
 
 **Admin Configuration:** A dedicated admin page allows configuration of OpenAI API keys for agents, Azure AI Search keys, Azure Blob Storage connection strings, and Azure OpenAI embeddings. Credentials are stored encrypted.
 
