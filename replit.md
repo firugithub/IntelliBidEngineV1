@@ -11,15 +11,19 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (October 28, 2025)
 
 **Document Upload for Standards Creation:**
-- Transformed "Create New Standard" into document upload interface
-- Users upload compliance documents (PDF/TXT/DOC/DOCX) instead of manually entering sections
+- Transformed "Create New Standard" into dual-source document upload interface
+- Users can choose between:
+  - **Upload File**: Local PDF/TXT/DOC/DOCX file upload
+  - **Add Link**: Publicly accessible URL to a compliance document
 - AI automatically extracts compliance sections from uploaded documents using GPT-4o
 - Added tags field for categorizing standards (e.g., ISO27001, GDPR, SOC2)
 - Document metadata stored: fileName and documentContent fields in standards schema
-- New backend endpoint: POST `/api/standards/upload` with multipart file handling
+- New backend endpoint: POST `/api/standards/upload` handles both file uploads and URL fetching
 - New AI service: `extractComplianceSections()` analyzes documents and extracts structured sections
+- **Security**: URL fetching includes SSRF protection (blocks private IPs, localhost, disables redirects, validates DNS, 30s timeout, 10MB limit)
 - Loading state "Analyzing Document..." shows AI processing status
 - Edit mode still allows manual section management for existing standards
+- UI warning alerts users that URL must be publicly accessible and from trusted sources
 
 **MCP Connectors Integration:**
 - Restructured Standards & Compliance page with tabbed interface

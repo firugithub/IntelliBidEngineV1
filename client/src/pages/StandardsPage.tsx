@@ -506,9 +506,12 @@ export default function StandardsPage() {
                                 onChange={(e) => setStandardFormData(prev => ({ ...prev, url: e.target.value }))}
                                 data-testid="input-standard-url"
                               />
-                              <p className="text-xs text-muted-foreground">
-                                Enter a publicly accessible URL to a compliance document
-                              </p>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <p>Enter a publicly accessible URL to a compliance document.</p>
+                                <p className="text-yellow-600 dark:text-yellow-500">
+                                  ⚠️ Only use URLs from trusted sources. The URL must point directly to a public document (redirects are not allowed).
+                                </p>
+                              </div>
                             </div>
                           )}
                         </div>

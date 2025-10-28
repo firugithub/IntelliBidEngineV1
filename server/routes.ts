@@ -5,11 +5,145 @@ import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
 import { seedSampleData, seedPortfolios } from "./services/sampleData";
+import { lookup as dnsLookup } from "dns";
+import { promisify } from "util";
+
+const lookupAsync = promisify(dnsLookup);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
+
+// Helper function to validate if an IP address is public (not private, loopback, or link-local)
+function isPublicIP(ip: string): boolean {
+  // Check for IPv4
+  const ipv4Match = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const parts = ipv4Match.slice(1).map(Number);
+    
+    // Validate each octet is 0-255
+    if (parts.some(p => p > 255)) {
+      return false;
+    }
+    
+    // Block loopback (127.0.0.0/8)
+    if (parts[0] === 127) return false;
+    
+    // Block private ranges
+    if (parts[0] === 10) return false; // 10.0.0.0/8
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false; // 172.16.0.0/12
+    if (parts[0] === 192 && parts[1] === 168) return false; // 192.168.0.0/16
+    
+    // Block link-local (169.254.0.0/16)
+    if (parts[0] === 169 && parts[1] === 254) return false;
+    
+    // Block 0.0.0.0/8
+    if (parts[0] === 0) return false;
+    
+    // Block broadcast (255.255.255.255)
+    if (parts.every(p => p === 255)) return false;
+    
+    return true;
+  }
+  
+  // Check for IPv6
+  const ipLower = ip.toLowerCase().trim();
+  
+  // Normalize IPv6 address by removing brackets
+  const normalizedIP = ipLower.replace(/^\[|\]$/g, '');
+  
+  // Block loopback addresses (::1 and variations like 0:0:0:0:0:0:0:1)
+  if (normalizedIP === '::1' || normalizedIP === '0:0:0:0:0:0:0:1' || 
+      normalizedIP.match(/^0{0,4}:0{0,4}:0{0,4}:0{0,4}:0{0,4}:0{0,4}:0{0,4}:1$/)) {
+    return false;
+  }
+  
+  // Block IPv4-mapped IPv6 addresses pointing to private ranges
+  if (normalizedIP.startsWith('::ffff:127.') || normalizedIP.startsWith('::ffff:10.') || 
+      normalizedIP.startsWith('::ffff:172.') || normalizedIP.startsWith('::ffff:192.168.') ||
+      normalizedIP.startsWith('0:0:0:0:0:ffff:7f') || // ::ffff:127.x in hex
+      normalizedIP.startsWith('0:0:0:0:0:ffff:a') || // ::ffff:10.x in hex
+      normalizedIP.startsWith('0:0:0:0:0:ffff:ac1') || // ::ffff:172.16-31.x in hex
+      normalizedIP.startsWith('0:0:0:0:0:ffff:c0a8')) { // ::ffff:192.168.x in hex
+    return false;
+  }
+  
+  // Block link-local (fe80::/10)
+  if (normalizedIP.startsWith('fe8') || normalizedIP.startsWith('fe9') || 
+      normalizedIP.startsWith('fea') || normalizedIP.startsWith('feb')) {
+    return false;
+  }
+  
+  // Block unique local addresses (fc00::/7)
+  if (normalizedIP.startsWith('fc') || normalizedIP.startsWith('fd')) {
+    return false;
+  }
+  
+  // Block localhost variations
+  if (normalizedIP === '::' || normalizedIP === '0:0:0:0:0:0:0:0') {
+    return false;
+  }
+  
+  return true;
+}
+
+// Helper function to validate URL and resolve DNS to check for private IPs
+async function validateUrlSecurity(url: string): Promise<{ valid: boolean; error?: string }> {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return { valid: false, error: "Invalid URL format" };
+  }
+
+  // Only allow http and https protocols
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return { valid: false, error: "Only HTTP and HTTPS URLs are allowed" };
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  
+  // Check direct hostname blocks
+  const blockedHosts = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '169.254.169.254',
+    '[::1]',
+    '::1',
+  ];
+  
+  if (blockedHosts.includes(hostname)) {
+    return { valid: false, error: "Access to local or internal URLs is not allowed" };
+  }
+
+  // If hostname is already an IP, validate it
+  if (hostname.match(/^(\d{1,3}\.){3}\d{1,3}$/) || hostname.includes(':')) {
+    if (!isPublicIP(hostname)) {
+      return { valid: false, error: "Access to private IP addresses is not allowed" };
+    }
+  } else {
+    // Resolve DNS to check the actual IP addresses (both IPv4 and IPv6)
+    try {
+      // Use dns.lookup to get all addresses (IPv4 and IPv6)
+      const result = await lookupAsync(hostname, { all: true });
+      const addresses = Array.isArray(result) ? result.map(r => r.address) : [result.address];
+      
+      // Validate all resolved addresses
+      for (const address of addresses) {
+        if (!isPublicIP(address)) {
+          return { valid: false, error: `Domain resolves to a private IP address: ${address}` };
+        }
+      }
+    } catch (error) {
+      // DNS resolution failed - could be temporary or invalid domain
+      return { valid: false, error: "Failed to resolve domain name" };
+    }
+  }
+
+  return { valid: true };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Seed portfolios endpoint
@@ -139,45 +273,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (url) {
         // Fetch and parse document from URL
         try {
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch document: ${response.statusText}`);
+          // Validate URL to prevent SSRF attacks (includes DNS resolution)
+          const validation = await validateUrlSecurity(url);
+          if (!validation.valid) {
+            return res.status(400).json({ error: validation.error || "URL validation failed" });
           }
 
-          const contentType = response.headers.get('content-type') || '';
-          const buffer = Buffer.from(await response.arrayBuffer());
-          
-          // Extract filename from URL
-          const urlPath = new URL(url).pathname;
-          fileName = urlPath.split('/').pop() || 'document';
+          const parsedUrl = new URL(url);
 
-          // Determine file type from URL or content-type
-          let fileType = '';
-          if (fileName.endsWith('.pdf') || contentType.includes('pdf')) {
-            fileType = 'pdf';
-          } else if (fileName.endsWith('.txt') || contentType.includes('text')) {
-            fileType = 'txt';
-          } else {
-            // Default to txt for unknown types
-            fileType = 'txt';
+          // Fetch with timeout, size limit, and no redirects
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+          try {
+            const response = await fetch(url, {
+              signal: controller.signal,
+              redirect: 'manual', // Disable automatic redirects to prevent redirect-based SSRF
+              headers: {
+                'User-Agent': 'IntelliBid-Document-Fetcher/1.0',
+              },
+            });
+
+            // Check if response is a redirect
+            if (response.status >= 300 && response.status < 400) {
+              return res.status(400).json({ 
+                error: "Redirects are not allowed. Please provide a direct URL to the document." 
+              });
+            }
+
+            clearTimeout(timeout);
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch document: ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            
+            // Validate content type
+            const allowedTypes = [
+              'application/pdf',
+              'text/plain',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            
+            const isAllowedType = allowedTypes.some(type => contentType.includes(type)) || 
+                                  contentType.includes('text/');
+
+            if (!isAllowedType && contentType) {
+              return res.status(400).json({ 
+                error: `Unsupported content type: ${contentType}. Please provide a PDF, text, or document file.` 
+              });
+            }
+
+            // Limit file size to 10MB
+            const contentLength = response.headers.get('content-length');
+            if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+              return res.status(400).json({ error: "Document size exceeds 10MB limit" });
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+              return res.status(400).json({ error: "Document size exceeds 10MB limit" });
+            }
+
+            const buffer = Buffer.from(arrayBuffer);
+            
+            // Extract filename from URL
+            const urlPath = parsedUrl.pathname;
+            fileName = urlPath.split('/').pop() || 'document';
+
+            // Determine file type from URL or content-type
+            let fileType = '';
+            if (fileName.endsWith('.pdf') || contentType.includes('pdf')) {
+              fileType = 'pdf';
+            } else if (fileName.endsWith('.txt') || contentType.includes('text')) {
+              fileType = 'txt';
+            } else {
+              // Default to txt for unknown types
+              fileType = 'txt';
+            }
+
+            // Create a mock file object for parsing
+            const mockFile = {
+              buffer,
+              originalname: fileName,
+              mimetype: contentType || (fileType === 'pdf' ? 'application/pdf' : 'text/plain'),
+            };
+
+            parsedDocument = await parseDocument(mockFile as any);
+          } finally {
+            clearTimeout(timeout);
           }
-
-          // Create a mock file object for parsing
-          const mockFile = {
-            buffer,
-            originalname: fileName,
-            mimetype: contentType || (fileType === 'pdf' ? 'application/pdf' : 'text/plain'),
-          };
-
-          parsedDocument = await parseDocument(mockFile as any);
         } catch (error) {
           console.error("Error fetching document from URL:", error);
+          if (error instanceof Error && error.name === 'AbortError') {
+            return res.status(400).json({ error: "Request timeout: document fetch took too long" });
+          }
           return res.status(400).json({ error: "Failed to fetch document from URL. Please ensure the URL is accessible and points to a valid document." });
         }
       } else if (req.file) {
         // Parse the uploaded file
         parsedDocument = await parseDocument(req.file);
         fileName = req.file.originalname;
+      }
+
+      // Safety check (should never happen due to earlier validation)
+      if (!parsedDocument) {
+        return res.status(400).json({ error: "Failed to parse document" });
       }
       
       // Use AI to extract compliance sections from the document
