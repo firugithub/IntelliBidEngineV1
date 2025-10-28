@@ -19,6 +19,17 @@ export const standards = pgTable("standards", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const mcpConnectors = pgTable("mcp_connectors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  serverUrl: text("server_url").notNull(),
+  apiKey: text("api_key"),
+  config: jsonb("config"),
+  isActive: text("is_active").notNull().default("true"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   portfolioId: varchar("portfolio_id").notNull(),
@@ -100,8 +111,16 @@ export const insertEvaluationSchema = createInsertSchema(evaluations).omit({
   createdAt: true,
 });
 
+export const insertMcpConnectorSchema = createInsertSchema(mcpConnectors).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
+
+export type InsertMcpConnector = z.infer<typeof insertMcpConnectorSchema>;
+export type McpConnector = typeof mcpConnectors.$inferSelect;
 
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;

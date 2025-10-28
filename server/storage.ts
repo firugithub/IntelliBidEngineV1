@@ -3,6 +3,8 @@ import {
   type InsertPortfolio,
   type Standard,
   type InsertStandard,
+  type McpConnector,
+  type InsertMcpConnector,
   type Project,
   type InsertProject,
   type Requirement,
@@ -29,6 +31,14 @@ export interface IStorage {
   updateStandard(id: string, updates: Partial<InsertStandard>): Promise<void>;
   deactivateStandard(id: string): Promise<void>;
 
+  // MCP Connectors
+  createMcpConnector(connector: InsertMcpConnector): Promise<McpConnector>;
+  getMcpConnector(id: string): Promise<McpConnector | undefined>;
+  getAllMcpConnectors(): Promise<McpConnector[]>;
+  getActiveMcpConnectors(): Promise<McpConnector[]>;
+  updateMcpConnector(id: string, updates: Partial<InsertMcpConnector>): Promise<void>;
+  deleteMcpConnector(id: string): Promise<void>;
+
   // Projects
   createProject(project: InsertProject): Promise<Project>;
   getProject(id: string): Promise<Project | undefined>;
@@ -54,6 +64,7 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private portfolios: Map<string, Portfolio>;
   private standards: Map<string, Standard>;
+  private mcpConnectors: Map<string, McpConnector>;
   private projects: Map<string, Project>;
   private requirements: Map<string, Requirement>;
   private proposals: Map<string, Proposal>;
@@ -62,6 +73,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.portfolios = new Map();
     this.standards = new Map();
+    this.mcpConnectors = new Map();
     this.projects = new Map();
     this.requirements = new Map();
     this.proposals = new Map();
@@ -132,6 +144,46 @@ export class MemStorage implements IStorage {
       standard.isActive = "false";
       this.standards.set(id, standard);
     }
+  }
+
+  async createMcpConnector(insertConnector: InsertMcpConnector): Promise<McpConnector> {
+    const id = randomUUID();
+    const connector: McpConnector = {
+      id,
+      name: insertConnector.name,
+      description: insertConnector.description || null,
+      serverUrl: insertConnector.serverUrl,
+      apiKey: insertConnector.apiKey || null,
+      config: insertConnector.config || null,
+      isActive: insertConnector.isActive || "true",
+      createdAt: new Date(),
+    };
+    this.mcpConnectors.set(id, connector);
+    return connector;
+  }
+
+  async getMcpConnector(id: string): Promise<McpConnector | undefined> {
+    return this.mcpConnectors.get(id);
+  }
+
+  async getAllMcpConnectors(): Promise<McpConnector[]> {
+    return Array.from(this.mcpConnectors.values());
+  }
+
+  async getActiveMcpConnectors(): Promise<McpConnector[]> {
+    return Array.from(this.mcpConnectors.values()).filter(c => c.isActive === "true");
+  }
+
+  async updateMcpConnector(id: string, updates: Partial<InsertMcpConnector>): Promise<void> {
+    const connector = this.mcpConnectors.get(id);
+    if (connector) {
+      const updated = { ...connector, ...updates };
+      this.mcpConnectors.set(id, updated);
+    }
+  }
+
+  async deleteMcpConnector(id: string): Promise<void> {
+    this.mcpConnectors.delete(id);
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {

@@ -146,6 +146,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MCP Connectors
+  app.get("/api/mcp-connectors", async (req, res) => {
+    try {
+      const connectors = await storage.getAllMcpConnectors();
+      res.json(connectors);
+    } catch (error) {
+      console.error("Error fetching MCP connectors:", error);
+      res.status(500).json({ error: "Failed to fetch MCP connectors" });
+    }
+  });
+
+  app.get("/api/mcp-connectors/active", async (req, res) => {
+    try {
+      const connectors = await storage.getActiveMcpConnectors();
+      res.json(connectors);
+    } catch (error) {
+      console.error("Error fetching active MCP connectors:", error);
+      res.status(500).json({ error: "Failed to fetch active MCP connectors" });
+    }
+  });
+
+  app.get("/api/mcp-connectors/:id", async (req, res) => {
+    try {
+      const connector = await storage.getMcpConnector(req.params.id);
+      if (!connector) {
+        return res.status(404).json({ error: "MCP connector not found" });
+      }
+      res.json(connector);
+    } catch (error) {
+      console.error("Error fetching MCP connector:", error);
+      res.status(500).json({ error: "Failed to fetch MCP connector" });
+    }
+  });
+
+  app.post("/api/mcp-connectors", async (req, res) => {
+    try {
+      const { name, description, serverUrl, apiKey, config } = req.body;
+      const connector = await storage.createMcpConnector({
+        name,
+        description,
+        serverUrl,
+        apiKey,
+        config,
+        isActive: "true",
+      });
+      res.json(connector);
+    } catch (error) {
+      console.error("Error creating MCP connector:", error);
+      res.status(500).json({ error: "Failed to create MCP connector" });
+    }
+  });
+
+  app.patch("/api/mcp-connectors/:id", async (req, res) => {
+    try {
+      const { name, description, serverUrl, apiKey, config, isActive } = req.body;
+      await storage.updateMcpConnector(req.params.id, {
+        name,
+        description,
+        serverUrl,
+        apiKey,
+        config,
+        isActive,
+      });
+      const updated = await storage.getMcpConnector(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating MCP connector:", error);
+      res.status(500).json({ error: "Failed to update MCP connector" });
+    }
+  });
+
+  app.delete("/api/mcp-connectors/:id", async (req, res) => {
+    try {
+      await storage.deleteMcpConnector(req.params.id);
+      res.json({ message: "MCP connector deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting MCP connector:", error);
+      res.status(500).json({ error: "Failed to delete MCP connector" });
+    }
+  });
+
   // Create a new project
   app.post("/api/projects", async (req, res) => {
     try {
