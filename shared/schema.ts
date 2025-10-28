@@ -108,6 +108,32 @@ export const evaluationCriteria = pgTable("evaluation_criteria", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const ragDocuments = pgTable("rag_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sourceType: text("source_type").notNull(), // 'standard', 'proposal', 'requirement', 'confluence', 'sharepoint'
+  sourceId: varchar("source_id"), // ID of the source record (e.g., standard_id, proposal_id)
+  fileName: text("file_name").notNull(),
+  blobUrl: text("blob_url"), // Azure Blob Storage URL
+  searchDocId: text("search_doc_id"), // Azure AI Search document ID
+  indexName: text("index_name").notNull().default("intellibid-rag"),
+  totalChunks: integer("total_chunks").notNull().default(0),
+  status: text("status").notNull().default("pending"), // 'pending', 'processing', 'indexed', 'failed'
+  metadata: jsonb("metadata"), // Custom metadata (tags, vendor, project, etc.)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const ragChunks = pgTable("rag_chunks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(), // References ragDocuments.id
+  chunkIndex: integer("chunk_index").notNull(), // 0-based index in the document
+  content: text("content").notNull(),
+  tokenCount: integer("token_count").notNull(),
+  searchChunkId: text("search_chunk_id"), // Azure AI Search chunk ID
+  metadata: jsonb("metadata"), // Section title, page number, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertStandardSchema = createInsertSchema(standards).omit({
   id: true,
   createdAt: true,
@@ -155,6 +181,17 @@ export const insertEvaluationCriteriaSchema = createInsertSchema(evaluationCrite
   updatedAt: true,
 });
 
+export const insertRagDocumentSchema = createInsertSchema(ragDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRagChunkSchema = createInsertSchema(ragChunks).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -181,3 +218,9 @@ export type Evaluation = typeof evaluations.$inferSelect;
 
 export type InsertEvaluationCriteria = z.infer<typeof insertEvaluationCriteriaSchema>;
 export type EvaluationCriteria = typeof evaluationCriteria.$inferSelect;
+
+export type InsertRagDocument = z.infer<typeof insertRagDocumentSchema>;
+export type RagDocument = typeof ragDocuments.$inferSelect;
+
+export type InsertRagChunk = z.infer<typeof insertRagChunkSchema>;
+export type RagChunk = typeof ragChunks.$inferSelect;
