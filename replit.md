@@ -66,6 +66,29 @@ Preferred communication style: Simple, everyday language.
 - Error handling: RAG failures logged but don't block standard creation
 - Supports both file uploads and URL-based document fetches
 
+**Multi-Agent Evaluation Integration (RAG Phase 5):**
+- **Hybrid Search Retrieval:** Combines semantic (vector) and keyword search for optimal document retrieval
+- **Contextual Augmentation:** Before each evaluation, retrieves top 2 document chunks per requirement (max 10 chunks total) to balance context fidelity with token costs
+- **Agent Integration:** All 6 specialized agents (Delivery, Product, Architecture, Engineering, Procurement, Security) receive retrieved compliance context in their prompts
+- **Graceful Degradation:** System continues evaluations even if RAG is unconfigured, logging warnings but not blocking operations
+- **Performance:** Hybrid search adds ~1-2 seconds per evaluation (acceptable for multi-agent workflows)
+- **Configured via:** `ragRetrieval.ts` service with `isConfigured()` check before retrieval attempts
+
+**RAG Documents Management (RAG Phase 6):**
+- **Dedicated UI Tab:** Third tab in Knowledge Pack page for managing all RAG documents
+- **Document List:** Displays all indexed documents with filename, source type, chunk count, status badges, and creation date
+- **Status Indicators:** Color-coded badges (indexed/processing/failed/pending) show indexing state
+- **Delete Operation:** Comprehensive cleanup removing document from Azure Blob Storage, Azure AI Search, and database
+- **Re-index Functionality:** Production-ready non-destructive re-indexing that:
+  - Preserves document ID (maintains foreign key references from standards table)
+  - Reuses existing blob in Azure Storage (no orphaned blobs created)
+  - Clears old chunks and search index entries
+  - Regenerates chunks with latest algorithm
+  - Generates new embeddings with current model
+  - Updates search index with fresh data
+  - Handles failures safely (won't delete existing blob on error)
+- **Error Handling:** Clear error messages, loading states, confirmation dialogs for destructive operations
+
 **Admin Configuration:** A dedicated admin page allows configuration of OpenAI API keys for agents, Azure AI Search keys, Azure Blob Storage connection strings, and Azure OpenAI embeddings. Credentials are stored encrypted.
 
 **Data Management:** Features for generating comprehensive mock data (portfolios, projects, requirements, proposals, evaluations, standards, MCP connectors) and safely wiping all application data.
