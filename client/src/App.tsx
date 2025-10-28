@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "./lib/queryClient";
+import { QueryClientProvider, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import PortfolioPage from "@/pages/PortfolioPage";
@@ -12,7 +16,7 @@ import NewProjectPage from "@/pages/NewProjectPage";
 import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Database, Trash2 } from "lucide-react";
 
 function Router() {
   return (
@@ -28,6 +32,86 @@ function Router() {
   );
 }
 
+function DataManagementButtons() {
+  const { toast } = useToast();
+  const [isWipeDialogOpen, setIsWipeDialogOpen] = useState(false);
+
+  const generateMockDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/generate-mock-data");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({ title: "Mock data generated successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to generate mock data", variant: "destructive" });
+    },
+  });
+
+  const wipeDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/wipe-data");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      setIsWipeDialogOpen(false);
+      toast({ title: "All data wiped successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to wipe data", variant: "destructive" });
+    },
+  });
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => generateMockDataMutation.mutate()}
+        disabled={generateMockDataMutation.isPending}
+        className="gap-2"
+        data-testid="button-generate-mock-data"
+      >
+        <Database className="h-4 w-4" />
+        {generateMockDataMutation.isPending ? "Generating..." : "Generate Mock Data"}
+      </Button>
+
+      <AlertDialog open={isWipeDialogOpen} onOpenChange={setIsWipeDialogOpen}>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2 hover:bg-destructive/10 hover:text-destructive"
+            data-testid="button-wipe-data"
+          >
+            <Trash2 className="h-4 w-4" />
+            Wipe All Data
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete all portfolios, projects, proposals, evaluations, standards, and MCP connectors. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => wipeDataMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={wipeDataMutation.isPending}
+            >
+              {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -39,6 +123,7 @@ function App() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold">IntelliBid</span>
               </div>
+              <DataManagementButtons />
               <ThemeToggle />
             </div>
             <Router />

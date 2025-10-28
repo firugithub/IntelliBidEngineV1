@@ -324,3 +324,170 @@ export async function seedSampleData() {
     throw error;
   }
 }
+
+export async function seedAllMockData() {
+  try {
+    console.log("Starting comprehensive mock data generation...");
+    
+    // 1. Seed portfolios
+    await seedPortfolios();
+    console.log("✓ Portfolios seeded");
+    
+    // 2. Seed projects with complete data
+    await seedSampleData();
+    console.log("✓ Projects, proposals, and evaluations seeded");
+    
+    // 3. Seed compliance standards
+    const standards = await storage.getAllStandards();
+    if (standards.length === 0) {
+      await storage.createStandard({
+        name: "ISO 27001 Information Security",
+        description: "Information security management system requirements",
+        sections: [
+          { id: "iso-001", name: "Access Control", description: "User access management and authentication requirements" },
+          { id: "iso-002", name: "Cryptography", description: "Data encryption and cryptographic controls" },
+          { id: "iso-003", name: "Physical Security", description: "Physical access controls and environmental security" },
+          { id: "iso-004", name: "Incident Management", description: "Security incident response procedures" },
+        ],
+        tags: ["ISO27001", "Security", "Compliance"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "GDPR Data Protection",
+        description: "General Data Protection Regulation compliance framework",
+        sections: [
+          { id: "gdpr-001", name: "Data Processing", description: "Lawful basis for processing personal data" },
+          { id: "gdpr-002", name: "Data Subject Rights", description: "Rights to access, rectification, and erasure" },
+          { id: "gdpr-003", name: "Data Breach Notification", description: "Requirements for breach reporting" },
+          { id: "gdpr-004", name: "Privacy by Design", description: "Data protection by design and by default" },
+        ],
+        tags: ["GDPR", "Privacy", "Compliance"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "SOC 2 Trust Services",
+        description: "Service Organization Control 2 security criteria",
+        sections: [
+          { id: "soc2-001", name: "Security", description: "Protection against unauthorized access" },
+          { id: "soc2-002", name: "Availability", description: "System availability and performance" },
+          { id: "soc2-003", name: "Confidentiality", description: "Protection of confidential information" },
+          { id: "soc2-004", name: "Processing Integrity", description: "System processing accuracy and completeness" },
+        ],
+        tags: ["SOC2", "Security", "Audit"],
+        isActive: "true",
+      });
+      
+      console.log("✓ Compliance standards seeded");
+    }
+    
+    // 4. Seed MCP connectors
+    const connectors = await storage.getAllMcpConnectors();
+    if (connectors.length === 0) {
+      await storage.createMcpConnector({
+        name: "Confluence Documentation",
+        description: "Access to company knowledge base and documentation",
+        serverUrl: "https://company.atlassian.net/wiki",
+        apiKey: "demo-key-confluence-12345",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Slack Conversations",
+        description: "Integration with team communication channels",
+        serverUrl: "https://slack.com/api",
+        apiKey: "demo-key-slack-67890",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "GitHub Repositories",
+        description: "Source code and technical documentation access",
+        serverUrl: "https://api.github.com",
+        apiKey: "demo-key-github-abcde",
+        isActive: "false",
+      });
+      
+      console.log("✓ MCP connectors seeded");
+    }
+    
+    console.log("✅ All mock data generated successfully!");
+    return { success: true, message: "All mock data generated successfully" };
+  } catch (error) {
+    console.error("Error seeding all mock data:", error);
+    throw error;
+  }
+}
+
+export async function wipeAllData() {
+  try {
+    console.log("Starting data wipe...");
+    
+    // Get all items to delete
+    const portfolios = await storage.getAllPortfolios();
+    const projects = await storage.getAllProjects();
+    const standards = await storage.getAllStandards();
+    const connectors = await storage.getAllMcpConnectors();
+    
+    // Delete all evaluations (by getting all projects and their proposals)
+    for (const project of projects) {
+      const proposals = await storage.getProposalsByProject(project.id);
+      for (const proposal of proposals) {
+        const evaluations = await storage.getEvaluationsByProposal(proposal.id);
+        for (const evaluation of evaluations) {
+          await storage.deleteEvaluation(evaluation.id);
+        }
+      }
+    }
+    console.log(`✓ Deleted evaluations`);
+    
+    // Delete all proposals
+    for (const project of projects) {
+      const proposals = await storage.getProposalsByProject(project.id);
+      for (const proposal of proposals) {
+        await storage.deleteProposal(proposal.id);
+      }
+    }
+    console.log(`✓ Deleted proposals`);
+    
+    // Delete all requirements
+    for (const project of projects) {
+      const requirements = await storage.getRequirementsByProject(project.id);
+      for (const requirement of requirements) {
+        await storage.deleteRequirement(requirement.id);
+      }
+    }
+    console.log(`✓ Deleted requirements`);
+    
+    // Delete all projects
+    for (const project of projects) {
+      await storage.deleteProject(project.id);
+    }
+    console.log(`✓ Deleted ${projects.length} projects`);
+    
+    // Delete all portfolios
+    for (const portfolio of portfolios) {
+      await storage.deletePortfolio(portfolio.id);
+    }
+    console.log(`✓ Deleted ${portfolios.length} portfolios`);
+    
+    // Deactivate all standards (soft delete)
+    for (const standard of standards) {
+      await storage.deactivateStandard(standard.id);
+    }
+    console.log(`✓ Deactivated ${standards.length} standards`);
+    
+    // Delete all MCP connectors
+    for (const connector of connectors) {
+      await storage.deleteMcpConnector(connector.id);
+    }
+    console.log(`✓ Deleted ${connectors.length} MCP connectors`);
+    
+    console.log("✅ All data wiped successfully!");
+    return { success: true, message: "All data wiped successfully" };
+  } catch (error) {
+    console.error("Error wiping data:", error);
+    throw error;
+  }
+}

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
-import { seedSampleData, seedPortfolios } from "./services/sampleData";
+import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData } from "./services/sampleData";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 
@@ -165,6 +165,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error seeding sample data:", error);
       res.status(500).json({ error: "Failed to seed sample data" });
+    }
+  });
+
+  // Generate all mock data endpoint
+  app.post("/api/generate-mock-data", async (req, res) => {
+    try {
+      const result = await seedAllMockData();
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating mock data:", error);
+      res.status(500).json({ error: "Failed to generate mock data" });
+    }
+  });
+
+  // Wipe all data endpoint
+  app.post("/api/wipe-data", async (req, res) => {
+    try {
+      const result = await wipeAllData();
+      res.json(result);
+    } catch (error) {
+      console.error("Error wiping data:", error);
+      res.status(500).json({ error: "Failed to wipe data" });
     }
   });
 
