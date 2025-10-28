@@ -83,9 +83,14 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-2">IntelliBid</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold">IntelliBid</h1>
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  Nujum Air
+                </Badge>
+              </div>
               <p className="text-lg text-muted-foreground">
-                AI-Powered Vendor Shortlisting for Enterprise Teams
+                AI-Powered Vendor Shortlisting for Middle East's Largest Airline
               </p>
             </div>
             <Link href="/standards">
