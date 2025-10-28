@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimetype: contentType || (fileType === 'pdf' ? 'application/pdf' : 'text/plain'),
             };
 
-            parsedDocument = await parseDocument(mockFile as any);
+            parsedDocument = await parseDocument(buffer, fileName);
           } finally {
             clearTimeout(timeout);
           }
@@ -396,8 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (req.file) {
         // Parse the uploaded file
-        parsedDocument = await parseDocument(req.file);
         fileName = req.file.originalname;
+        parsedDocument = await parseDocument(req.file.buffer, fileName);
       }
 
       // Safety check (should never happen due to earlier validation)
@@ -423,7 +423,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: "true",
       });
 
-      res.json(standard);
+      // PHASE 3: Ingest document into RAG system (Azure Blob + AI Search)
+      try {
+        const { documentIngestionService } = await import("./services/documentIngestion");
+        
+        // Prepare document buffer
+        let documentBuffer: Buffer;
+        if (url) {
+          // Re-fetch the document for RAG ingestion (already validated earlier)
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          documentBuffer = Buffer.from(arrayBuffer);
+        } else if (req.file) {
+          documentBuffer = req.file.buffer;
+        } else {
+          throw new Error("No document source available for RAG ingestion");
+        }
+
+        // Ingest into RAG system
+        const ragResult = await documentIngestionService.ingestDocument({
+          sourceType: "standard",
+          sourceId: standard.id,
+          fileName: fileName || "document.txt",
+          content: documentBuffer,
+          textContent: parsedDocument.text,
+          metadata: {
+            tags: parsedTags,
+            sectionTitle: name,
+          },
+        });
+
+        // Update standard with RAG document ID
+        if (ragResult.status === "success") {
+          await storage.updateStandard(standard.id, {
+            ragDocumentId: ragResult.documentId,
+          });
+          console.log(`[RAG] Standard "${name}" linked to RAG document: ${ragResult.documentId}`);
+        } else {
+          console.warn(`[RAG] Failed to ingest standard "${name}" into RAG system:`, ragResult.error);
+        }
+      } catch (ragError) {
+        // Log RAG ingestion failure but don't fail the standard creation
+        console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragError);
+      }
+
+      // Return the standard (RAG ingestion happens in background)
+      const updatedStandard = await storage.getStandard(standard.id);
+      res.json(updatedStandard || standard);
     } catch (error) {
       console.error("Error creating standard from upload:", error);
       res.status(500).json({ error: "Failed to create standard from upload" });
@@ -538,6 +584,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive,
       });
       const updated = await storage.getMcpConnector(req.params.id);
+      if (!updated) {
+        return res.status(404).json({ error: "MCP connector not found" });
+      }
       // Redact API key in response for security
       res.json({
         ...updated,

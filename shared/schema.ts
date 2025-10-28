@@ -18,6 +18,7 @@ export const standards = pgTable("standards", {
   tags: text("tags").array(),
   fileName: text("file_name"),
   documentContent: text("document_content"),
+  ragDocumentId: varchar("rag_document_id"), // Link to RAG system for retrieval
   isActive: text("is_active").notNull().default("true"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

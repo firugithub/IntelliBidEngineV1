@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -720,9 +720,17 @@ export default function StandardsPage() {
                                 {standard.description}
                               </p>
                             )}
-                            <p className="text-sm text-muted-foreground mt-2 ml-12">
-                              {sections.length} compliance section{sections.length !== 1 ? 's' : ''}
-                            </p>
+                            <div className="flex items-center gap-3 mt-2 ml-12">
+                              <p className="text-sm text-muted-foreground">
+                                {sections.length} compliance section{sections.length !== 1 ? 's' : ''}
+                              </p>
+                              {standard.ragDocumentId && (
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+                                  <Database className="h-3 w-3" />
+                                  <span>RAG Indexed</span>
+                                </div>
+                              )}
+                            </div>
 
                             {isExpanded && sections.length > 0 && (
                               <div className="mt-4 ml-12 space-y-2">

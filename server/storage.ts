@@ -169,6 +169,7 @@ export class MemStorage implements IStorage {
       tags: insertStandard.tags || null,
       fileName: insertStandard.fileName || null,
       documentContent: insertStandard.documentContent || null,
+      ragDocumentId: insertStandard.ragDocumentId || null,
       isActive: insertStandard.isActive || "true",
       createdAt: new Date(),
     };
@@ -458,7 +459,7 @@ export class MemStorage implements IStorage {
   }
 
   // RAG Documents
-  async createRagDocument(insertDocument: InsertRagDocument): Promise<RagDocument> {
+  async createRagDocument(insertDocument: InsertRagDocument & { id?: string }): Promise<RagDocument> {
     // Use provided id if available, otherwise generate new UUID
     const id = insertDocument.id || randomUUID();
     const document: RagDocument = {
