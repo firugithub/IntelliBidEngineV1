@@ -9,6 +9,50 @@ const openai = new OpenAI({
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
 
+// Fallback insights when agent fails
+function getFallbackInsights(role: AgentRole): string[] {
+  const fallbacks: Record<AgentRole, string[]> = {
+    delivery: [
+      "Timeline and resource assessment requires manual review",
+      "Risk analysis pending - recommend scheduling follow-up evaluation",
+      "Dependencies and milestones need stakeholder validation",
+      "Delivery approach should be verified against similar past projects"
+    ],
+    product: [
+      "Product requirements coverage needs detailed mapping",
+      "Feature parity analysis requires domain expert review",
+      "User experience impact should be validated with stakeholders",
+      "Product roadmap alignment requires business owner input"
+    ],
+    architecture: [
+      "Architecture patterns require technical deep-dive review",
+      "Integration approach needs enterprise architect validation",
+      "Scalability and security posture require dedicated assessment",
+      "Technical debt and migration path need detailed planning"
+    ],
+    engineering: [
+      "API and SDK quality require hands-on technical evaluation",
+      "Documentation completeness needs engineering team review",
+      "Developer experience should be validated through POC",
+      "Technical support model requires further investigation"
+    ],
+    procurement: [
+      "TCO analysis requires detailed cost breakdown and validation",
+      "Contract terms and SLAs need legal and procurement review",
+      "Pricing model should be compared against market benchmarks",
+      "Commercial risk assessment requires stakeholder input"
+    ],
+    security: [
+      "Security and compliance posture requires detailed audit",
+      "Data protection mechanisms need security team validation",
+      "Certification and standards compliance requires verification",
+      "Risk assessment and remediation plan need expert review"
+    ]
+  };
+  
+  return fallbacks[role];
+}
+
 // Agent result interface
 interface AgentResult {
   role: AgentRole;
@@ -27,6 +71,7 @@ interface AgentResult {
   status: "recommended" | "under-review" | "risk-flagged";
   executionTime: number;
   tokenUsage: number;
+  succeeded: boolean; // Track if agent completed successfully
 }
 
 // Agent diagnostics
@@ -399,20 +444,23 @@ async function executeAgent(
       status: result.status || "under-review",
       executionTime,
       tokenUsage: response.usage?.total_tokens || 0,
+      succeeded: true,
     };
   } catch (error) {
     const executionTime = Date.now() - startTime;
     console.error(`Agent ${role} failed:`, error);
     
-    // Return minimal result on failure
+    // Return fallback result with succeeded=false
+    const fallbackInsights = getFallbackInsights(role);
     return {
       role,
-      insights: [`[Agent ${role} failed: ${error instanceof Error ? error.message : 'Unknown error'}]`],
+      insights: fallbackInsights,
       scores: { overall: 0 },
-      rationale: `Evaluation failed for ${role} perspective`,
+      rationale: `Evaluation incomplete for ${role} perspective`,
       status: "under-review",
       executionTime,
       tokenUsage: 0,
+      succeeded: false,
     };
   }
 }
@@ -422,7 +470,8 @@ function aggregateResults(
   agentResults: AgentResult[],
   proposal: ProposalAnalysis
 ): VendorEvaluation {
-  const successfulAgents = agentResults.filter(r => r.insights.length > 0 && !r.insights[0].includes("failed"));
+  // Only include successful agents in scoring calculations
+  const successfulAgents = agentResults.filter(r => r.succeeded);
   
   // Calculate average scores
   const avgOverall = Math.round(
@@ -477,11 +526,17 @@ function aggregateResults(
   const status = statusCounts["risk-flagged"] > 2 ? "risk-flagged" :
                  statusCounts.recommended > 3 ? "recommended" : "under-review";
 
-  // Aggregate rationales
-  const rationale = agentResults
-    .filter(r => r.rationale && !r.insights[0]?.includes("failed"))
+  // Aggregate rationales (only from successful agents)
+  const rationale = successfulAgents
+    .filter(r => r.rationale)
     .map(r => `${r.role.charAt(0).toUpperCase() + r.role.slice(1)}: ${r.rationale}`)
     .join(" ");
+  
+  // Add partial evaluation notice if some agents failed
+  const failedCount = agentResults.length - successfulAgents.length;
+  const evaluationNote = failedCount > 0 
+    ? ` (Note: ${failedCount} of 6 agent evaluations incomplete - review role-specific insights for details)`
+    : "";
 
   return {
     overallScore: avgOverall,
@@ -490,7 +545,7 @@ function aggregateResults(
     cost: proposal.costStructure || "Not specified",
     compliance: avgCompliance,
     status,
-    rationale: rationale || "Multi-agent evaluation completed",
+    rationale: (rationale || "Multi-agent evaluation completed") + evaluationNote,
     roleInsights,
     detailedScores,
   };
@@ -523,20 +578,25 @@ export async function evaluateProposalMultiAgent(
           role: result.value.role,
           executionTime: result.value.executionTime,
           tokenUsage: result.value.tokenUsage,
-          status: result.value.insights[0]?.includes("failed") ? "failed" : "success",
-          error: result.value.insights[0]?.includes("failed") ? result.value.insights[0] : undefined,
+          status: result.value.succeeded ? "success" : "failed",
+          error: result.value.succeeded ? undefined : "Agent completed but with errors",
         });
       } else {
-        // Agent promise rejected - create minimal result
+        // Agent promise rejected - create informative fallback result
         console.error(`Agent ${role} failed with error:`, result.reason);
+        
+        // Generate role-specific fallback insights instead of error message
+        const fallbackInsights = getFallbackInsights(role);
+        
         agentResults.push({
           role,
-          insights: [`[Agent ${role} failed: ${result.reason instanceof Error ? result.reason.message : 'Unknown error'}]`],
-          scores: { overall: 0 },
-          rationale: `Evaluation failed for ${role} perspective`,
+          insights: fallbackInsights,
+          scores: { overall: 0 }, // Zero score for failed agents (won't affect average)
+          rationale: `Evaluation incomplete for ${role} perspective`,
           status: "under-review",
           executionTime: 0,
           tokenUsage: 0,
+          succeeded: false,
         });
         diagnostics.push({
           role,

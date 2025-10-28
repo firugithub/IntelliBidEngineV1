@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 28, 2025)
 
+**Multi-Agent Evaluation System:**
+- Implemented specialized AI agents for each stakeholder role (Delivery, Product, Architecture, Engineering, Procurement, Security)
+- Each agent has domain-expert system prompts with 15+ years of experience in their respective fields
+- Parallel execution using Promise.allSettled for resilient fault-tolerant evaluation
+- Failed agents provide meaningful fallback insights instead of blocking entire evaluation
+- AgentResult.succeeded flag tracks success/failure for accurate scoring aggregation
+- Partial evaluation notice in rationale when agents fail
+- Agent diagnostics track execution time, token usage, and status for all 6 agents
+- Failed agents excluded from scoring calculations but still provide stakeholder guidance
+- Automatic fallback ensures all 6 role insights always populated in UI
+
+## Recent Changes (October 28, 2025)
+
 **Airline Rebranding for Nujum Air:**
 - Rebranded application for Nujum Air (Middle East's largest airline)
 - Updated all portfolios to airline-specific departments:
