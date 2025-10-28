@@ -20,7 +20,8 @@ Preferred communication style: Simple, everyday language.
 - Document metadata stored: fileName and documentContent fields in standards schema
 - New backend endpoint: POST `/api/standards/upload` handles both file uploads and URL fetching
 - New AI service: `extractComplianceSections()` analyzes documents and extracts structured sections
-- **Security**: URL fetching includes SSRF protection (blocks private IPs, localhost, disables redirects, validates DNS, 30s timeout, 10MB limit)
+- **Security**: URL fetching includes SSRF protection (blocks private IPs, localhost, disables redirects, validates DNS for both IPv4 and IPv6, 30s timeout, 10MB limit)
+- **Security Note**: For maximum security in production environments, consider using file uploads only or implementing additional IP-pinning controls
 - Loading state "Analyzing Document..." shows AI processing status
 - Edit mode still allows manual section management for existing standards
 - UI warning alerts users that URL must be publicly accessible and from trusted sources
