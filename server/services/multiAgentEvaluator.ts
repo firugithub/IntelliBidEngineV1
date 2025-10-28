@@ -1,5 +1,6 @@
 import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation } from "./aiAnalysis";
 import { getOpenAIClient } from "./aiAnalysis";
+import { ragRetrievalService } from "./ragRetrieval";
 
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
@@ -428,6 +429,7 @@ async function executeAgent(
   requirements: RequirementAnalysis,
   proposal: ProposalAnalysis,
   standardData?: StandardData,
+  ragContext?: string,
   timeout: number = 30000
 ): Promise<AgentResult> {
   const startTime = Date.now();
@@ -450,6 +452,11 @@ You MUST evaluate vendor compliance against these organization-specific sections
 ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : ''}`).join('\n')}
 
 **IMPORTANT:** Your evaluation must explicitly address how the vendor meets (or fails to meet) EACH of these organization-specific requirements. These are mandatory, not optional.`;
+  }
+
+  // Add RAG context if available
+  if (ragContext) {
+    standardsContext += `\n\n${ragContext}`;
   }
   
   const userMessage = prompt.userTemplate
@@ -616,11 +623,34 @@ export async function evaluateProposalMultiAgent(
     console.log(`   📋 Organization standards: ${standardData.name} (${standardData.taggedSectionIds.length} tagged sections)`);
   }
   
+  // Retrieve relevant compliance documents from RAG system
+  let ragContext: string | undefined;
+  try {
+    const isRAGConfigured = await ragRetrievalService.isConfigured();
+    if (isRAGConfigured) {
+      console.log(`   🔍 Retrieving relevant compliance documents from RAG system...`);
+      
+      // Build retrieval query from requirements
+      const retrievalQueries = requirements.technicalRequirements.slice(0, 5);
+      const ragContextData = await ragRetrievalService.retrieveComplianceStandards(
+        retrievalQueries,
+        { topKPerRequirement: 2 }
+      );
+      
+      ragContext = ragRetrievalService.formatForAIContext(ragContextData);
+      console.log(`   ✅ Retrieved ${ragContextData.chunks.length} relevant document sections`);
+    } else {
+      console.log(`   ⚠️  RAG system not configured, proceeding without document retrieval`);
+    }
+  } catch (error) {
+    console.error(`   ❌ RAG retrieval failed, proceeding without it:`, error);
+  }
+  
   const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
   
   try {
     // Execute all agents in parallel with allSettled for resilience
-    const agentPromises = roles.map(role => executeAgent(role, requirements, proposal, standardData));
+    const agentPromises = roles.map(role => executeAgent(role, requirements, proposal, standardData, ragContext));
     const settledResults = await Promise.allSettled(agentPromises);
     
     // Extract successful results and track failures
