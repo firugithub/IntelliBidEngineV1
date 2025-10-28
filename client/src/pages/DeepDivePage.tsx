@@ -29,7 +29,7 @@ export default function DeepDivePage() {
 
   // Fetch evaluation criteria
   const { data: criteria, isLoading } = useQuery<EvaluationCriteria[]>({
-    queryKey: [`/api/evaluations/${id}/criteria`, role],
+    queryKey: [`/api/evaluations/${id}/criteria?role=${role}`],
     enabled: !!id,
   });
 
@@ -39,7 +39,7 @@ export default function DeepDivePage() {
       return await apiRequest("PATCH", `/api/evaluation-criteria/${criteriaId}`, { score, scoreLabel });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/evaluations/${id}/criteria`, role] });
+      queryClient.invalidateQueries({ queryKey: [`/api/evaluations/${id}/criteria?role=${role}`] });
       toast({
         title: "Criteria updated",
         description: "The evaluation criteria has been updated successfully.",
