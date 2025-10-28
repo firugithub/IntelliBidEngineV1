@@ -506,34 +506,65 @@ export async function evaluateProposalMultiAgent(
   const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
   
   try {
-    // Execute all agents in parallel
+    // Execute all agents in parallel with allSettled for resilience
     const agentPromises = roles.map(role => executeAgent(role, requirements, proposal));
-    const agentResults = await Promise.all(agentPromises);
+    const settledResults = await Promise.allSettled(agentPromises);
     
-    // Build diagnostics
-    const diagnostics: AgentDiagnostics[] = agentResults.map(result => ({
-      role: result.role,
-      executionTime: result.executionTime,
-      tokenUsage: result.tokenUsage,
-      status: result.insights[0]?.includes("failed") ? "failed" : "success",
-      error: result.insights[0]?.includes("failed") ? result.insights[0] : undefined,
-    }));
+    // Extract successful results and track failures
+    const agentResults: AgentResult[] = [];
+    const diagnostics: AgentDiagnostics[] = [];
+    
+    settledResults.forEach((result, index) => {
+      const role = roles[index];
+      
+      if (result.status === "fulfilled") {
+        agentResults.push(result.value);
+        diagnostics.push({
+          role: result.value.role,
+          executionTime: result.value.executionTime,
+          tokenUsage: result.value.tokenUsage,
+          status: result.value.insights[0]?.includes("failed") ? "failed" : "success",
+          error: result.value.insights[0]?.includes("failed") ? result.value.insights[0] : undefined,
+        });
+      } else {
+        // Agent promise rejected - create minimal result
+        console.error(`Agent ${role} failed with error:`, result.reason);
+        agentResults.push({
+          role,
+          insights: [`[Agent ${role} failed: ${result.reason instanceof Error ? result.reason.message : 'Unknown error'}]`],
+          scores: { overall: 0 },
+          rationale: `Evaluation failed for ${role} perspective`,
+          status: "under-review",
+          executionTime: 0,
+          tokenUsage: 0,
+        });
+        diagnostics.push({
+          role,
+          executionTime: 0,
+          tokenUsage: 0,
+          status: "failed",
+          error: result.reason instanceof Error ? result.reason.message : 'Unknown error',
+        });
+      }
+    });
     
     // Log execution summary
-    const totalTime = Math.max(...agentResults.map(r => r.executionTime));
+    const totalTime = Math.max(...agentResults.map(r => r.executionTime), 0);
     const totalTokens = agentResults.reduce((sum, r) => sum + r.tokenUsage, 0);
     const failedAgents = diagnostics.filter(d => d.status === "failed").length;
+    const successfulAgents = 6 - failedAgents;
     
     console.log(`✅ Multiagent evaluation complete in ${totalTime}ms`);
-    console.log(`   Tokens used: ${totalTokens}`);
+    console.log(`   Successful agents: ${successfulAgents}/6`);
     console.log(`   Failed agents: ${failedAgents}/6`);
+    console.log(`   Tokens used: ${totalTokens}`);
     
-    // Aggregate results
+    // Aggregate results from all agents (including partial failures)
     const evaluation = aggregateResults(agentResults, proposal);
     
     return { evaluation, diagnostics };
   } catch (error) {
-    console.error("❌ Multiagent evaluation failed:", error);
+    console.error("❌ Multiagent evaluation failed catastrophically:", error);
     throw error;
   }
 }
