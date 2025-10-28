@@ -2,7 +2,7 @@
 
 ## Overview
 
-IntelliBid is an AI-powered platform designed to streamline and objectively transform the vendor evaluation and shortlisting process. It automates the analysis of RFT/RFI responses and partner proposals, generating risk-adjusted shortlisting reports with clear rationale tailored for various stakeholders including Delivery, Procurement, Product, Architecture, Engineering, and QA. The system parses requirements, converts vendor proposals into structured data, performs semantic matching, and generates weighted scores across dimensions like technical fit, delivery risk, cost, and compliance. IntelliBid aims to reduce manual review times from days to minutes, offering transparent, data-driven decision-making for vendor selection. The platform is a fully functional MVP with comprehensive frontend, backend, AI analysis, and sample data.
+IntelliBid is an AI-powered platform designed to streamline and objectively transform the vendor evaluation and shortlisting process for Nujum Air, the Middle East's largest airline. The platform automates the analysis of RFT/RFI responses and partner proposals, generating risk-adjusted shortlisting reports with clear rationale tailored for various airline stakeholders including Flight Operations, Product, Procurement, Architecture, Engineering, Safety & Compliance, and QA. The system parses requirements, converts vendor proposals into structured data, performs semantic matching, and generates weighted scores across dimensions like technical fit, delivery risk, cost, and compliance. IntelliBid aims to reduce manual review times from days to minutes, offering transparent, data-driven decision-making for vendor selection in the aviation industry. The platform is a fully functional MVP deployed for Nujum Air with comprehensive frontend, backend, AI analysis, and airline-specific sample data.
 
 ## User Preferences
 
@@ -10,13 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 28, 2025)
 
+**Airline Rebranding for Nujum Air:**
+- Rebranded application for Nujum Air (Middle East's largest airline)
+- Updated all portfolios to airline-specific departments:
+  - Flight Operations, Aircraft Maintenance & Engineering, In-Flight Services & Catering
+  - Ground Services & Cargo, Passenger Services & CX, Digital & Technology
+  - Network Planning & Revenue, Safety & Compliance, Airport Services, Procurement & Supply Chain
+- Sample project: "Passenger Service System Upgrade" for Nujum Digital Experience 2025
+- Airline vendors: Amadeus IT Group, Sabre Corporation, SITA with aviation-specific proposals
+- All evaluations updated with airline operations context (NDC, IATA, PSS, GDS integration)
+- MCP connectors: Nujum Air Confluence, Operations Slack Channel, Aviation Systems GitHub
+- Homepage displays "IntelliBid" with "Nujum Air" badge and airline tagline
+
 **Data Management Features:**
 - Added comprehensive mock data generation system accessible via header button
 - **Generate Mock Data** button creates complete application dataset:
-  - 10 portfolios across different business categories (Group Services, Operations, Customer Brand, etc.)
+  - 10 airline-specific portfolios across operations, services, and technology
   - Projects with complete requirements, vendor proposals, and AI evaluations
   - 3 compliance standards (ISO 27001, GDPR, SOC 2) with structured sections
-  - 3 MCP connectors (Confluence, Slack, GitHub) with demo API keys
+  - 3 MCP connectors with airline-specific descriptions and demo API keys
 - **Wipe All Data** button with confirmation dialog for complete data reset:
   - Cascade deletes all evaluations, proposals, requirements, projects, and portfolios
   - Deactivates all compliance standards (soft delete)
