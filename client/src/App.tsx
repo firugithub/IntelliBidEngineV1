@@ -16,6 +16,7 @@ import NewProjectPage from "@/pages/NewProjectPage";
 import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
+import DeepDivePage from "@/pages/DeepDivePage";
 import { Sparkles, Database, Trash2 } from "lucide-react";
 
 function Router() {
@@ -27,6 +28,8 @@ function Router() {
       <Route path="/portfolio/:id/new-project" component={NewProjectPage} />
       <Route path="/portfolio/:id/upload" component={UploadPage} />
       <Route path="/dashboard/:id" component={DashboardPage} />
+      <Route path="/project/:id" component={DashboardPage} />
+      <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route component={NotFound} />
     </Switch>
   );

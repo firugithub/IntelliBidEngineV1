@@ -811,6 +811,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get evaluation criteria for an evaluation
+  app.get("/api/evaluations/:id/criteria", async (req, res) => {
+    try {
+      const evaluationId = req.params.id;
+      const role = req.query.role as string | undefined;
+      const criteria = await storage.getEvaluationCriteriaByEvaluation(evaluationId, role);
+      res.json(criteria);
+    } catch (error) {
+      console.error("Error fetching evaluation criteria:", error);
+      res.status(500).json({ error: "Failed to fetch evaluation criteria" });
+    }
+  });
+
+  // Update evaluation criteria score
+  app.patch("/api/evaluation-criteria/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const { score, scoreLabel } = req.body;
+      
+      await storage.updateEvaluationCriteria(id, { score, scoreLabel });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating evaluation criteria:", error);
+      res.status(500).json({ error: "Failed to update evaluation criteria" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,11 +1,14 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import {
   Briefcase,
   Package,
   Layers,
   Code,
   DollarSign,
+  ExternalLink,
 } from "lucide-react";
 
 interface RoleInsight {
@@ -19,6 +22,9 @@ interface RoleViewTabsProps {
   architectureInsights: RoleInsight;
   engineeringInsights: RoleInsight;
   procurementInsights: RoleInsight;
+  evaluationId?: string;
+  vendorName?: string;
+  projectId?: string;
 }
 
 export function RoleViewTabs({
@@ -27,6 +33,9 @@ export function RoleViewTabs({
   architectureInsights,
   engineeringInsights,
   procurementInsights,
+  evaluationId,
+  vendorName,
+  projectId,
 }: RoleViewTabsProps) {
   return (
     <Tabs defaultValue="delivery" className="w-full" data-testid="tabs-role-view">
@@ -88,6 +97,16 @@ export function RoleViewTabs({
               ))}
             </ul>
           </CardContent>
+          {evaluationId && vendorName && projectId && (
+            <CardFooter>
+              <Link href={`/evaluation/${evaluationId}/deep-dive?role=product&vendor=${encodeURIComponent(vendorName)}&project=${projectId}`}>
+                <Button variant="outline" className="gap-2" data-testid="button-product-deep-dive">
+                  <ExternalLink className="h-4 w-4" />
+                  View Detailed Product Evaluation
+                </Button>
+              </Link>
+            </CardFooter>
+          )}
         </Card>
       </TabsContent>
 
@@ -107,6 +126,16 @@ export function RoleViewTabs({
               ))}
             </ul>
           </CardContent>
+          {evaluationId && vendorName && projectId && (
+            <CardFooter>
+              <Link href={`/evaluation/${evaluationId}/deep-dive?role=architecture&vendor=${encodeURIComponent(vendorName)}&project=${projectId}`}>
+                <Button variant="outline" className="gap-2" data-testid="button-architecture-deep-dive">
+                  <ExternalLink className="h-4 w-4" />
+                  View Detailed Architecture Evaluation
+                </Button>
+              </Link>
+            </CardFooter>
+          )}
         </Card>
       </TabsContent>
 

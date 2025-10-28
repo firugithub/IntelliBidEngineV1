@@ -309,12 +309,73 @@ export async function seedSampleData() {
 
       const evalData = evaluationData[proposalData.vendorName as keyof typeof evaluationData];
       if (evalData) {
-        await storage.createEvaluation({
+        const evaluation = await storage.createEvaluation({
           projectId: project.id,
           proposalId: proposal.id,
           ...evalData,
           aiRationale: evalData.rationale,
         });
+
+        // Add detailed evaluation criteria for Product and Architecture roles
+        // Product criteria
+        const productCriteria = [
+          { section: "PSS Core Functionality", question: "Reservation and booking management", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "PSS Core Functionality", question: "Inventory control and seat management", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 100 },
+          { section: "PSS Core Functionality", question: "Departure control system (DCS)", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 100 },
+          { section: "Distribution & Retailing", question: "NDC (New Distribution Capability) support", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 25 },
+          { section: "Distribution & Retailing", question: "IATA ONE Order compliance", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 25 },
+          { section: "Distribution & Retailing", question: "Multi-channel distribution (GDS, direct, OTA)", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "Revenue Management", question: "Dynamic pricing and offers", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "Revenue Management", question: "Ancillary revenue management", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "Revenue Management", question: "Loyalty program integration", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "Passenger Services", question: "Mobile app and web booking", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "Passenger Services", question: "Self-service check-in (web, mobile, kiosk)", score: proposalData.vendorName === "Amadeus IT Group" ? 50 : proposalData.vendorName === "Sabre Corporation" ? 50 : 100 },
+          { section: "Passenger Services", question: "Biometric passenger processing", score: proposalData.vendorName === "Amadeus IT Group" ? 25 : proposalData.vendorName === "Sabre Corporation" ? 25 : 100 },
+        ];
+
+        for (const criterion of productCriteria) {
+          const scoreLabel = criterion.score === 100 ? "Fully met through standard functionality" :
+                            criterion.score === 50 ? "Partially met through standard or custom extensions" :
+                            criterion.score === 25 ? "Not Compliant - Can be developed" : "Not applicable";
+          await storage.createEvaluationCriteria({
+            evaluationId: evaluation.id,
+            role: "product",
+            section: criterion.section,
+            question: criterion.question,
+            score: criterion.score,
+            scoreLabel,
+          });
+        }
+
+        // Architecture criteria
+        const architectureCriteria = [
+          { section: "System Architecture", question: "Cloud-native microservices design", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 25 },
+          { section: "System Architecture", question: "Multi-cloud deployment capability", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "System Architecture", question: "Auto-scaling and high availability", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "Integration & APIs", question: "RESTful API design", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 50 },
+          { section: "Integration & APIs", question: "GraphQL support", score: proposalData.vendorName === "Amadeus IT Group" ? 50 : proposalData.vendorName === "Sabre Corporation" ? 25 : 0 },
+          { section: "Integration & APIs", question: "Event-driven architecture (pub/sub)", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 25 },
+          { section: "Integration & APIs", question: "API gateway and rate limiting", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "Security & Compliance", question: "ISO 27001 certification", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 100 },
+          { section: "Security & Compliance", question: "PCI DSS Level 1 compliance", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "Security & Compliance", question: "IATA PSS certification", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 100 },
+          { section: "Data Management", question: "Real-time data replication", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 50 : 50 },
+          { section: "Data Management", question: "Data encryption at rest and in transit", score: proposalData.vendorName === "Amadeus IT Group" ? 100 : proposalData.vendorName === "Sabre Corporation" ? 100 : 100 },
+        ];
+
+        for (const criterion of architectureCriteria) {
+          const scoreLabel = criterion.score === 100 ? "Fully met through standard functionality" :
+                            criterion.score === 50 ? "Partially met through standard or custom extensions" :
+                            criterion.score === 25 ? "Not Compliant - Can be developed" : "Not applicable";
+          await storage.createEvaluationCriteria({
+            evaluationId: evaluation.id,
+            role: "architecture",
+            section: criterion.section,
+            question: criterion.question,
+            score: criterion.score,
+            scoreLabel,
+          });
+        }
       }
     }
 

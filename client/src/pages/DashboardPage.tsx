@@ -389,6 +389,9 @@ export default function DashboardPage() {
                           title: "Commercial & TCO Analysis",
                           items: selectedVendor.roleInsights.procurement || [],
                         }}
+                        evaluationId={selectedVendor.id}
+                        vendorName={selectedVendor.vendorName}
+                        projectId={projectId}
                       />
                     </CardContent>
                   </Card>
