@@ -122,18 +122,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/standards/upload", upload.single("file"), async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const { name, description, tags } = req.body;
+      const { name, description, tags, url } = req.body;
       
       if (!name) {
         return res.status(400).json({ error: "Standard name is required" });
       }
 
-      // Parse the uploaded document
-      const parsedDocument = await parseDocument(req.file);
+      // Check if either file or URL is provided
+      if (!req.file && !url) {
+        return res.status(400).json({ error: "Either file upload or URL is required" });
+      }
+
+      let parsedDocument;
+      let fileName;
+
+      if (url) {
+        // Fetch and parse document from URL
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch document: ${response.statusText}`);
+          }
+
+          const contentType = response.headers.get('content-type') || '';
+          const buffer = Buffer.from(await response.arrayBuffer());
+          
+          // Extract filename from URL
+          const urlPath = new URL(url).pathname;
+          fileName = urlPath.split('/').pop() || 'document';
+
+          // Determine file type from URL or content-type
+          let fileType = '';
+          if (fileName.endsWith('.pdf') || contentType.includes('pdf')) {
+            fileType = 'pdf';
+          } else if (fileName.endsWith('.txt') || contentType.includes('text')) {
+            fileType = 'txt';
+          } else {
+            // Default to txt for unknown types
+            fileType = 'txt';
+          }
+
+          // Create a mock file object for parsing
+          const mockFile = {
+            buffer,
+            originalname: fileName,
+            mimetype: contentType || (fileType === 'pdf' ? 'application/pdf' : 'text/plain'),
+          };
+
+          parsedDocument = await parseDocument(mockFile as any);
+        } catch (error) {
+          console.error("Error fetching document from URL:", error);
+          return res.status(400).json({ error: "Failed to fetch document from URL. Please ensure the URL is accessible and points to a valid document." });
+        }
+      } else if (req.file) {
+        // Parse the uploaded file
+        parsedDocument = await parseDocument(req.file);
+        fileName = req.file.originalname;
+      }
       
       // Use AI to extract compliance sections from the document
       const { extractComplianceSections } = await import("./services/aiAnalysis");
@@ -148,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: description || null,
         sections: sections,
         tags: parsedTags.length > 0 ? parsedTags : null,
-        fileName: req.file.originalname,
+        fileName: fileName,
         documentContent: parsedDocument.text,
         isActive: "true",
       });
