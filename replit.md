@@ -11,8 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (October 28, 2025)
 
 **Multi-Agent Evaluation System:**
-- Implemented specialized AI agents for each stakeholder role (Delivery, Product, Architecture, Engineering, Procurement, Security)
-- Each agent has domain-expert system prompts with 15+ years of experience in their respective fields
+- **6 Specialized AI Agents** with domain-expert personas (15+ years experience each):
+  - **Delivery Agent**: Evaluates delivery methodologies (Agile/SAFe/Waterfall), simulates scenarios, provides confidence index on timeline/resources
+  - **Product Agent**: Analyzes IATA standards compliance (NDC/ONE Order), compares vs market benchmarks (Amadeus/Sabre), provides feature-fit scoring
+  - **Architecture Agent**: Validates patterns (microservices/event-driven), generates risk/dependency maps, assesses 99.99% uptime capability
+  - **Engineering Agent**: Reviews API design (REST/GraphQL/event-driven), evaluates observability, provides engineering readiness score
+  - **Procurement Agent**: Calculates TCO/ROI (5-year), evaluates SLAs/contracts, provides commercial fit index and contract risk matrix
+  - **Security Agent**: Validates ISO 27001/PCI-DSS/GDPR/NIST, assesses encryption/IAM, provides security assurance score and risk classification
 - Parallel execution using Promise.allSettled for resilient fault-tolerant evaluation
 - Failed agents provide meaningful fallback insights instead of blocking entire evaluation
 - AgentResult.succeeded flag tracks success/failure for accurate scoring aggregation

@@ -1,0 +1,83 @@
+Here’s a clear and professional way to **define** each of your 6 specialized AI agents — as you’d include in an RFT evaluation framework, solution proposal, or multi-agent system design:
+
+---
+
+### 🧩 **1. Delivery Agent**
+
+**Role:** Oversees project timelines, resource allocation, and delivery risk management.
+**Expertise:** 15+ years in program and delivery management across large transformation programs.
+**Responsibilities:**
+
+* Evaluate vendor delivery methodologies (Agile, SAFe, Waterfall).
+* Assess milestone realism, dependency mapping, and contingency planning.
+* Simulate delivery scenarios to identify bottlenecks or overruns.
+* Provide confidence index on schedule and resource utilization.
+
+---
+
+### 🧠 **2. Product Agent**
+
+**Role:** Acts as a domain expert in airline and passenger systems (PSS, NDC, ONE Order, Loyalty).
+**Expertise:** 15+ years in airline product and passenger experience management.
+**Responsibilities:**
+
+* Analyze product features for compliance with IATA standards.
+* Evaluate usability, personalization, and passenger experience.
+* Compare product scope vs. market benchmarks.
+* Provide feature-fit scoring aligned to business requirements.
+
+---
+
+### 🏗️ **3. Architecture Agent**
+
+**Role:** Ensures proposed solutions meet enterprise architecture principles.
+**Expertise:** 15+ years in solution architecture and system integration.
+**Responsibilities:**
+
+* Validate architecture against scalability, availability, and performance criteria.
+* Assess API/microservices design, data flow, and integration patterns.
+* Evaluate compliance with cloud, data, and security standards.
+* Generate architecture risk and dependency maps.
+
+---
+
+### ⚙️ **4. Engineering Agent**
+
+**Role:** Focuses on technical quality, code standards, and API/SDK maturity.
+**Expertise:** 15+ years in software engineering, CI/CD, and API development.
+**Responsibilities:**
+
+* Evaluate API design (REST, GraphQL, event-driven).
+* Review documentation, SDK completeness, and test coverage.
+* Analyze maintainability, reusability, and observability.
+* Provide readiness score for engineering quality and supportability.
+
+---
+
+### 💰 **5. Procurement Agent**
+
+**Role:** Handles commercial evaluation, cost modelling, and contract terms.
+**Expertise:** 15+ years in strategic sourcing, contract negotiation, and vendor governance.
+**Responsibilities:**
+
+* Calculate Total Cost of Ownership (TCO) and ROI.
+* Evaluate SLAs, warranties, and support models.
+* Analyze pricing transparency, scalability clauses, and penalties.
+* Provide commercial fit index and contract risk matrix.
+
+---
+
+### 🔐 **6. Security Agent**
+
+**Role:** Evaluates compliance, data protection, and regulatory adherence.
+**Expertise:** 15+ years in cybersecurity, data privacy, and audit frameworks.
+**Responsibilities:**
+
+* Validate vendor compliance with ISO 27001, PCI-DSS, GDPR, NIST, and local laws.
+* Review data residency, encryption, and access controls.
+* Identify security gaps and recommend mitigations.
+* Provide security assurance score and risk classification.
+
+---
+
+Would you like me to expand this into a **table format** (with columns for “Agent,” “Focus Area,” “Evaluation Dimensions,” “Output Metrics”) — ideal for your **IntelliBid multi-agent RFT evaluation model**?
