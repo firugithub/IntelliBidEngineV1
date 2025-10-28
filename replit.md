@@ -2,234 +2,68 @@
 
 ## Overview
 
-IntelliBid is an AI-powered platform that transforms the vendor evaluation process from days of manual review into minutes of objective, transparent decision-making. The system analyzes RFT/RFI responses and partner proposals, then generates risk-adjusted shortlisting reports with clear rationale for multiple stakeholder roles (Delivery, Procurement, Product, Architecture, Engineering, QA).
-
-**Core Functionality:**
-- Parse requirements documents (RFT/BRD/EPICs) to extract scope, technical NFRs, and evaluation criteria
-- Convert vendor proposals (PDF/Word/Excel) into structured, comparable data
-- Perform semantic matching of vendor capabilities against requirements
-- Generate weighted scoring across multiple dimensions (technical fit, delivery risk, cost, compliance)
-- Provide role-specific insights and recommendations for cross-functional teams
-- Demo mode with pre-loaded sample evaluations for immediate testing
-
-**Target Users:** Delivery Managers, Procurement teams, Product Managers, Architects, Engineers, and QA teams involved in vendor selection decisions.
-
-**Current Status:** ✅ Fully functional MVP with complete frontend, backend, AI analysis, and sample data seeding. Enhanced with comprehensive role-based evaluation reports showing comparative vendor analysis across all stakeholder perspectives. Ready for testing and deployment.
+IntelliBid is an AI-powered platform designed to streamline and objectively transform the vendor evaluation and shortlisting process. It automates the analysis of RFT/RFI responses and partner proposals, generating risk-adjusted shortlisting reports with clear rationale tailored for various stakeholders including Delivery, Procurement, Product, Architecture, Engineering, and QA. The system parses requirements, converts vendor proposals into structured data, performs semantic matching, and generates weighted scores across dimensions like technical fit, delivery risk, cost, and compliance. IntelliBid aims to reduce manual review times from days to minutes, offering transparent, data-driven decision-making for vendor selection. The platform is a fully functional MVP with comprehensive frontend, backend, AI analysis, and sample data.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (October 24, 2025)
-
-**Role-Based Evaluation Reports:**
-- Created RoleBasedEvaluationReport component with tabbed interface for 6 stakeholder roles: Delivery, Product, Architecture, Engineering, Security, Procurement
-- Implemented comparative vendor view showing ALL vendors side-by-side for each role perspective
-- Added role-specific metrics display with proper color coding (green=good, yellow=medium, red=bad)
-- Implemented inverse color coding for risk metrics (deliveryRisk, securityRisk) where lower values = green/better
-- Enhanced AI analysis to generate Security and QA insights alongside existing roles
-- Replaced single-vendor RoleViewTabs with multi-vendor comparative analysis in DashboardPage
-
-**Technical Fixes:**
-- Fixed pdf-parse integration to use v2 API (PDFParse class-based approach)
-- Updated document parser to properly extract text and page count from PDF files
-- Added TypeScript type safety for optional metrics in evaluation interface
-
-**Standards & Compliance:**
-- Comprehensive Standards & Compliance feature with admin management, document tagging, and AI integration
-- Added sectionCompliance field to evaluation schema for section-by-section compliance tracking
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Technology Stack:**
-- **Framework:** React with TypeScript, using Vite as the build tool
-- **Routing:** wouter for client-side routing
-- **UI Library:** shadcn/ui components built on Radix UI primitives
-- **Styling:** Tailwind CSS with custom design tokens
-- **State Management:** TanStack Query (React Query) for server state
-- **Charts/Visualization:** Recharts for data visualization (radar charts, comparisons)
+**Technology Stack:** React with TypeScript, Vite, wouter for routing, shadcn/ui (Radix UI) for components, Tailwind CSS for styling, TanStack Query for state management, and Recharts for data visualization.
 
-**Design System:**
-- Primary focus on dark mode with enterprise-focused design
-- Color palette emphasizes clarity, trust signals, and data hierarchy
-- Typography uses Inter for UI and JetBrains Mono for data/technical content
-- Component library follows "New York" style variant from shadcn/ui
-- Information-dense layouts with contextual spacing
+**Design System:** Dark mode-first, enterprise-focused design using Inter and JetBrains Mono fonts, "New York" style shadcn/ui components, and information-dense layouts.
 
-**Key Pages:**
-- **HomePage:** Displays 10 portfolio cards with project statistics
-- **PortfolioPage:** Shows all projects within a portfolio
-- **NewProjectPage:** Multi-step form for project details (name, initiative, vendor list)
-- **UploadPage:** Structured document upload with RFT section and vendor-specific tabs
-  - RFT (Request for Tender) upload section
-  - Per-vendor tabs with 5 document types each:
-    1. SOW (Statement of Work)
-    2. Product Questionnaire
-    3. Functional Requirement Sheet
-    4. Non-Functional Requirement Sheet
-    5. CSOC Sheet
-- **DashboardPage:** Evaluation results with multiple visualization types and role-based tabbed views
-
-**Rationale:** React with TypeScript provides type safety and component reusability. shadcn/ui offers accessible, customizable components that maintain consistency. TanStack Query simplifies server state management with built-in caching and optimistic updates. The design system prioritizes enterprise users who need to process complex information quickly.
+**Key Pages:** Includes HomePage (portfolio overview), PortfolioPage (all projects), NewProjectPage (project creation), UploadPage (structured document uploads for RFT and vendor proposals), and DashboardPage (evaluation results with visualizations and role-based views).
 
 ### Backend Architecture
 
-**Technology Stack:**
-- **Runtime:** Node.js with TypeScript
-- **Framework:** Express.js for HTTP server
-- **ORM:** Drizzle ORM with PostgreSQL dialect
-- **File Processing:** Multer for multipart/form-data uploads
-- **Document Parsing:** pdf-parse for PDF extraction
-- **AI Integration:** OpenAI SDK for GPT-4o analysis
+**Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer for file uploads, pdf-parse for document parsing, and OpenAI SDK for AI analysis.
 
-**Data Storage:**
-- PostgreSQL database (configured for Neon serverless)
-- In-memory storage fallback (MemStorage) for development/testing
-- Session storage using connect-pg-simple
-- Document type categorization (RFT, SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet)
+**Data Storage:** PostgreSQL database (configured for Neon serverless) with tables for portfolios, projects, requirements, proposals, evaluations, and standards.
 
-**API Structure:**
-- RESTful endpoints for portfolios, projects, requirements, proposals, and evaluations
-- Portfolio-based project filtering and statistics
-- File upload endpoints with 10MB size limit, supporting vendor-specific document types
-- Sample data seeding endpoints for portfolios and demonstration projects
+**API Structure:** RESTful endpoints for managing portfolios, projects, requirements, proposals, and evaluations, including file uploads and sample data seeding.
 
-**Key Services:**
-- **documentParser:** Extracts text from uploaded documents (PDF, TXT, Word, Excel)
-- **aiAnalysis:** Uses OpenAI to analyze requirements, proposals, and generate evaluations with role-specific insights
-- **sampleData:** Seeds demonstration data for testing purposes
-
-**Rationale:** Express provides a minimal, flexible foundation for the API. Drizzle ORM offers type-safe database queries with PostgreSQL, suitable for structured vendor data. The modular service architecture separates concerns (parsing, AI analysis, storage) for easier testing and maintenance. OpenAI integration enables semantic understanding of unstructured vendor documents.
-
-**Alternatives Considered:**
-- tRPC for end-to-end type safety (chose REST for simplicity and broader compatibility)
-- Prisma ORM (chose Drizzle for lighter weight and better TypeScript inference)
+**Key Services:** `documentParser` for text extraction, `aiAnalysis` for GPT-4o powered evaluations, and `sampleData` for demonstration purposes.
 
 ### AI Analysis Pipeline
 
-**Document Understanding Flow:**
-1. Select portfolio and create project with vendor list
-2. Upload RFT document → Parse and extract evaluation criteria, weights, technical requirements
-3. Upload vendor-specific documents (SOW, Product Questionnaire, Functional Requirements, Non-Functional Requirements, CSOC Sheet) → Extract capabilities, pricing, technical approach per vendor
-4. Semantic matching → AI compares vendor proposals against RFT requirements
-5. Scoring generation → Weighted evaluation across multiple dimensions
-6. Role-specific insights → Generate tailored summaries for each stakeholder role (Delivery/PMO, Procurement, Product, Architecture, Engineering/QA)
+**Document Understanding Flow:** Involves parsing RFTs for criteria, extracting vendor capabilities from proposals, semantic matching against requirements, weighted scoring, and generating role-specific insights for various stakeholders.
 
-**Scoring Dimensions:**
-- Overall Score (0-100)
-- Technical Fit (feature coverage, integration complexity)
-- Delivery Risk (timeline, dependencies, team capability)
-- Cost (TCO, pricing structure)
-- Compliance (security, regulatory alignment)
-- Detailed metrics (integration ease, support quality, scalability, documentation)
-
-**Status Classification:**
-- "recommended" - High overall score, low risk
-- "under-review" - Medium score or mixed signals
-- "risk-flagged" - Significant concerns identified
-
-**Rationale:** Multi-stage pipeline allows for transparent, auditable decision-making. Role-specific insights ensure each stakeholder gets relevant information without information overload. Weighted scoring accommodates different organizational priorities.
+**Scoring Dimensions:** Includes Overall Score, Technical Fit, Delivery Risk, Cost, and Compliance, with detailed metrics such as integration ease and scalability. Statuses include "recommended," "under-review," and "risk-flagged."
 
 ### Standards & Compliance Framework
 
-**Purpose:** Enable organizations to define reusable compliance standards and evaluate vendor proposals against specific regulatory, security, or organizational requirements.
+**Purpose:** To define and manage reusable compliance standards and integrate external Model Context Protocol (MCP) connectors for enhanced AI analysis.
 
 **Key Features:**
-- **Standards Management:** Admin interface to create and manage organization-wide compliance standards
-- **Section-Based Structure:** Each standard contains multiple sections (e.g., "Data Security", "API Standards", "Performance Requirements")
-- **Document Tagging:** During upload, users can tag which standard sections each document addresses
-- **Section-Level Compliance Scoring:** AI evaluates vendor proposals against each tagged section independently
-- **Enhanced Reporting:** Evaluation results include section-by-section compliance scores with detailed findings
+- **Documents Tab:** Admin interface for managing organization-wide compliance standards, structured with sections, document tagging, and section-level compliance scoring.
+- **MCP Connectors Tab:** Management of external MCP server connections with secure API key handling (redacted in responses), status toggles, and configuration storage for future AI integration.
 
-**Implementation:**
-- **Database Schema:**
-  - `standards` table: Stores compliance standards with JSONB sections array, status (active/inactive)
-  - `requirements` and `proposals` tables: Include `standardId` and `taggedSections` (JSONB array) fields
-- **Frontend:**
-  - **StandardsPage** (`/standards`): CRUD interface for managing standards with expandable section lists
-  - **UploadPage**: Standard selection dropdown and per-document section tagging checkboxes
-  - Navigation includes "Standards & Compliance" button on HomePage
-- **Backend:**
-  - RESTful API endpoints: `GET/POST /api/standards`, `GET/PATCH /api/standards/:id`, `POST /api/standards/:id/deactivate`
-  - Upload endpoints persist `standardId` and `taggedSections` metadata for all document types
-  - Analysis endpoint fetches standard data and passes to AI evaluation
-- **AI Integration:**
-  - `evaluateProposal` function accepts optional `StandardData` parameter
-  - Prompt includes tagged sections with descriptions
-  - Response includes `sectionCompliance` array with per-section scores and findings
-  - Overall compliance score factors in section-level compliance
-
-**Use Cases:**
-- Organizations with industry-specific compliance requirements (healthcare, finance, aviation)
-- Teams evaluating vendors against internal architecture standards
-- Projects requiring security certifications or regulatory compliance
-- Multi-criteria evaluation with objective, section-based scoring
-
-**Navigation:** HomePage → "Standards & Compliance" button → StandardsPage for admin management
+**Security Features:** API keys are redacted in all API responses ("••••••••") to prevent exposure, and the frontend handles updates by only sending new keys when explicitly provided.
 
 ## External Dependencies
 
 ### Third-Party Services
 
-**OpenAI API:**
-- **Purpose:** GPT-4o for document analysis, semantic matching, and evaluation generation
-- **Configuration:** Requires `AI_INTEGRATIONS_OPENAI_API_KEY` and `AI_INTEGRATIONS_OPENAI_BASE_URL` environment variables
-- **Usage:** Analyzes requirements documents, extracts vendor capabilities, generates comparative evaluations with explanations
+**OpenAI API:** Utilized for document analysis, semantic matching, and generating evaluations with GPT-4o.
 
 ### Database
 
-**PostgreSQL (Neon Serverless):**
-- **Purpose:** Primary data storage for portfolios, projects, requirements, proposals, evaluations, and standards
-- **Configuration:** Requires `DATABASE_URL` environment variable
-- **Schema:** Six main tables with JSONB fields for flexible structured data:
-  - portfolios: Organizational units (10 predefined portfolios: Group Services, Operations Safety & Security, Customer Brand and Experience, Commercial, Web and Mobile, Enterprise Technology, Dnata & Dnata International, Dnata Travel, CyberSecurity, Data(EDH))
-  - projects: Vendor evaluation projects with portfolioId, initiativeName, vendorList
-  - requirements: RFT documents with documentType field, standardId, taggedSections (JSONB)
-  - proposals: Vendor-specific documents with vendorName and documentType (SOW, Product Questionnaire, Functional Requirement, Non-Functional Requirement, CSOC Sheet), standardId, taggedSections (JSONB)
-  - evaluations: AI-generated vendor assessments with role-specific insights
-  - standards: Compliance standards with name, description, sections (JSONB array), status (active/inactive)
-- **Migration:** Uses Drizzle Kit for schema management
+**PostgreSQL (Neon Serverless):** The primary database, storing all project-related data, evaluations, and compliance standards. Configured via `DATABASE_URL`.
 
 ### UI Component Libraries
 
-**Radix UI:**
-- Comprehensive set of accessible, unstyled UI primitives
-- Includes: Dialog, Dropdown Menu, Tabs, Tooltip, Accordion, Select, and 20+ other components
-- Provides keyboard navigation, ARIA attributes, and focus management
-
-**Recharts:**
-- Chart library for radar visualizations and data comparisons
-- Used for multi-vendor capability comparisons
-
-### Development Tools
-
-**Vite:**
-- Development server with HMR (Hot Module Replacement)
-- Production build tool with optimized bundling
-- Custom plugins for Replit integration (cartographer, dev-banner, runtime-error-modal)
-
-**esbuild:**
-- Server-side bundling for production builds
-- Fast TypeScript compilation
+**Radix UI:** Provides accessible, unstyled UI primitives for core components.
+**Recharts:** Used for data visualization, specifically radar charts and comparisons.
 
 ### File Processing
 
-**pdf-parse:**
-- Extracts text content from PDF documents
-- Returns page count and raw text for AI analysis
-
-**Multer:**
-- Handles multipart/form-data file uploads
-- In-memory storage with configurable size limits
+**pdf-parse:** For extracting text content from PDF documents.
+**Multer:** Handles multipart/form-data file uploads.
 
 ### Styling & Design
 
-**Tailwind CSS:**
-- Utility-first CSS framework
-- Custom configuration with design tokens for colors, spacing, and typography
-- PostCSS integration for processing
-
-**Google Fonts:**
-- DM Sans, Fira Code, Geist Mono, Architects Daughter for typography hierarchy
+**Tailwind CSS:** Utility-first CSS framework for styling.
