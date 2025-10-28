@@ -114,6 +114,7 @@ export const ragDocuments = pgTable("rag_documents", {
   sourceId: varchar("source_id"), // ID of the source record (e.g., standard_id, proposal_id)
   fileName: text("file_name").notNull(),
   blobUrl: text("blob_url"), // Azure Blob Storage URL
+  blobName: text("blob_name"), // Azure Blob Storage object name (for reliable deletion)
   searchDocId: text("search_doc_id"), // Azure AI Search document ID
   indexName: text("index_name").notNull().default("intellibid-rag"),
   totalChunks: integer("total_chunks").notNull().default(0),

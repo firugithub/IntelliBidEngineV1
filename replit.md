@@ -82,7 +82,7 @@ Preferred communication style: Simple, everyday language.
 - Added MCP connectors database schema with secure API key storage
 - **Security:** All API responses redact API keys to "••••••••" - credentials never exposed to clients
 
-**Azure RAG Infrastructure (In Progress):**
+**Azure RAG Infrastructure (Completed Phase 1 & Phase 2):**
 - Created admin configuration system for managing Azure and OpenAI credentials
 - **Admin Config Page** accessible via header button with 5 tabs:
   - **Agents**: Configure OpenAI endpoint and API key for 6 multi-agent evaluation system (Delivery, Product, Architecture, Engineering, Procurement, Security)
@@ -95,7 +95,39 @@ Preferred communication style: Simple, everyday language.
 - Security: Sensitive values (API keys, connection strings) stored with isEncrypted flag
 - AI services automatically read from database config and fall back to environment variables
 - UI provides helpful guidance on where to find credentials in Azure Portal and OpenAI platform
-- Next: Build embedding service, document ingestion pipeline, and hybrid search integration
+
+**RAG Infrastructure Phase 1 (Completed):**
+- **Database Schema**: ragDocuments and ragChunks tables for tracking ingested documents
+- **Azure Embedding Service**: Generates embeddings using Azure OpenAI text-embedding-ada-002 (1536 dimensions)
+- **Chunking Service**: Intelligent text chunking with sentence-based boundaries
+  - Configurable chunk sizes (500-1000 tokens with 100 token overlap)
+  - Token estimation using rough approximation (1 token ≈ 4 characters)
+  - Preserves semantic boundaries by splitting on sentence endings
+  - Metadata tracking for section titles and page numbers
+- **Storage Methods**: createRagDocument, getRagDocument, createRagChunks, getRagChunksByDocumentId, deleteRagDocument
+
+**RAG Infrastructure Phase 2 (Completed):**
+- **Azure Blob Storage Service**: Document storage in Azure with automatic container creation
+  - Upload/download/delete operations for documents
+  - Metadata support for document tagging
+  - Container name: "intellibid-documents"
+- **Azure AI Search Service**: Vector database with hybrid search capabilities
+  - Automatic index creation with vector search configuration (HNSW algorithm)
+  - 1536-dimension vector embeddings (text-embedding-ada-002)
+  - Fields: id, content, embedding, sourceType, sourceId, fileName, chunkIndex, metadata, createdAt
+  - Hybrid search combining keyword and vector search
+  - Index statistics tracking (document count, storage size)
+- **Document Ingestion Pipeline**: Orchestrates end-to-end RAG ingestion
+  - Parse → Chunk → Embed → Upload to Blob → Index in AI Search → Store metadata
+  - Status tracking: pending → processing → indexed/failed
+  - Support for multiple source types (standard, proposal, requirement, confluence, sharepoint)
+  - Re-indexing capability for existing documents
+  - Cleanup operations for document deletion
+- **API Endpoints**: 
+  - GET /api/rag/documents - List all RAG documents
+  - GET /api/rag/documents/:id - Get document by ID
+  - DELETE /api/rag/documents/:id - Delete document and cleanup
+- **Next Steps**: Integrate RAG search into evaluation pipeline, build UI for RAG document management
 
 ## System Architecture
 

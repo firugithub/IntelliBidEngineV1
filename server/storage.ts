@@ -17,6 +17,10 @@ import {
   type InsertEvaluation,
   type EvaluationCriteria,
   type InsertEvaluationCriteria,
+  type RagDocument,
+  type InsertRagDocument,
+  type RagChunk,
+  type InsertRagChunk,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -81,6 +85,23 @@ export interface IStorage {
   getEvaluationCriteriaByEvaluation(evaluationId: string, role?: string): Promise<EvaluationCriteria[]>;
   updateEvaluationCriteria(id: string, updates: Partial<InsertEvaluationCriteria>): Promise<void>;
   deleteEvaluationCriteria(id: string): Promise<void>;
+
+  // RAG Documents
+  createRagDocument(document: InsertRagDocument): Promise<RagDocument>;
+  getRagDocument(id: string): Promise<RagDocument | undefined>;
+  getAllRagDocuments(): Promise<RagDocument[]>;
+  getRagDocumentsBySourceType(sourceType: string): Promise<RagDocument[]>;
+  updateRagDocument(id: string, updates: Partial<InsertRagDocument>): Promise<void>;
+  updateRagDocumentStatus(id: string, status: string): Promise<void>;
+  deleteRagDocument(id: string): Promise<void>;
+
+  // RAG Chunks
+  createRagChunk(chunk: InsertRagChunk): Promise<RagChunk>;
+  createRagChunks(chunks: InsertRagChunk[]): Promise<RagChunk[]>;
+  getRagChunk(id: string): Promise<RagChunk | undefined>;
+  getRagChunksByDocumentId(documentId: string): Promise<RagChunk[]>;
+  deleteRagChunk(id: string): Promise<void>;
+  deleteRagChunksByDocumentId(documentId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -93,6 +114,8 @@ export class MemStorage implements IStorage {
   private proposals: Map<string, Proposal>;
   private evaluations: Map<string, Evaluation>;
   private evaluationCriteria: Map<string, EvaluationCriteria>;
+  private ragDocuments: Map<string, RagDocument>;
+  private ragChunks: Map<string, RagChunk>;
 
   constructor() {
     this.portfolios = new Map();
@@ -104,6 +127,8 @@ export class MemStorage implements IStorage {
     this.proposals = new Map();
     this.evaluations = new Map();
     this.evaluationCriteria = new Map();
+    this.ragDocuments = new Map();
+    this.ragChunks = new Map();
   }
 
   async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
@@ -366,6 +391,7 @@ export class MemStorage implements IStorage {
       roleInsights: insertEvaluation.roleInsights || null,
       detailedScores: insertEvaluation.detailedScores || null,
       sectionCompliance: insertEvaluation.sectionCompliance || null,
+      agentDiagnostics: insertEvaluation.agentDiagnostics || null,
       createdAt: new Date(),
     };
     this.evaluations.set(id, evaluation);
@@ -429,6 +455,115 @@ export class MemStorage implements IStorage {
 
   async deleteEvaluationCriteria(id: string): Promise<void> {
     this.evaluationCriteria.delete(id);
+  }
+
+  // RAG Documents
+  async createRagDocument(insertDocument: InsertRagDocument): Promise<RagDocument> {
+    // Use provided id if available, otherwise generate new UUID
+    const id = insertDocument.id || randomUUID();
+    const document: RagDocument = {
+      id,
+      sourceType: insertDocument.sourceType,
+      sourceId: insertDocument.sourceId || null,
+      fileName: insertDocument.fileName,
+      blobUrl: insertDocument.blobUrl || "",
+      blobName: insertDocument.blobName || null,
+      searchDocId: insertDocument.searchDocId || "",
+      indexName: insertDocument.indexName || "intellibid-rag",
+      totalChunks: insertDocument.totalChunks || 0,
+      status: insertDocument.status || "pending",
+      metadata: insertDocument.metadata || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.ragDocuments.set(id, document);
+    return document;
+  }
+
+  async getRagDocument(id: string): Promise<RagDocument | undefined> {
+    return this.ragDocuments.get(id);
+  }
+
+  async getAllRagDocuments(): Promise<RagDocument[]> {
+    return Array.from(this.ragDocuments.values());
+  }
+
+  async getRagDocumentsBySourceType(sourceType: string): Promise<RagDocument[]> {
+    return Array.from(this.ragDocuments.values()).filter(
+      (doc) => doc.sourceType === sourceType
+    );
+  }
+
+  async updateRagDocument(id: string, updates: Partial<InsertRagDocument>): Promise<void> {
+    const document = this.ragDocuments.get(id);
+    if (document) {
+      const updated: RagDocument = {
+        ...document,
+        ...updates,
+        id, // Preserve original id
+        updatedAt: new Date(),
+      };
+      this.ragDocuments.set(id, updated);
+    }
+  }
+
+  async updateRagDocumentStatus(id: string, status: string): Promise<void> {
+    await this.updateRagDocument(id, { status });
+  }
+
+  async deleteRagDocument(id: string): Promise<void> {
+    this.ragDocuments.delete(id);
+    // Also delete associated chunks
+    await this.deleteRagChunksByDocumentId(id);
+  }
+
+  // RAG Chunks
+  async createRagChunk(insertChunk: InsertRagChunk): Promise<RagChunk> {
+    const id = randomUUID();
+    const chunk: RagChunk = {
+      id,
+      documentId: insertChunk.documentId,
+      chunkIndex: insertChunk.chunkIndex,
+      content: insertChunk.content,
+      tokenCount: insertChunk.tokenCount,
+      searchChunkId: insertChunk.searchChunkId || null,
+      metadata: insertChunk.metadata || null,
+      createdAt: new Date(),
+    };
+    this.ragChunks.set(id, chunk);
+    return chunk;
+  }
+
+  async createRagChunks(chunks: InsertRagChunk[]): Promise<RagChunk[]> {
+    const createdChunks: RagChunk[] = [];
+    for (const chunk of chunks) {
+      const created = await this.createRagChunk(chunk);
+      createdChunks.push(created);
+    }
+    return createdChunks;
+  }
+
+  async getRagChunk(id: string): Promise<RagChunk | undefined> {
+    return this.ragChunks.get(id);
+  }
+
+  async getRagChunksByDocumentId(documentId: string): Promise<RagChunk[]> {
+    return Array.from(this.ragChunks.values()).filter(
+      (chunk) => chunk.documentId === documentId
+    );
+  }
+
+  async deleteRagChunk(id: string): Promise<void> {
+    this.ragChunks.delete(id);
+  }
+
+  async deleteRagChunksByDocumentId(documentId: string): Promise<void> {
+    const chunks = Array.from(this.ragChunks.values()).filter(
+      (chunk) => chunk.documentId === documentId
+    );
+    for (const chunk of chunks) {
+      this.ragChunks.delete(chunk.id);
+    }
   }
 }
 

@@ -901,6 +901,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // RAG Document Management
+  // Note: These endpoints are for future use when RAG system is fully integrated
+  app.get("/api/rag/documents", async (req, res) => {
+    try {
+      const documents = await storage.getAllRagDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching RAG documents:", error);
+      res.status(500).json({ error: "Failed to fetch RAG documents" });
+    }
+  });
+
+  app.get("/api/rag/documents/:id", async (req, res) => {
+    try {
+      const document = await storage.getRagDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching RAG document:", error);
+      res.status(500).json({ error: "Failed to fetch RAG document" });
+    }
+  });
+
+  app.delete("/api/rag/documents/:id", async (req, res) => {
+    try {
+      // Import at runtime to avoid circular dependencies
+      const { documentIngestionService } = await import("./services/documentIngestion");
+      await documentIngestionService.deleteDocument(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting RAG document:", error);
+      res.status(500).json({ error: "Failed to delete RAG document" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
