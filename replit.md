@@ -83,16 +83,18 @@ Preferred communication style: Simple, everyday language.
 - **Security:** All API responses redact API keys to "••••••••" - credentials never exposed to clients
 
 **Azure RAG Infrastructure (In Progress):**
-- Created admin configuration system for managing Azure credentials
-- **Admin Config Page** accessible via header button with 4 tabs:
+- Created admin configuration system for managing Azure and OpenAI credentials
+- **Admin Config Page** accessible via header button with 5 tabs:
+  - **Agents**: Configure OpenAI endpoint and API key for 6 multi-agent evaluation system (Delivery, Product, Architecture, Engineering, Procurement, Security)
   - **Azure AI Search**: Configure search endpoint and admin API key for vector database
   - **Azure Blob Storage**: Configure connection string for document storage
-  - **Azure OpenAI**: Configure endpoint, API key, and embedding deployment name
+  - **Azure OpenAI**: Configure endpoint, API key, and embedding deployment name for RAG embeddings
   - **RAG Settings**: Future home for chunk size, overlap, retrieval count, and re-ranking settings
 - systemConfig database table stores encrypted credentials with category-based organization
 - Backend API endpoints: GET/POST `/api/system-config` for configuration management
 - Security: Sensitive values (API keys, connection strings) stored with isEncrypted flag
-- UI provides helpful guidance on where to find credentials in Azure Portal
+- AI services automatically read from database config and fall back to environment variables
+- UI provides helpful guidance on where to find credentials in Azure Portal and OpenAI platform
 - Next: Build embedding service, document ingestion pipeline, and hybrid search integration
 
 ## System Architecture

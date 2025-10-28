@@ -1,10 +1,5 @@
-import OpenAI from "openai";
 import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation } from "./aiAnalysis";
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+import { getOpenAIClient } from "./aiAnalysis";
 
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
@@ -463,8 +458,9 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
     .replace('{vendorName}', proposal.vendorName) + standardsContext;
 
   try {
+    const client = await getOpenAIClient();
     const response = await Promise.race([
-      openai.chat.completions.create({
+      client.chat.completions.create({
         model: "gpt-4o",
         messages: [
           { role: "system", content: prompt.system },

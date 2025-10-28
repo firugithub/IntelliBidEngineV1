@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Database, Cloud, Brain, Save, AlertCircle } from "lucide-react";
+import { Settings, Database, Cloud, Brain, Save, AlertCircle, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SystemConfig {
@@ -29,11 +29,7 @@ export default function AdminConfigPage() {
 
   const saveConfigMutation = useMutation({
     mutationFn: async (data: { category: string; key: string; value: string; isEncrypted?: string; description?: string }) => {
-      return apiRequest("/api/system-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/system-config", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/system-config"] });
@@ -138,6 +134,26 @@ export default function AdminConfigPage() {
     });
   };
 
+  const saveAllAgentsOpenAI = () => {
+    const configs = [
+      { key: "AGENTS_OPENAI_ENDPOINT", category: "agents_openai", isEncrypted: false, description: "OpenAI endpoint for multi-agent evaluation" },
+      { key: "AGENTS_OPENAI_API_KEY", category: "agents_openai", isEncrypted: true, description: "OpenAI API key for multi-agent evaluation" },
+    ];
+
+    configs.forEach(config => {
+      const value = localConfig[config.key];
+      if (value) {
+        saveConfigMutation.mutate({
+          category: config.category,
+          key: config.key,
+          value,
+          isEncrypted: config.isEncrypted ? "true" : "false",
+          description: config.description,
+        });
+      }
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -167,8 +183,12 @@ export default function AdminConfigPage() {
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="azure-search" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="agents-openai" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="agents-openai" data-testid="tab-agents-openai">
+            <Users className="w-4 h-4 mr-2" />
+            Agents
+          </TabsTrigger>
           <TabsTrigger value="azure-search" data-testid="tab-azure-search">
             <Database className="w-4 h-4 mr-2" />
             AI Search
@@ -179,13 +199,70 @@ export default function AdminConfigPage() {
           </TabsTrigger>
           <TabsTrigger value="azure-openai" data-testid="tab-azure-openai">
             <Brain className="w-4 h-4 mr-2" />
-            OpenAI
+            Azure OpenAI
           </TabsTrigger>
           <TabsTrigger value="rag-settings" data-testid="tab-rag-settings">
             <Settings className="w-4 h-4 mr-2" />
             RAG
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="agents-openai">
+          <Card>
+            <CardHeader>
+              <CardTitle>OpenAI Configuration for Multi-Agent Evaluation</CardTitle>
+              <CardDescription>
+                Configure OpenAI endpoint and API key for the 6 specialized agents (Delivery, Product, Architecture, Engineering, Procurement, Security)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="agents-openai-endpoint">OpenAI Endpoint</Label>
+                <Input
+                  id="agents-openai-endpoint"
+                  data-testid="input-agents-openai-endpoint"
+                  placeholder="https://api.openai.com/v1"
+                  value={getConfigValue("AGENTS_OPENAI_ENDPOINT")}
+                  onChange={(e) => setConfigValue("AGENTS_OPENAI_ENDPOINT", e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  OpenAI API endpoint (default: https://api.openai.com/v1)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="agents-openai-key">OpenAI API Key</Label>
+                <Input
+                  id="agents-openai-key"
+                  data-testid="input-agents-openai-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={getConfigValue("AGENTS_OPENAI_API_KEY")}
+                  onChange={(e) => setConfigValue("AGENTS_OPENAI_API_KEY", e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your OpenAI API key from platform.openai.com
+                </p>
+              </div>
+
+              <Alert data-testid="alert-agents-info">
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription>
+                  The 6 agents use GPT-4o for evaluation. If not configured, the system will fall back to environment variables.
+                </AlertDescription>
+              </Alert>
+
+              <Button
+                onClick={saveAllAgentsOpenAI}
+                disabled={saveConfigMutation.isPending}
+                data-testid="button-save-agents-openai"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Agents OpenAI Configuration
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="azure-search">
           <Card>

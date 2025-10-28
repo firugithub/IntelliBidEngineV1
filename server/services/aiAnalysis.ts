@@ -1,6 +1,44 @@
 import OpenAI from "openai";
 import { evaluateProposalMultiAgent } from "./multiAgentEvaluator";
+import { storage } from "../storage";
+import type { SystemConfig } from "@shared/schema";
 
+// Lazy-initialized OpenAI client
+let openaiClient: OpenAI | null = null;
+
+export async function getOpenAIClient(): Promise<OpenAI> {
+  if (openaiClient) {
+    return openaiClient;
+  }
+
+  // Try to get config from database first
+  try {
+    const configs = await storage.getAllSystemConfig();
+    const endpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
+    const apiKey = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_KEY")?.value;
+
+    if (endpoint && apiKey) {
+      console.log("Using OpenAI config from database for agents");
+      openaiClient = new OpenAI({
+        apiKey,
+        baseURL: endpoint,
+      });
+      return openaiClient;
+    }
+  } catch (error) {
+    console.warn("Failed to load OpenAI config from database, falling back to environment variables:", error);
+  }
+
+  // Fall back to environment variables
+  console.log("Using OpenAI config from environment variables for agents");
+  openaiClient = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+  return openaiClient;
+}
+
+// Legacy compatibility: Create a default client for immediate use
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -105,7 +143,8 @@ Examples of sections might include:
 - Business Continuity
 etc.`;
 
-  const response = await openai.chat.completions.create({
+  const client = await getOpenAIClient();
+  const response = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -153,7 +192,8 @@ Return your analysis in JSON format with the following structure:
   "successMetrics": ["metric 1", "metric 2"]
 }`;
 
-  const response = await openai.chat.completions.create({
+  const client = await getOpenAIClient();
+  const response = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -205,7 +245,8 @@ Return your analysis in JSON format with the following structure:
   "timeline": "Implementation timeline"
 }`;
 
-  const response = await openai.chat.completions.create({
+  const client = await getOpenAIClient();
+  const response = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -308,7 +349,8 @@ Return JSON with this structure:
   ]` : ''}
 }`;
 
-  const response = await openai.chat.completions.create({
+  const client = await getOpenAIClient();
+  const response = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
