@@ -154,6 +154,7 @@ export async function seedSampleData() {
       const proposal = await storage.createProposal({
         projectId: project.id,
         vendorName: proposalData.vendorName,
+        documentType: "vendor-proposal",
         fileName: proposalData.fileName,
         extractedData: proposalData.extractedData,
       });
@@ -407,6 +408,78 @@ export async function seedAllMockData() {
         serverUrl: "https://api.github.com",
         apiKey: "demo-key-nujum-github-abcde",
         isActive: "false",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Procurement Connector",
+        description: "Procurement system integration for vendor contracts and purchase orders",
+        serverUrl: "https://procurement.nujumair.com/api",
+        apiKey: "demo-key-procurement-xyz789",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "SharePoint Connector",
+        description: "Access to airline documentation, policies, and collaborative workspaces",
+        serverUrl: "https://nujumair.sharepoint.com/_api",
+        apiKey: "demo-key-sharepoint-sp1234",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Architecture Registry Connector",
+        description: "Enterprise architecture repository for systems, services, and integrations",
+        serverUrl: "https://archregistry.nujumair.com/api",
+        apiKey: "demo-key-architecture-arc456",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Security & Compliance Connector",
+        description: "Security posture management and compliance tracking system",
+        serverUrl: "https://seccomp.nujumair.com/api",
+        apiKey: "demo-key-security-sec789",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Vendor Performance DB Connector",
+        description: "Historical vendor performance metrics and SLA tracking database",
+        serverUrl: "https://vendordb.nujumair.com/api",
+        apiKey: "demo-key-vendorperf-vp2468",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Legal - DocuSign",
+        description: "Electronic signature platform for vendor contracts and legal agreements",
+        serverUrl: "https://api.docusign.com",
+        apiKey: "demo-key-docusign-ds1357",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "IP Registry",
+        description: "Intellectual property and patent registry for technology assets",
+        serverUrl: "https://ipreg.nujumair.com/api",
+        apiKey: "demo-key-ipreg-ip9753",
+        isActive: "false",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Incident & Risk Connector",
+        description: "Incident management and operational risk tracking system",
+        serverUrl: "https://incidents.nujumair.com/api",
+        apiKey: "demo-key-incidents-ir4862",
+        isActive: "true",
+      });
+      
+      await storage.createMcpConnector({
+        name: "Evaluation Matrix Connector",
+        description: "Historical evaluation criteria and scoring frameworks repository",
+        serverUrl: "https://evalmatrix.nujumair.com/api",
+        apiKey: "demo-key-evalmatrix-em3691",
+        isActive: "true",
       });
       
       console.log("✓ MCP connectors seeded");

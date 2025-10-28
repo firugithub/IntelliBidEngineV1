@@ -19,7 +19,7 @@ Preferred communication style: Simple, everyday language.
 - Sample project: "Passenger Service System Upgrade" for Nujum Digital Experience 2025
 - Airline vendors: Amadeus IT Group, Sabre Corporation, SITA with aviation-specific proposals
 - All evaluations updated with airline operations context (NDC, IATA, PSS, GDS integration)
-- MCP connectors: Nujum Air Confluence, Operations Slack Channel, Aviation Systems GitHub
+- MCP connectors: 12 airline-specific connectors including Nujum Air Confluence, Operations Slack, Aviation Systems GitHub, Procurement, SharePoint, Architecture Registry, Security & Compliance, Vendor Performance DB, Legal-DocuSign, IP Registry, Incident & Risk, and Evaluation Matrix
 - Homepage displays "IntelliBid" with "Nujum Air" badge and airline tagline
 
 **Data Management Features:**
@@ -28,7 +28,7 @@ Preferred communication style: Simple, everyday language.
   - 10 airline-specific portfolios across operations, services, and technology
   - Projects with complete requirements, vendor proposals, and AI evaluations
   - 3 compliance standards (ISO 27001, GDPR, SOC 2) with structured sections
-  - 3 MCP connectors with airline-specific descriptions and demo API keys
+  - 12 MCP connectors with airline-specific descriptions and demo API keys
 - **Wipe All Data** button with confirmation dialog for complete data reset:
   - Cascade deletes all evaluations, proposals, requirements, projects, and portfolios
   - Deactivates all compliance standards (soft delete)
