@@ -8,6 +8,24 @@ IntelliBid is an AI-powered platform designed to streamline and objectively tran
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 28, 2025)
+
+**Document Upload for Standards Creation:**
+- Transformed "Create New Standard" into document upload interface
+- Users upload compliance documents (PDF/TXT/DOC/DOCX) instead of manually entering sections
+- AI automatically extracts compliance sections from uploaded documents using GPT-4o
+- Added tags field for categorizing standards (e.g., ISO27001, GDPR, SOC2)
+- Document metadata stored: fileName and documentContent fields in standards schema
+- New backend endpoint: POST `/api/standards/upload` with multipart file handling
+- New AI service: `extractComplianceSections()` analyzes documents and extracts structured sections
+- Loading state "Analyzing Document..." shows AI processing status
+- Edit mode still allows manual section management for existing standards
+
+**MCP Connectors Integration:**
+- Restructured Standards & Compliance page with tabbed interface
+- Added MCP connectors database schema with secure API key storage
+- **Security:** All API responses redact API keys to "••••••••" - credentials never exposed to clients
+
 ## System Architecture
 
 ### Frontend Architecture
