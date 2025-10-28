@@ -987,6 +987,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/rag/documents/:id/reindex", async (req, res) => {
+    try {
+      const ragDoc = await storage.getRagDocument(req.params.id);
+      if (!ragDoc) {
+        return res.status(404).json({ error: "RAG document not found" });
+      }
+
+      // Import at runtime to avoid circular dependencies
+      const { documentIngestionService } = await import("./services/documentIngestion");
+      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      
+      // Download the document from blob storage
+      if (!ragDoc.blobName) {
+        return res.status(400).json({ error: "Document has no blob reference" });
+      }
+
+      const buffer = await azureBlobStorageService.downloadDocument(ragDoc.blobName);
+      const textContent = buffer.toString('utf-8');
+      
+      // Clear existing chunks and search index entries (preserve parent document)
+      await documentIngestionService.clearDocumentChunksAndIndex(req.params.id);
+      
+      // Re-ingest the document using the same ID
+      await documentIngestionService.ingestDocument({
+        sourceType: ragDoc.sourceType as any,
+        sourceId: ragDoc.sourceId || undefined,
+        fileName: ragDoc.fileName,
+        content: buffer,
+        textContent,
+        metadata: ragDoc.metadata as any,
+        documentId: req.params.id, // Reuse the same document ID
+      });
+
+      // Get updated document
+      const updatedDoc = await storage.getRagDocument(req.params.id);
+      res.json(updatedDoc);
+    } catch (error) {
+      console.error("Error re-indexing RAG document:", error);
+      res.status(500).json({ error: "Failed to re-index RAG document" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

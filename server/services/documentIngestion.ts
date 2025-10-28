@@ -19,6 +19,7 @@ interface DocumentIngestionOptions {
     sectionTitle?: string;
     pageNumber?: number;
   };
+  documentId?: string; // Optional: reuse existing document ID for re-indexing
 }
 
 interface IngestionResult {
@@ -42,28 +43,55 @@ export class DocumentIngestionService {
    * 7. Update record with "indexed" status
    */
   async ingestDocument(options: DocumentIngestionOptions): Promise<IngestionResult> {
-    const documentId = randomUUID();
+    const documentId = options.documentId || randomUUID();
     let blobName: string | null = null;
     let searchChunkIds: string[] = [];
+    let blobUrl: string;
     
-    // Step 0: Create initial record with "processing" status before any operations
-    console.log(`[RAG] Creating initial record for: ${options.fileName}`);
+    // Step 0: Create or update initial record with "processing" status before any operations
+    console.log(`[RAG] ${options.documentId ? 'Updating' : 'Creating'} record for: ${options.fileName}`);
     try {
-      await storage.createRagDocument({
-        id: documentId,
-        sourceType: options.sourceType,
-        sourceId: options.sourceId,
-        fileName: options.fileName,
-        blobUrl: "",
-        blobName: null,
-        searchDocId: "",
-        indexName: "intellibid-rag",
-        totalChunks: 0,
-        status: "processing",
-        metadata: options.metadata,
-      });
+      if (options.documentId) {
+        // Re-indexing: get existing document to preserve blob metadata
+        const existingDoc = await storage.getRagDocument(documentId);
+        if (!existingDoc) {
+          throw new Error(`Cannot re-index: document not found: ${documentId}`);
+        }
+        
+        // Validate blob metadata exists
+        if (!existingDoc.blobUrl || !existingDoc.blobName) {
+          throw new Error("Cannot re-index: existing blob metadata not found");
+        }
+        
+        // Store blob metadata for later use
+        blobUrl = existingDoc.blobUrl;
+        blobName = existingDoc.blobName;
+        
+        // Update status to processing while preserving blob metadata
+        await storage.updateRagDocument(documentId, {
+          status: "processing",
+          totalChunks: 0,
+          blobUrl: existingDoc.blobUrl,
+          blobName: existingDoc.blobName,
+        });
+      } else {
+        // New document: create initial record (blob will be uploaded later)
+        await storage.createRagDocument({
+          id: documentId,
+          sourceType: options.sourceType,
+          sourceId: options.sourceId,
+          fileName: options.fileName,
+          blobUrl: "",
+          blobName: null,
+          searchDocId: "",
+          indexName: "intellibid-rag",
+          totalChunks: 0,
+          status: "processing",
+          metadata: options.metadata,
+        });
+      }
     } catch (error) {
-      console.error(`[RAG] Failed to create initial record: ${options.fileName}`, error);
+      console.error(`[RAG] Failed to ${options.documentId ? 'update' : 'create'} record: ${options.fileName}`, error);
       return {
         documentId,
         blobUrl: "",
@@ -75,26 +103,33 @@ export class DocumentIngestionService {
     }
     
     try {
-      // Step 1: Upload to Azure Blob Storage
-      console.log(`[RAG] Uploading document to Blob Storage: ${options.fileName}`);
-      const blobResult = await azureBlobStorageService.uploadDocument(
-        options.fileName,
-        options.content,
-        {
-          sourceType: options.sourceType,
-          sourceId: options.sourceId || "",
-          documentId,
-        }
-      );
-      blobName = blobResult.blobName;
-      
-      // CRITICAL: Persist blobUrl and blobName immediately after upload
-      // This ensures cleanup can happen even if subsequent steps fail
-      console.log(`[RAG] Persisting blob metadata for cleanup safety`);
-      await storage.updateRagDocument(documentId, {
-        blobUrl: blobResult.blobUrl,
-        blobName: blobResult.blobName,
-      });
+      // Step 1: Upload to Azure Blob Storage (skip if re-indexing)
+      if (options.documentId) {
+        // Re-indexing: blob metadata already loaded in Step 0
+        console.log(`[RAG] Re-indexing: Reusing existing blob for: ${options.fileName}`);
+      } else {
+        // New document: Upload to blob storage
+        console.log(`[RAG] Uploading document to Blob Storage: ${options.fileName}`);
+        const blobResult = await azureBlobStorageService.uploadDocument(
+          options.fileName,
+          options.content,
+          {
+            sourceType: options.sourceType,
+            sourceId: options.sourceId || "",
+            documentId,
+          }
+        );
+        blobUrl = blobResult.blobUrl;
+        blobName = blobResult.blobName;
+        
+        // CRITICAL: Persist blobUrl and blobName immediately after upload
+        // This ensures cleanup can happen even if subsequent steps fail
+        console.log(`[RAG] Persisting blob metadata for cleanup safety`);
+        await storage.updateRagDocument(documentId, {
+          blobUrl: blobResult.blobUrl,
+          blobName: blobResult.blobName,
+        });
+      }
 
       // Step 2: Chunk the document
       console.log(`[RAG] Chunking document: ${options.fileName}`);
@@ -166,7 +201,7 @@ export class DocumentIngestionService {
       console.log(`[RAG] Document ingestion completed: ${options.fileName}`);
       return {
         documentId,
-        blobUrl: blobResult.blobUrl,
+        blobUrl: blobUrl,
         chunksIndexed: chunks.length,
         totalTokens: embeddingResult.totalTokens,
         status: "success",
@@ -175,8 +210,8 @@ export class DocumentIngestionService {
       console.error(`[RAG] Document ingestion failed: ${options.fileName}`, error);
       
       // CRITICAL: Clean up Azure resources if they were created
-      // Blob cleanup
-      if (blobName) {
+      // Blob cleanup (only for new uploads, not re-indexing)
+      if (blobName && !options.documentId) {
         console.log(`[RAG] Cleaning up orphaned blob: ${blobName}`);
         try {
           await azureBlobStorageService.deleteDocument(blobName);
@@ -214,6 +249,33 @@ export class DocumentIngestionService {
   }
 
   /**
+   * Clear chunks and search index for a document (used for re-indexing)
+   * Preserves the parent document record
+   */
+  async clearDocumentChunksAndIndex(documentId: string): Promise<void> {
+    console.log(`[RAG] Clearing chunks and search index for document: ${documentId}`);
+    
+    // Get chunks for this document
+    const chunks = await storage.getRagChunksByDocumentId(documentId);
+    const chunkIds = chunks.map((c) => c.searchChunkId).filter((id): id is string => id !== null);
+    
+    // Delete chunks from Azure AI Search
+    if (chunkIds.length > 0) {
+      try {
+        await azureAISearchService.deleteDocuments(chunkIds);
+        console.log(`[RAG] Deleted ${chunkIds.length} chunks from search index`);
+      } catch (error) {
+        console.error(`[RAG] Failed to delete search documents`, error);
+        // Continue with cleanup even if search deletion fails
+      }
+    }
+
+    // Delete chunks from database (cascade will handle this, but parent document remains)
+    await storage.deleteRagChunksByDocumentId(documentId);
+    console.log(`[RAG] Deleted chunks from database`);
+  }
+
+  /**
    * Delete a document from the RAG system
    * Orchestrates cleanup across Azure Blob Storage, Azure AI Search, and database
    */
@@ -234,19 +296,10 @@ export class DocumentIngestionService {
       }
     }
 
-    // Delete chunks from Azure AI Search using stored searchChunkIds
-    const chunks = await storage.getRagChunksByDocumentId(documentId);
-    const chunkIds = chunks.map((c) => c.searchChunkId).filter((id): id is string => id !== null);
-    if (chunkIds.length > 0) {
-      try {
-        await azureAISearchService.deleteDocuments(chunkIds);
-      } catch (error) {
-        console.error(`[RAG] Failed to delete search documents`, error);
-        // Continue with cleanup even if search deletion fails
-      }
-    }
+    // Clear chunks and search index
+    await this.clearDocumentChunksAndIndex(documentId);
 
-    // Delete from database (this also deletes chunks via cascade)
+    // Delete from database (parent document)
     await storage.deleteRagDocument(documentId);
   }
 

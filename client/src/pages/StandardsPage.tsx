@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon, Database } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon, Database, RefreshCw, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Standard, McpConnector } from "@shared/schema";
+import type { Standard, McpConnector, RagDocument } from "@shared/schema";
 
 interface Section {
   id: string;
@@ -171,6 +171,39 @@ export default function StandardsPage() {
     },
     onError: () => {
       toast({ title: "Failed to update connector status", variant: "destructive" });
+    },
+  });
+
+  // RAG Documents queries
+  const { data: ragDocuments = [], isLoading: ragDocumentsLoading } = useQuery<RagDocument[]>({
+    queryKey: ["/api/rag/documents"],
+  });
+
+  // RAG Documents mutations
+  const deleteRagDocumentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/rag/documents/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rag/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/standards"] });
+      toast({ title: "RAG document deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete RAG document", variant: "destructive" });
+    },
+  });
+
+  const reindexRagDocumentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("POST", `/api/rag/documents/${id}/reindex`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rag/documents"] });
+      toast({ title: "RAG document re-indexed successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to re-index RAG document", variant: "destructive" });
     },
   });
 
@@ -400,6 +433,7 @@ export default function StandardsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6" data-testid="tabs-list">
             <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+            <TabsTrigger value="rag-documents" data-testid="tab-rag-documents">RAG Documents</TabsTrigger>
             <TabsTrigger value="mcp-connectors" data-testid="tab-mcp-connectors">MCP Connectors</TabsTrigger>
           </TabsList>
 
@@ -769,6 +803,112 @@ export default function StandardsPage() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* RAG Documents Tab */}
+          <TabsContent value="rag-documents" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Manage indexed documents in the RAG (Retrieval Augmented Generation) system
+              </p>
+            </div>
+
+            {ragDocumentsLoading ? (
+              <Card className="p-12">
+                <div className="text-center text-muted-foreground">
+                  Loading RAG documents...
+                </div>
+              </Card>
+            ) : ragDocuments.length === 0 ? (
+              <Card className="p-12">
+                <div className="text-center space-y-4">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    No RAG documents indexed yet. Documents are automatically indexed when you upload compliance standards.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {ragDocuments.map((doc) => {
+                  const statusColors = {
+                    indexed: "bg-primary/10 text-primary",
+                    processing: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500",
+                    failed: "bg-destructive/10 text-destructive",
+                    pending: "bg-muted text-muted-foreground",
+                  };
+
+                  const statusColor = statusColors[doc.status as keyof typeof statusColors] || statusColors.pending;
+
+                  return (
+                    <Card key={doc.id} className="p-6" data-testid={`card-rag-document-${doc.id}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            <h3 className="text-lg font-semibold truncate" data-testid={`text-rag-document-name-${doc.id}`}>
+                              {doc.fileName}
+                            </h3>
+                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${statusColor}`}>
+                              <Database className="h-3 w-3" />
+                              <span>{doc.status}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 ml-8">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Source: {doc.sourceType}</span>
+                              <span>•</span>
+                              <span>{doc.totalChunks} chunks</span>
+                              <span>•</span>
+                              <span>Created {new Date(doc.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            
+                            {doc.metadata && typeof doc.metadata === 'object' && (
+                              <div className="flex items-center gap-2 text-xs">
+                                {Object.entries(doc.metadata).slice(0, 3).map(([key, value]) => (
+                                  <span key={key} className="px-2 py-1 bg-muted rounded text-muted-foreground">
+                                    {key}: {value !== null && value !== undefined ? String(value) : 'N/A'}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {doc.status === 'indexed' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => reindexRagDocumentMutation.mutate(doc.id)}
+                              disabled={reindexRagDocumentMutation.isPending}
+                              data-testid={`button-reindex-${doc.id}`}
+                              title="Re-index document"
+                            >
+                              <RefreshCw className={`h-4 w-4 ${reindexRagDocumentMutation.isPending ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete "${doc.fileName}"? This will remove it from the RAG system and cannot be undone.`)) {
+                                deleteRagDocumentMutation.mutate(doc.id);
+                              }
+                            }}
+                            disabled={deleteRagDocumentMutation.isPending}
+                            data-testid={`button-delete-rag-${doc.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </Card>
