@@ -81,6 +81,7 @@ export const evaluations = pgTable("evaluations", {
   roleInsights: jsonb("role_insights"),
   detailedScores: jsonb("detailed_scores"),
   sectionCompliance: jsonb("section_compliance"),
+  agentDiagnostics: jsonb("agent_diagnostics"), // Multiagent execution diagnostics
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

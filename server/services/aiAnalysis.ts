@@ -1,9 +1,13 @@
 import OpenAI from "openai";
+import { evaluateProposalMultiAgent } from "./multiAgentEvaluator";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+// Feature flag for multiagent evaluation
+const USE_MULTIAGENT = process.env.USE_MULTIAGENT !== "false"; // Enabled by default
 
 export interface RequirementAnalysis {
   scope: string;
@@ -232,7 +236,8 @@ Return your analysis in JSON format with the following structure:
   return analysis;
 }
 
-export async function evaluateProposal(
+// Legacy single-agent evaluation (fallback)
+async function evaluateProposalSingleAgent(
   requirementAnalysis: RequirementAnalysis,
   proposalAnalysis: ProposalAnalysis,
   standardData?: StandardData
@@ -325,4 +330,36 @@ Return JSON with this structure:
   }
 
   return JSON.parse(content) as VendorEvaluation;
+}
+
+// Main evaluation function with multiagent support
+export async function evaluateProposal(
+  requirementAnalysis: RequirementAnalysis,
+  proposalAnalysis: ProposalAnalysis,
+  standardData?: StandardData
+): Promise<{ evaluation: VendorEvaluation; diagnostics?: any }> {
+  // Try multiagent evaluation first
+  if (USE_MULTIAGENT) {
+    try {
+      console.log("🚀 Using multiagent evaluation system");
+      const result = await evaluateProposalMultiAgent(requirementAnalysis, proposalAnalysis);
+      
+      // Add section compliance if standard data is provided
+      if (standardData && standardData.taggedSectionIds.length > 0) {
+        // For now, use single-agent for section compliance (can be enhanced later)
+        const singleAgentResult = await evaluateProposalSingleAgent(requirementAnalysis, proposalAnalysis, standardData);
+        result.evaluation.sectionCompliance = singleAgentResult.sectionCompliance;
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("⚠️  Multiagent evaluation failed, falling back to single-agent:", error);
+      // Fall through to single-agent
+    }
+  }
+  
+  // Fallback to single-agent evaluation
+  console.log("Using single-agent evaluation system");
+  const evaluation = await evaluateProposalSingleAgent(requirementAnalysis, proposalAnalysis, standardData);
+  return { evaluation };
 }

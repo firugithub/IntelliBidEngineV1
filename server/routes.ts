@@ -751,7 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData = requirementStandardData;
         }
         
-        const evaluation = await evaluateProposal(
+        const { evaluation, diagnostics } = await evaluateProposal(
           requirementAnalysis, 
           proposalAnalysis,
           proposalStandardData || undefined
@@ -770,6 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           roleInsights: evaluation.roleInsights,
           detailedScores: evaluation.detailedScores,
           sectionCompliance: evaluation.sectionCompliance || null,
+          agentDiagnostics: diagnostics || null,
         });
 
         evaluations.push({
