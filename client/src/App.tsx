@@ -18,7 +18,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
 import AdminConfigPage from "@/pages/AdminConfigPage";
 import DeepDivePage from "@/pages/DeepDivePage";
-import { Sparkles, Database, Trash2, Settings } from "lucide-react";
+import { Sparkles, Database, Trash2, Settings, Home } from "lucide-react";
 import { Link } from "wouter";
 
 function Router() {
@@ -131,6 +131,17 @@ function App() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold">IntelliBid</span>
               </div>
+              <Link href="/">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  data-testid="button-home"
+                >
+                  <Home className="h-4 w-4" />
+                  Home
+                </Button>
+              </Link>
               <Link href="/admin-config">
                 <Button
                   size="sm"
