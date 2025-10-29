@@ -399,11 +399,157 @@ export async function seedAllMockData() {
     await seedSampleData();
     console.log("✓ Projects, proposals, and evaluations seeded");
     
-    // 3. Seed compliance standards
+    // 3. Seed knowledge base documents for all stakeholder types
     const standards = await storage.getAllStandards();
     if (standards.length === 0) {
+      // ARCHITECTURE DOCUMENTS (Technical Teams)
+      await storage.createStandard({
+        name: "Cloud Architecture Standards",
+        category: "architecture",
+        description: "Enterprise cloud architecture patterns and best practices for airline systems",
+        sections: [
+          { id: "arch-001", name: "Microservices Design", description: "Service decomposition and API gateway patterns" },
+          { id: "arch-002", name: "Data Architecture", description: "Database design and data flow patterns" },
+          { id: "arch-003", name: "Infrastructure as Code", description: "Terraform and CloudFormation standards" },
+          { id: "arch-004", name: "High Availability", description: "Redundancy and failover requirements" },
+        ],
+        tags: ["Architecture", "Cloud", "Microservices"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "API Design Guidelines",
+        category: "architecture",
+        description: "RESTful API standards and GraphQL implementation guidelines",
+        sections: [
+          { id: "api-001", name: "REST Conventions", description: "HTTP methods, status codes, and resource naming" },
+          { id: "api-002", name: "Versioning Strategy", description: "API versioning and deprecation policies" },
+          { id: "api-003", name: "Authentication", description: "OAuth 2.0, JWT, and API key standards" },
+          { id: "api-004", name: "Documentation", description: "OpenAPI/Swagger specification requirements" },
+        ],
+        tags: ["API", "Architecture", "Integration"],
+        isActive: "true",
+      });
+      
+      // DEVELOPMENT DOCUMENTS (Technical Teams)
+      await storage.createStandard({
+        name: "Development Best Practices",
+        category: "development",
+        description: "Coding standards, testing frameworks, and CI/CD pipeline requirements",
+        sections: [
+          { id: "dev-001", name: "Code Quality", description: "Linting, formatting, and code review standards" },
+          { id: "dev-002", name: "Testing Standards", description: "Unit, integration, and end-to-end testing requirements" },
+          { id: "dev-003", name: "Git Workflow", description: "Branching strategy and commit message conventions" },
+          { id: "dev-004", name: "CI/CD Pipeline", description: "Automated build, test, and deployment processes" },
+        ],
+        tags: ["Development", "DevOps", "Quality"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "Estimation Framework",
+        category: "development",
+        description: "Story pointing, effort estimation, and project planning guidelines",
+        sections: [
+          { id: "est-001", name: "Story Sizing", description: "Fibonacci sequence and relative estimation" },
+          { id: "est-002", name: "Velocity Tracking", description: "Sprint capacity and team velocity metrics" },
+          { id: "est-003", name: "Risk Buffer", description: "Contingency planning and risk allowances" },
+          { id: "est-004", name: "Dependencies", description: "Cross-team dependency identification" },
+        ],
+        tags: ["Estimation", "Agile", "Planning"],
+        isActive: "true",
+      });
+      
+      // DELIVERY DOCUMENTS (Delivery & Operations)
+      await storage.createStandard({
+        name: "Agile Delivery Methodology",
+        category: "delivery",
+        description: "Scrum and Kanban frameworks for airline project delivery",
+        sections: [
+          { id: "agile-001", name: "Sprint Planning", description: "Sprint goals, backlog refinement, and capacity planning" },
+          { id: "agile-002", name: "Daily Standups", description: "Team synchronization and blocker identification" },
+          { id: "agile-003", name: "Sprint Reviews", description: "Demo and stakeholder feedback sessions" },
+          { id: "agile-004", name: "Retrospectives", description: "Continuous improvement and team health" },
+        ],
+        tags: ["Agile", "Scrum", "Delivery"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "Project Governance Framework",
+        category: "delivery",
+        description: "Project management standards and decision-making processes",
+        sections: [
+          { id: "gov-001", name: "Steering Committee", description: "Executive oversight and strategic direction" },
+          { id: "gov-002", name: "RAID Management", description: "Risks, assumptions, issues, and dependencies tracking" },
+          { id: "gov-003", name: "Change Control", description: "Scope change approval and impact assessment" },
+          { id: "gov-004", name: "Quality Gates", description: "Stage-gate reviews and go/no-go criteria" },
+        ],
+        tags: ["Governance", "PMO", "Project Management"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "IATA Standards Compliance",
+        category: "delivery",
+        description: "International Air Transport Association standards for airline operations",
+        sections: [
+          { id: "iata-001", name: "NDC Compliance", description: "New Distribution Capability implementation" },
+          { id: "iata-002", name: "ONE Order", description: "Order management and fulfillment standards" },
+          { id: "iata-003", name: "Baggage Standards", description: "Baggage tracking and handling protocols" },
+          { id: "iata-004", name: "Safety Audits", description: "IOSA operational safety audit requirements" },
+        ],
+        tags: ["IATA", "Aviation", "Standards"],
+        isActive: "true",
+      });
+      
+      // PROCUREMENT DOCUMENTS (Finance & Procurement)
+      await storage.createStandard({
+        name: "Vendor Contract Standards",
+        category: "procurement",
+        description: "Contract templates and vendor agreement requirements for airline suppliers",
+        sections: [
+          { id: "contract-001", name: "Master Service Agreement", description: "Standard MSA terms and conditions" },
+          { id: "contract-002", name: "Statement of Work", description: "SOW structure and deliverables definition" },
+          { id: "contract-003", name: "Payment Terms", description: "Milestone-based payments and invoicing" },
+          { id: "contract-004", name: "Termination Clauses", description: "Exit rights and transition assistance" },
+        ],
+        tags: ["Contracts", "Legal", "Procurement"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "SLA Standards",
+        category: "procurement",
+        description: "Service Level Agreement requirements and KPI definitions",
+        sections: [
+          { id: "sla-001", name: "Uptime Requirements", description: "System availability targets and measurement" },
+          { id: "sla-002", name: "Response Times", description: "Support ticket response and resolution SLAs" },
+          { id: "sla-003", name: "Performance Metrics", description: "Transaction throughput and latency requirements" },
+          { id: "sla-004", name: "Penalties", description: "Service credits and financial remedies" },
+        ],
+        tags: ["SLA", "Performance", "KPI"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "TCO Analysis Framework",
+        category: "procurement",
+        description: "Total Cost of Ownership evaluation methodology for vendor selection",
+        sections: [
+          { id: "tco-001", name: "License Costs", description: "Software licensing models and true-up calculations" },
+          { id: "tco-002", name: "Implementation Costs", description: "Professional services and integration expenses" },
+          { id: "tco-003", name: "Operational Costs", description: "Ongoing support, maintenance, and infrastructure" },
+          { id: "tco-004", name: "Hidden Costs", description: "Training, data migration, and opportunity costs" },
+        ],
+        tags: ["TCO", "Finance", "ROI"],
+        isActive: "true",
+      });
+      
+      // SECURITY DOCUMENTS (Security & Compliance)
       await storage.createStandard({
         name: "ISO 27001 Information Security",
+        category: "security",
         description: "Information security management system requirements",
         sections: [
           { id: "iso-001", name: "Access Control", description: "User access management and authentication requirements" },
@@ -417,6 +563,7 @@ export async function seedAllMockData() {
       
       await storage.createStandard({
         name: "GDPR Data Protection",
+        category: "security",
         description: "General Data Protection Regulation compliance framework",
         sections: [
           { id: "gdpr-001", name: "Data Processing", description: "Lawful basis for processing personal data" },
@@ -429,19 +576,63 @@ export async function seedAllMockData() {
       });
       
       await storage.createStandard({
-        name: "SOC 2 Trust Services",
-        description: "Service Organization Control 2 security criteria",
+        name: "PCI DSS Payment Security",
+        category: "security",
+        description: "Payment Card Industry Data Security Standard for transaction processing",
         sections: [
-          { id: "soc2-001", name: "Security", description: "Protection against unauthorized access" },
-          { id: "soc2-002", name: "Availability", description: "System availability and performance" },
-          { id: "soc2-003", name: "Confidentiality", description: "Protection of confidential information" },
-          { id: "soc2-004", name: "Processing Integrity", description: "System processing accuracy and completeness" },
+          { id: "pci-001", name: "Secure Network", description: "Firewall configuration and network segmentation" },
+          { id: "pci-002", name: "Cardholder Data Protection", description: "Encryption and tokenization requirements" },
+          { id: "pci-003", name: "Access Management", description: "Role-based access control and authentication" },
+          { id: "pci-004", name: "Security Testing", description: "Vulnerability scanning and penetration testing" },
         ],
-        tags: ["SOC2", "Security", "Audit"],
+        tags: ["PCI-DSS", "Payments", "Security"],
         isActive: "true",
       });
       
-      console.log("✓ Compliance standards seeded");
+      // GENERAL DOCUMENTS (General Resources)
+      await storage.createStandard({
+        name: "Aviation Safety Management System",
+        category: "general",
+        description: "SMS framework for proactive safety risk management across airline operations",
+        sections: [
+          { id: "sms-001", name: "Hazard Identification", description: "Systematic hazard reporting and analysis" },
+          { id: "sms-002", name: "Risk Assessment", description: "Safety risk probability and severity matrix" },
+          { id: "sms-003", name: "Safety Assurance", description: "Performance monitoring and continuous improvement" },
+          { id: "sms-004", name: "Safety Promotion", description: "Training, communication, and safety culture" },
+        ],
+        tags: ["Safety", "Aviation", "SMS"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "Corporate Branding Guidelines",
+        category: "general",
+        description: "Brand identity standards for Nujum Air across all customer touchpoints",
+        sections: [
+          { id: "brand-001", name: "Visual Identity", description: "Logo usage, color palette, and typography" },
+          { id: "brand-002", name: "Digital Presence", description: "Website, app, and social media guidelines" },
+          { id: "brand-003", name: "Customer Communications", description: "Tone of voice and messaging framework" },
+          { id: "brand-004", name: "Aircraft Livery", description: "Fleet branding and cabin interior design" },
+        ],
+        tags: ["Branding", "Marketing", "Design"],
+        isActive: "true",
+      });
+      
+      await storage.createStandard({
+        name: "Environmental Sustainability Policy",
+        category: "general",
+        description: "Sustainable aviation fuel, carbon reduction, and environmental commitments",
+        sections: [
+          { id: "env-001", name: "Carbon Offsetting", description: "Net-zero targets and offset programs" },
+          { id: "env-002", name: "Fuel Efficiency", description: "Fleet modernization and operational efficiency" },
+          { id: "env-003", name: "Waste Management", description: "Recycling, single-use plastics reduction" },
+          { id: "env-004", name: "Stakeholder Reporting", description: "ESG disclosure and sustainability metrics" },
+        ],
+        tags: ["Sustainability", "ESG", "Environment"],
+        isActive: "true",
+      });
+      
+      console.log("✓ Knowledge base documents seeded for all stakeholder types");
     }
     
     // 4. Seed MCP connectors
