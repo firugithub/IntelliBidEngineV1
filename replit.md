@@ -52,6 +52,12 @@ Preferred communication style: Simple, everyday language.
 - **Document Management with RAG Integration:** Admin interface for uploading and managing organizational documents with automatic RAG ingestion. Features include:
   - Document upload (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction
   - Category selection to organize documents by domain (Architecture, Delivery, Procurement, Development, Security, General)
+  - **Stakeholder-Based Grouping:** Documents automatically organized into 5 stakeholder groups for easy navigation:
+    - Technical Teams (Settings icon) - Architecture & Development documents for CTO, Architects, Engineers
+    - Delivery & Operations (Rocket icon) - Delivery & PM documents for Project Managers, Operations
+    - Finance & Procurement (Briefcase icon) - Procurement documents for CFO, Procurement Teams
+    - Security & Compliance (Shield icon) - Security documents for CISO, Compliance Officers
+    - General Resources (BookOpen icon) - General documents for all stakeholders
   - Automatic ingestion into RAG system upon upload (Azure Blob Storage + AI Search)
   - RAG status badges showing indexing state
   - Tagging and section-level organization
