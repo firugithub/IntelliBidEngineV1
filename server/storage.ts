@@ -78,11 +78,14 @@ export interface IStorage {
   createEvaluation(evaluation: InsertEvaluation): Promise<Evaluation>;
   getEvaluationsByProject(projectId: string): Promise<Evaluation[]>;
   getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined>;
+  getEvaluation(id: string): Promise<Evaluation | undefined>;
+  updateEvaluation(id: string, updates: Partial<InsertEvaluation>): Promise<void>;
   deleteEvaluation(id: string): Promise<void>;
 
   // Evaluation Criteria
   createEvaluationCriteria(criteria: InsertEvaluationCriteria): Promise<EvaluationCriteria>;
   getEvaluationCriteriaByEvaluation(evaluationId: string, role?: string): Promise<EvaluationCriteria[]>;
+  getEvaluationCriterion(id: string): Promise<EvaluationCriteria | undefined>;
   updateEvaluationCriteria(id: string, updates: Partial<InsertEvaluationCriteria>): Promise<void>;
   deleteEvaluationCriteria(id: string): Promise<void>;
 
@@ -411,6 +414,21 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getEvaluation(id: string): Promise<Evaluation | undefined> {
+    return this.evaluations.get(id);
+  }
+
+  async updateEvaluation(id: string, updates: Partial<InsertEvaluation>): Promise<void> {
+    const evaluation = this.evaluations.get(id);
+    if (evaluation) {
+      const updated: Evaluation = {
+        ...evaluation,
+        ...updates,
+      };
+      this.evaluations.set(id, updated);
+    }
+  }
+
   async deleteEvaluation(id: string): Promise<void> {
     this.evaluations.delete(id);
   }
@@ -440,6 +458,10 @@ export class MemStorage implements IStorage {
       criteria = criteria.filter((crit) => crit.role === role);
     }
     return criteria;
+  }
+
+  async getEvaluationCriterion(id: string): Promise<EvaluationCriteria | undefined> {
+    return this.evaluationCriteria.get(id);
   }
 
   async updateEvaluationCriteria(id: string, updates: Partial<InsertEvaluationCriteria>): Promise<void> {

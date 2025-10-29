@@ -944,7 +944,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = req.params.id;
       const { score, scoreLabel } = req.body;
       
+      // Update the criterion
       await storage.updateEvaluationCriteria(id, { score, scoreLabel });
+      
+      // Get the updated criterion to find its evaluation
+      const updatedCriterion = await storage.getEvaluationCriterion(id);
+      
+      if (updatedCriterion) {
+        // Get all criteria for this evaluation to recalculate scores
+        const evaluationCriteria = await storage.getEvaluationCriteriaByEvaluation(updatedCriterion.evaluationId);
+        
+        // Calculate average score from all criteria
+        const totalScore = evaluationCriteria.reduce((sum, c) => sum + c.score, 0);
+        const avgScore = Math.round(totalScore / Math.max(evaluationCriteria.length, 1));
+        
+        // Group by role to calculate dimension scores
+        const roleGroups = evaluationCriteria.reduce((groups, c) => {
+          if (!groups[c.role]) groups[c.role] = [];
+          groups[c.role].push(c);
+          return groups;
+        }, {} as Record<string, typeof evaluationCriteria>);
+        
+        // Calculate dimension scores (simplified - using role averages)
+        const roles = Object.keys(roleGroups);
+        const technicalFit = roles.length > 0 ? Math.round(
+          Object.values(roleGroups).reduce((sum, group) => 
+            sum + group.reduce((s, c) => s + c.score, 0) / group.length, 0
+          ) / roles.length
+        ) : avgScore;
+        
+        // For simplicity, use overall score for other dimensions
+        // In a real system, you'd have specific criteria mapped to each dimension
+        const deliveryRisk = avgScore;
+        const compliance = avgScore;
+        
+        // Determine status based on overall score
+        let status: "recommended" | "under-review" | "risk-flagged";
+        if (avgScore >= 70) {
+          status = "recommended";
+        } else if (avgScore >= 50) {
+          status = "under-review";
+        } else {
+          status = "risk-flagged";
+        }
+        
+        // Update the evaluation with recalculated values
+        await storage.updateEvaluation(updatedCriterion.evaluationId, {
+          overallScore: avgScore,
+          technicalFit,
+          deliveryRisk,
+          compliance,
+          status,
+        });
+        
+        console.log(`[Evaluation Recalculated] ID: ${updatedCriterion.evaluationId}, Score: ${avgScore}, Status: ${status}`);
+      }
       
       res.json({ success: true });
     } catch (error) {
