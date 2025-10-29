@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon, Database, RefreshCw, FileText } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerOff, Link as LinkIcon, Upload, Tag as TagIcon, Database, RefreshCw, FileText, Settings, Rocket, Briefcase, Shield, BookOpen, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,64 @@ const getCategoryInfo = (category: string) => {
     general: { label: "General", variant: "outline" },
   };
   return categories[category] || { label: "General", variant: "outline" };
+};
+
+// Stakeholder grouping configuration
+const stakeholderGroups = [
+  {
+    id: "technical",
+    name: "Technical Teams",
+    description: "For CTO, Architects, and Engineering Teams",
+    categories: ["architecture", "development"] as DocumentCategory[],
+    icon: Settings
+  },
+  {
+    id: "delivery",
+    name: "Delivery & Operations",
+    description: "For Project Managers and Operations Teams",
+    categories: ["delivery"] as DocumentCategory[],
+    icon: Rocket
+  },
+  {
+    id: "finance",
+    name: "Finance & Procurement",
+    description: "For CFO and Procurement Teams",
+    categories: ["procurement"] as DocumentCategory[],
+    icon: Briefcase
+  },
+  {
+    id: "security",
+    name: "Security & Compliance",
+    description: "For CISO and Compliance Officers",
+    categories: ["security"] as DocumentCategory[],
+    icon: Shield
+  },
+  {
+    id: "general",
+    name: "General Resources",
+    description: "For All Stakeholders",
+    categories: ["general"] as DocumentCategory[],
+    icon: BookOpen
+  }
+];
+
+// Helper to group standards by stakeholder needs
+const groupStandardsByStakeholder = (standards: Standard[]) => {
+  const grouped = new Map<string, Standard[]>();
+  
+  stakeholderGroups.forEach(group => {
+    grouped.set(group.id, []);
+  });
+  
+  standards.forEach(standard => {
+    const category = standard.category as DocumentCategory || "general";
+    const stakeholderGroup = stakeholderGroups.find(g => g.categories.includes(category));
+    if (stakeholderGroup) {
+      grouped.get(stakeholderGroup.id)?.push(standard);
+    }
+  });
+  
+  return grouped;
 };
 
 export default function StandardsPage() {
@@ -587,9 +645,10 @@ export default function StandardsPage() {
                               />
                               <div className="text-xs text-muted-foreground space-y-1">
                                 <p>Enter a publicly accessible URL to a document.</p>
-                                <p className="text-yellow-600 dark:text-yellow-500">
-                                  ⚠️ Only use URLs from trusted sources. The URL must point directly to a public document (redirects are not allowed).
-                                </p>
+                                <div className="flex items-start gap-1.5 text-yellow-600 dark:text-yellow-500">
+                                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                                  <p>Only use URLs from trusted sources. The URL must point directly to a public document (redirects are not allowed).</p>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -744,7 +803,7 @@ export default function StandardsPage() {
               <Card className="p-12">
                 <div className="text-center space-y-4">
                   <p className="text-muted-foreground">
-                    No standards defined yet. Create your first compliance standard to get started.
+                    No documents defined yet. Create your first knowledge base document to get started.
                   </p>
                   <Button
                     onClick={() => setIsStandardDialogOpen(true)}
@@ -752,13 +811,38 @@ export default function StandardsPage() {
                     data-testid="button-create-first-standard"
                   >
                     <Plus className="h-4 w-4" />
-                    Create First Standard
+                    Create First Document
                   </Button>
                 </div>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {standards.map((standard) => {
+              <div className="space-y-8">
+                {(() => {
+                  const groupedStandards = groupStandardsByStakeholder(standards);
+                  return stakeholderGroups.map((group) => {
+                    const groupStandards = groupedStandards.get(group.id) || [];
+                    
+                    if (groupStandards.length === 0) return null;
+                    
+                    const GroupIcon = group.icon;
+                    
+                    return (
+                      <div key={group.id} className="space-y-4" data-testid={`group-${group.id}`}>
+                        <div className="flex items-center gap-3 pb-3 border-b">
+                          <GroupIcon className="h-6 w-6 text-primary" />
+                          <div className="flex-1">
+                            <h2 className="text-xl font-bold" data-testid={`text-group-name-${group.id}`}>
+                              {group.name}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">{group.description}</p>
+                          </div>
+                          <Badge variant="outline" data-testid={`badge-count-${group.id}`}>
+                            {groupStandards.length} document{groupStandards.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      
+                      <div className="space-y-3 pl-4">
+                        {groupStandards.map((standard) => {
                   const sections = (standard.sections as Section[]) || [];
                   const isExpanded = expandedStandards.has(standard.id);
                   const isActive = standard.isActive === "true";
@@ -860,7 +944,12 @@ export default function StandardsPage() {
                       </div>
                     </Card>
                   );
-                })}
+                        })}
+                      </div>
+                    </div>
+                  );
+                  });
+                })()}
               </div>
             )}
           </TabsContent>
