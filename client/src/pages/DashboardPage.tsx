@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X } from "lucide-react";
+import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -155,6 +155,15 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setLocation(`/project/${projectId}/ai-features`)}
+                className="gap-2"
+                data-testid="button-ai-features"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Features
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleNewEvaluation}
