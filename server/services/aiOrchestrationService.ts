@@ -169,7 +169,34 @@ For each dimension, provide:
 - Risk factors
 - Recommendation insights
 
-Return as structured JSON with comparison matrix and highlights.`
+Return as JSON in this exact format:
+{
+  "comparisonTitle": "Descriptive title",
+  "executiveSummary": "2-3 sentence overview",
+  "vendors": [
+    {
+      "vendorName": "Vendor A",
+      "proposalId": "proposal_id",
+      "overallScore": 85,
+      "strengths": ["strength 1", "strength 2"],
+      "weaknesses": ["weakness 1", "weakness 2"],
+      "dimensions": {
+        "technicalCapability": { "score": 90, "summary": "Brief summary" },
+        "deliveryRisk": { "score": 80, "summary": "Brief summary" },
+        "costCompetitiveness": { "score": 75, "summary": "Brief summary" },
+        "compliance": { "score": 85, "summary": "Brief summary" },
+        "innovation": { "score": 88, "summary": "Brief summary" },
+        "teamExperience": { "score": 82, "summary": "Brief summary" }
+      }
+    }
+  ],
+  "recommendations": {
+    "topChoice": "Vendor name",
+    "rationale": "Why this vendor is recommended",
+    "riskMitigations": ["mitigation 1", "mitigation 2"]
+  },
+  "keyDifferentiators": ["differentiator 1", "differentiator 2"]
+}`
   },
 
   executiveBriefing: {
@@ -211,7 +238,32 @@ VENDOR PROPOSALS:
 
 Focus on {stakeholderRole}'s key concerns and decision criteria.
 
-Return as structured JSON with markdown-formatted content.`
+Return as JSON in this exact format:
+{
+  "topRecommendation": "Clear 1-2 sentence recommendation",
+  "keyFindings": [
+    "Finding 1 specific to role",
+    "Finding 2 specific to role",
+    "Finding 3 specific to role"
+  ],
+  "riskSummary": {
+    "risks": ["Risk 1", "Risk 2", "Risk 3"],
+    "mitigations": ["Mitigation 1", "Mitigation 2", "Mitigation 3"]
+  },
+  "nextSteps": [
+    "Action 1",
+    "Action 2",
+    "Action 3"
+  ],
+  "comparisonTable": {
+    "headers": ["Vendor", "Score", "Key Strength"],
+    "rows": [
+      {"Vendor": "Vendor A", "Score": "85/100", "Key Strength": "Technical excellence"},
+      {"Vendor": "Vendor B", "Score": "78/100", "Key Strength": "Cost efficiency"}
+    ]
+  },
+  "additionalInsights": "Optional additional context"
+}`
   },
 
   conversationalAssistant: {

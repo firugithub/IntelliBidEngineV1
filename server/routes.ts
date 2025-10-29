@@ -1235,6 +1235,348 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vendor Comparison Matrix
+  app.post("/api/projects/:projectId/comparisons", async (req, res) => {
+    try {
+      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { projectId } = req.params;
+      const { proposalIds, comparisonFocus } = req.body;
+
+      if (!proposalIds || !Array.isArray(proposalIds) || proposalIds.length < 2) {
+        return res.status(400).json({ error: "At least 2 proposal IDs required for comparison" });
+      }
+
+      // Get requirements
+      const requirements = await storage.getRequirementsByProject(projectId);
+      if (requirements.length === 0) {
+        return res.status(400).json({ error: "No requirements found for project" });
+      }
+
+      // Get all proposals
+      const proposals = [];
+      for (const proposalId of proposalIds) {
+        const proposal = await storage.getProposal(proposalId);
+        if (proposal) {
+          proposals.push({
+            vendorName: proposal.vendorName,
+            content: JSON.stringify(proposal.extractedData)
+          });
+        }
+      }
+
+      // Generate comparison
+      const comparison = await vendorComparisonService.generateVendorComparison({
+        projectId,
+        proposalIds,
+        requirements: JSON.stringify(requirements[0].extractedData),
+        proposals,
+        comparisonFocus
+      });
+
+      res.json(comparison);
+    } catch (error) {
+      console.error("Error generating comparison:", error);
+      res.status(500).json({ error: "Failed to generate comparison" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/comparisons", async (req, res) => {
+    try {
+      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const comparisons = await vendorComparisonService.getProjectComparisons(req.params.projectId);
+      res.json(comparisons);
+    } catch (error) {
+      console.error("Error fetching comparisons:", error);
+      res.status(500).json({ error: "Failed to fetch comparisons" });
+    }
+  });
+
+  app.get("/api/comparisons/:id", async (req, res) => {
+    try {
+      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const comparison = await vendorComparisonService.getComparison(req.params.id);
+      if (!comparison) {
+        return res.status(404).json({ error: "Comparison not found" });
+      }
+      res.json(comparison);
+    } catch (error) {
+      console.error("Error fetching comparison:", error);
+      res.status(500).json({ error: "Failed to fetch comparison" });
+    }
+  });
+
+  app.delete("/api/comparisons/:id", async (req, res) => {
+    try {
+      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      await vendorComparisonService.deleteComparison(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting comparison:", error);
+      res.status(500).json({ error: "Failed to delete comparison" });
+    }
+  });
+
+  app.get("/api/comparisons/:id/export/:format", async (req, res) => {
+    try {
+      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { id, format } = req.params;
+      
+      const comparison = await vendorComparisonService.getComparison(id);
+      if (!comparison) {
+        return res.status(404).json({ error: "Comparison not found" });
+      }
+
+      const exportData = vendorComparisonService.exportComparisonData(
+        comparison,
+        format as "json" | "csv"
+      );
+
+      if (format === "csv") {
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader("Content-Disposition", `attachment; filename=comparison-${id}.csv`);
+      } else {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Content-Disposition", `attachment; filename=comparison-${id}.json`);
+      }
+
+      res.send(exportData);
+    } catch (error) {
+      console.error("Error exporting comparison:", error);
+      res.status(500).json({ error: "Failed to export comparison" });
+    }
+  });
+
+  // Executive Briefing
+  app.post("/api/projects/:projectId/briefings", async (req, res) => {
+    try {
+      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { projectId } = req.params;
+      const { stakeholderRole } = req.body;
+
+      if (!stakeholderRole) {
+        return res.status(400).json({ error: "Stakeholder role is required" });
+      }
+
+      // Get project
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Get evaluations and proposals
+      const evaluations = await storage.getEvaluationsByProject(projectId);
+      const proposals = await storage.getProposalsByProject(projectId);
+
+      const briefing = await executiveBriefingService.generateExecutiveBriefing({
+        projectId,
+        projectName: project.name,
+        stakeholderRole,
+        evaluations: JSON.stringify(evaluations),
+        proposals: JSON.stringify(proposals)
+      });
+
+      res.json(briefing);
+    } catch (error) {
+      console.error("Error generating briefing:", error);
+      res.status(500).json({ error: "Failed to generate briefing" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/briefings", async (req, res) => {
+    try {
+      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { role } = req.query;
+      
+      let briefings;
+      if (role) {
+        briefings = await executiveBriefingService.getBriefingsByRole(req.params.projectId, role as string);
+      } else {
+        briefings = await executiveBriefingService.getProjectBriefings(req.params.projectId);
+      }
+      
+      res.json(briefings);
+    } catch (error) {
+      console.error("Error fetching briefings:", error);
+      res.status(500).json({ error: "Failed to fetch briefings" });
+    }
+  });
+
+  app.get("/api/briefings/:id", async (req, res) => {
+    try {
+      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const briefing = await executiveBriefingService.getBriefing(req.params.id);
+      if (!briefing) {
+        return res.status(404).json({ error: "Briefing not found" });
+      }
+      res.json(briefing);
+    } catch (error) {
+      console.error("Error fetching briefing:", error);
+      res.status(500).json({ error: "Failed to fetch briefing" });
+    }
+  });
+
+  app.delete("/api/briefings/:id", async (req, res) => {
+    try {
+      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      await executiveBriefingService.deleteBriefing(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting briefing:", error);
+      res.status(500).json({ error: "Failed to delete briefing" });
+    }
+  });
+
+  app.get("/api/briefings/:id/markdown", async (req, res) => {
+    try {
+      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const briefing = await executiveBriefingService.getBriefing(req.params.id);
+      if (!briefing) {
+        return res.status(404).json({ error: "Briefing not found" });
+      }
+      
+      const markdown = executiveBriefingService.formatBriefingAsMarkdown(briefing);
+      res.setHeader("Content-Type", "text/markdown");
+      res.send(markdown);
+    } catch (error) {
+      console.error("Error formatting briefing:", error);
+      res.status(500).json({ error: "Failed to format briefing" });
+    }
+  });
+
+  // Conversational AI Assistant
+  app.post("/api/projects/:projectId/chat/sessions", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { projectId } = req.params;
+      const { userId } = req.body;
+
+      const session = await conversationalAIService.createChatSession(projectId, userId);
+      res.json(session);
+    } catch (error) {
+      console.error("Error creating chat session:", error);
+      res.status(500).json({ error: "Failed to create chat session" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/chat/sessions", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const sessions = await conversationalAIService.getProjectChatSessions(req.params.projectId);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching chat sessions:", error);
+      res.status(500).json({ error: "Failed to fetch chat sessions" });
+    }
+  });
+
+  app.get("/api/chat/sessions/:sessionId", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const session = await conversationalAIService.getChatSession(req.params.sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Chat session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching chat session:", error);
+      res.status(500).json({ error: "Failed to fetch chat session" });
+    }
+  });
+
+  app.get("/api/chat/sessions/:sessionId/messages", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const messages = await conversationalAIService.getSessionMessages(req.params.sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  app.patch("/api/chat/sessions/:sessionId", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { title } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+      await conversationalAIService.updateSessionTitle(req.params.sessionId, title);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating session:", error);
+      res.status(500).json({ error: "Failed to update session" });
+    }
+  });
+
+  app.delete("/api/chat/sessions/:sessionId", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      await conversationalAIService.deleteChatSession(req.params.sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting chat session:", error);
+      res.status(500).json({ error: "Failed to delete chat session" });
+    }
+  });
+
+  app.post("/api/chat/sessions/:sessionId/messages", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { sessionId } = req.params;
+      const { message, context } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const response = await conversationalAIService.generateChatResponse(
+        sessionId,
+        message,
+        context || {}
+      );
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error generating chat response:", error);
+      res.status(500).json({ error: "Failed to generate chat response" });
+    }
+  });
+
+  app.post("/api/chat/sessions/:sessionId/messages/stream", async (req, res) => {
+    try {
+      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { sessionId } = req.params;
+      const { message, context } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Set up SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      // Stream the response
+      const stream = conversationalAIService.generateStreamingChatResponse(
+        sessionId,
+        message,
+        context || {}
+      );
+
+      for await (const chunk of stream) {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Error in streaming chat:", error);
+      res.status(500).json({ error: "Failed to stream chat response" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
