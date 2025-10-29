@@ -262,10 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/standards", async (req, res) => {
     try {
-      const { name, description, sections } = req.body;
+      const { name, description, category, sections } = req.body;
       const standard = await storage.createStandard({
         name,
         description,
+        category: category || "general",
         sections,
         isActive: "true",
       });
@@ -278,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/standards/upload", upload.single("file"), async (req, res) => {
     try {
-      const { name, description, tags, url } = req.body;
+      const { name, description, category, tags, url } = req.body;
       
       if (!name) {
         return res.status(400).json({ error: "Standard name is required" });
@@ -416,6 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const standard = await storage.createStandard({
         name,
         description: description || null,
+        category: category || "general",
         sections: sections,
         tags: parsedTags.length > 0 ? parsedTags : null,
         fileName: fileName,
@@ -478,10 +480,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/standards/:id", async (req, res) => {
     try {
-      const { name, description, sections } = req.body;
+      const { name, description, category, sections } = req.body;
       await storage.updateStandard(req.params.id, {
         name,
         description,
+        category,
         sections,
       });
       const updated = await storage.getStandard(req.params.id);

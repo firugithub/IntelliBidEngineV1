@@ -4,21 +4,37 @@ import { Plus, Trash2, Edit, ChevronDown, ChevronRight, ArrowLeft, Power, PowerO
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Standard, McpConnector, RagDocument } from "@shared/schema";
+import type { Standard, McpConnector, RagDocument, DocumentCategory } from "@shared/schema";
+import { documentCategories } from "@shared/schema";
 
 interface Section {
   id: string;
   name: string;
   description: string;
 }
+
+// Helper function to get category display info
+const getCategoryInfo = (category: string) => {
+  const categories: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+    architecture: { label: "Architecture", variant: "default" },
+    delivery: { label: "Delivery & PM", variant: "secondary" },
+    procurement: { label: "Procurement", variant: "outline" },
+    development: { label: "Development", variant: "default" },
+    security: { label: "Security", variant: "secondary" },
+    general: { label: "General", variant: "outline" },
+  };
+  return categories[category] || { label: "General", variant: "outline" };
+};
 
 export default function StandardsPage() {
   const { toast } = useToast();
@@ -32,6 +48,7 @@ export default function StandardsPage() {
   const [standardFormData, setStandardFormData] = useState({
     name: "",
     description: "",
+    category: "general" as DocumentCategory,
     sections: [] as Section[],
     tags: [] as string[],
     file: null as File | null,
@@ -90,7 +107,7 @@ export default function StandardsPage() {
   });
 
   const updateStandardMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; description: string; sections: Section[] }> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; description: string; category: DocumentCategory; sections: Section[] }> }) => {
       return await apiRequest("PATCH", `/api/standards/${id}`, data);
     },
     onSuccess: () => {
@@ -209,7 +226,7 @@ export default function StandardsPage() {
 
   // Standards handlers
   const resetStandardForm = () => {
-    setStandardFormData({ name: "", description: "", sections: [], tags: [], file: null, url: "" });
+    setStandardFormData({ name: "", description: "", category: "general", sections: [], tags: [], file: null, url: "" });
     setNewSection({ name: "", description: "" });
     setNewTag("");
     setEditingStandard(null);
@@ -221,6 +238,7 @@ export default function StandardsPage() {
     setStandardFormData({
       name: standard.name,
       description: standard.description || "",
+      category: (standard.category as DocumentCategory) || "general",
       sections: (standard.sections as Section[]) || [],
       tags: (standard.tags as string[]) || [],
       file: null,
@@ -243,6 +261,7 @@ export default function StandardsPage() {
         data: {
           name: standardFormData.name,
           description: standardFormData.description,
+          category: standardFormData.category,
           sections: standardFormData.sections,
         },
       });
@@ -269,6 +288,7 @@ export default function StandardsPage() {
       
       formData.append("name", standardFormData.name);
       formData.append("description", standardFormData.description);
+      formData.append("category", standardFormData.category);
       formData.append("tags", JSON.stringify(standardFormData.tags));
       
       createStandardMutation.mutate(formData);
@@ -420,9 +440,9 @@ export default function StandardsPage() {
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Knowledge Pack</h1>
+              <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Knowledge Base</h1>
               <p className="text-muted-foreground">
-                Manage compliance standards and MCP connectors for vendor evaluation
+                Manage organizational documents and guidelines to enhance AI evaluation accuracy
               </p>
             </div>
           </div>
@@ -441,7 +461,7 @@ export default function StandardsPage() {
           <TabsContent value="documents" className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Define compliance standards with specific sections for vendor evaluation
+                Upload organizational documents to provide AI agents with domain-specific knowledge
               </p>
               <Dialog open={isStandardDialogOpen} onOpenChange={(open) => {
                 setIsStandardDialogOpen(open);
@@ -450,20 +470,20 @@ export default function StandardsPage() {
                 <DialogTrigger asChild>
                   <Button className="gap-2" data-testid="button-new-standard">
                     <Plus className="h-4 w-4" />
-                    New Standard
+                    New Document
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingStandard ? "Edit Standard" : "Create New Standard"}
+                      {editingStandard ? "Edit Document" : "Add New Document"}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmitStandard} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Standard Name</label>
+                      <label className="text-sm font-medium">Document Name</label>
                       <Input
-                        placeholder="e.g., IT Security Framework"
+                        placeholder="e.g., Cloud Architecture Guidelines"
                         value={standardFormData.name}
                         onChange={(e) => setStandardFormData(prev => ({ ...prev, name: e.target.value }))}
                         data-testid="input-standard-name"
@@ -473,7 +493,7 @@ export default function StandardsPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Description</label>
                       <Textarea
-                        placeholder="Describe the purpose of this standard..."
+                        placeholder="Describe the purpose of this document..."
                         value={standardFormData.description}
                         onChange={(e) => setStandardFormData(prev => ({ ...prev, description: e.target.value }))}
                         rows={3}
@@ -481,14 +501,39 @@ export default function StandardsPage() {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Category</label>
+                      <Select
+                        value={standardFormData.category}
+                        onValueChange={(value: DocumentCategory) => 
+                          setStandardFormData(prev => ({ ...prev, category: value }))
+                        }
+                      >
+                        <SelectTrigger data-testid="select-category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="architecture">Architecture Guidelines</SelectItem>
+                          <SelectItem value="delivery">Delivery & Project Management</SelectItem>
+                          <SelectItem value="procurement">Procurement & SLA Standards</SelectItem>
+                          <SelectItem value="development">Development Standards & Frameworks</SelectItem>
+                          <SelectItem value="security">Security Standards & Policies</SelectItem>
+                          <SelectItem value="general">General Documentation</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Categorize this document to help AI agents find relevant information
+                      </p>
+                    </div>
+
                     {/* Show file upload for new standards, show sections for editing */}
                     {!editingStandard ? (
                       <>
                         <div className="space-y-4">
                           <div className="space-y-3">
-                            <label className="text-sm font-medium">Upload Compliance Document</label>
+                            <label className="text-sm font-medium">Upload Document</label>
                             <p className="text-xs text-muted-foreground">
-                              Choose how to provide your compliance document. AI will automatically extract compliance sections.
+                              Choose how to provide your document. AI will automatically extract key sections.
                             </p>
                             
                             <RadioGroup
@@ -535,13 +580,13 @@ export default function StandardsPage() {
                             <div className="space-y-2">
                               <Input
                                 type="url"
-                                placeholder="https://example.com/compliance-document.pdf"
+                                placeholder="https://example.com/document.pdf"
                                 value={standardFormData.url}
                                 onChange={(e) => setStandardFormData(prev => ({ ...prev, url: e.target.value }))}
                                 data-testid="input-standard-url"
                               />
                               <div className="text-xs text-muted-foreground space-y-1">
-                                <p>Enter a publicly accessible URL to a compliance document.</p>
+                                <p>Enter a publicly accessible URL to a document.</p>
                                 <p className="text-yellow-600 dark:text-yellow-500">
                                   ⚠️ Only use URLs from trusted sources. The URL must point directly to a public document (redirects are not allowed).
                                 </p>
@@ -553,7 +598,7 @@ export default function StandardsPage() {
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Tags (Optional)</label>
                           <p className="text-xs text-muted-foreground">
-                            Add tags to categorize this standard
+                            Add tags to categorize this document
                           </p>
                           {standardFormData.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-2">
@@ -727,7 +772,7 @@ export default function StandardsPage() {
                       <div className="p-6">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -743,6 +788,14 @@ export default function StandardsPage() {
                               <h2 className="text-xl font-bold" data-testid={`text-standard-name-${standard.id}`}>
                                 {standard.name}
                               </h2>
+                              {standard.category && (
+                                <Badge 
+                                  variant={getCategoryInfo(standard.category).variant}
+                                  data-testid={`badge-category-${standard.id}`}
+                                >
+                                  {getCategoryInfo(standard.category).label}
+                                </Badge>
+                              )}
                               {!isActive && (
                                 <span className="text-xs px-2 py-1 bg-muted rounded">
                                   Inactive
@@ -873,7 +926,7 @@ export default function StandardsPage() {
                             
                             {doc.metadata && typeof doc.metadata === 'object' && (
                               <div className="flex items-center gap-2 text-xs">
-                                {Object.entries(doc.metadata).slice(0, 3).map(([key, value]) => (
+                                {Object.entries(doc.metadata as Record<string, unknown>).slice(0, 3).map(([key, value]) => (
                                   <span key={key} className="px-2 py-1 bg-muted rounded text-muted-foreground">
                                     {key}: {value !== null && value !== undefined ? String(value) : 'N/A'}
                                   </span>

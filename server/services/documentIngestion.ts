@@ -46,7 +46,7 @@ export class DocumentIngestionService {
     const documentId = options.documentId || randomUUID();
     let blobName: string | null = null;
     let searchChunkIds: string[] = [];
-    let blobUrl: string;
+    let blobUrl: string = "";
     
     // Step 0: Create or update initial record with "processing" status before any operations
     console.log(`[RAG] ${options.documentId ? 'Updating' : 'Creating'} record for: ${options.fileName}`);

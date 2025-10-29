@@ -28,7 +28,7 @@ const navigationItems = [
     icon: Home,
   },
   {
-    title: "Knowledge Pack",
+    title: "Knowledge Base",
     url: "/standards",
     icon: BookOpen,
   },

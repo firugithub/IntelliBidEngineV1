@@ -14,6 +14,7 @@ export const standards = pgTable("standards", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category").notNull().default("general"), // 'architecture', 'delivery', 'procurement', 'development', 'security', 'general'
   sections: jsonb("sections").notNull(),
   tags: text("tags").array(),
   fileName: text("file_name"),
@@ -136,9 +137,24 @@ export const ragChunks = pgTable("rag_chunks", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Document categories for Knowledge Base
+export const documentCategories = [
+  "architecture",
+  "delivery",
+  "procurement",
+  "development",
+  "security",
+  "general",
+] as const;
+
+export const documentCategorySchema = z.enum(documentCategories);
+export type DocumentCategory = z.infer<typeof documentCategorySchema>;
+
 export const insertStandardSchema = createInsertSchema(standards).omit({
   id: true,
   createdAt: true,
+}).extend({
+  category: documentCategorySchema.default("general"),
 });
 
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({

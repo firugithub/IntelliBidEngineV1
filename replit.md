@@ -36,16 +36,26 @@ Preferred communication style: Simple, everyday language.
 
 **Scoring Dimensions:** Overall Score, Technical Fit, Delivery Risk, Cost, and Compliance, with statuses like "recommended," "under-review," and "risk-flagged."
 
-### Knowledge Pack (Standards & Compliance)
+### Knowledge Base
 
-**Purpose:** Central hub for managing compliance standards and RAG document knowledge base. Integrates external Model Context Protocol (MCP) connectors for additional data sources.
+**Purpose:** Centralized repository for managing organizational documents and guidelines across multiple domains to enhance AI evaluation accuracy. Integrates external Model Context Protocol (MCP) connectors for additional data sources.
+
+**Document Categories:**
+- **Architecture Guidelines:** Cloud architecture patterns, system design standards, infrastructure best practices
+- **Delivery & Project Management:** Project methodologies, sprint planning frameworks, delivery standards
+- **Procurement & SLA Standards:** Vendor contracts, service level agreements, procurement policies
+- **Development Standards & Frameworks:** Coding standards, estimation frameworks, development best practices
+- **Security Standards & Policies:** ISO 27001, PCI-DSS, GDPR, NIST, security policies
+- **General Documentation:** Any other organizational knowledge not fitting the above categories
 
 **Key Features:**
-- **Compliance Standards with RAG Integration:** Admin interface for managing organization-wide compliance standards with automatic RAG ingestion. Features include:
+- **Document Management with RAG Integration:** Admin interface for uploading and managing organizational documents with automatic RAG ingestion. Features include:
   - Document upload (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction
+  - Category selection to organize documents by domain (Architecture, Delivery, Procurement, Development, Security, General)
   - Automatic ingestion into RAG system upon upload (Azure Blob Storage + AI Search)
   - RAG status badges showing indexing state
-  - Tagging and section-level compliance scoring
+  - Tagging and section-level organization
+  - Category badges for quick identification
   - Linked to RAG documents via ragDocumentId for retrieval during evaluations
 - **MCP Connectors:** Management of external MCP server connections with secure API key handling (redacted in responses).
 
