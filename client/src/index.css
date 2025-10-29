@@ -317,4 +317,15 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Sidebar collapsed state - hide text elements */
+  [data-slot="sidebar-menu-button"] span {
+    transition: opacity 200ms ease-linear, width 200ms ease-linear;
+  }
+
+  .group[data-state="collapsed"] [data-slot="sidebar-menu-button"] span {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
 }
