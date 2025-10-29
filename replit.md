@@ -36,6 +36,13 @@ Preferred communication style: Simple, everyday language.
 
 **Scoring Dimensions:** Overall Score, Technical Fit, Delivery Risk, Cost, and Compliance, with statuses like "recommended," "under-review," and "risk-flagged."
 
+**Dynamic Score Recalculation:** When users modify individual criterion scores in the dashboard, the system automatically recalculates the evaluation's overall score and status in real-time. The recalculation process:
+- Aggregates all criterion scores to compute a new average overall score
+- Groups criteria by role to recalculate dimension-specific scores (Technical Fit, Delivery Risk, Cost, Compliance)
+- Updates evaluation status based on score thresholds: ≥70 = "recommended", ≥50 = "under-review", <50 = "risk-flagged"
+- Logs recalculation events to server console for audit tracking
+- Includes safety guards for edge cases (empty criteria evaluations)
+
 ### Knowledge Base
 
 **Purpose:** Centralized repository for managing organizational documents and guidelines across multiple domains to enhance AI evaluation accuracy. Integrates external Model Context Protocol (MCP) connectors for additional data sources.
