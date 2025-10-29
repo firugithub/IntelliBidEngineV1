@@ -487,10 +487,12 @@ export class MemStorage implements IStorage {
   async updateEvaluation(id: string, updates: Partial<InsertEvaluation>): Promise<void> {
     const evaluation = this.evaluations.get(id);
     if (evaluation) {
+      console.log(`[Storage] Updating evaluation ${id} with:`, updates);
       const updated: Evaluation = {
         ...evaluation,
         ...updates,
       };
+      console.log(`[Storage] Updated evaluation status: ${updated.status}, score: ${updated.overallScore}`);
       this.evaluations.set(id, updated);
     }
   }
