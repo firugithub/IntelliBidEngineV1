@@ -49,7 +49,20 @@ For each gap found, provide:
 - Section reference from proposal
 - Suggested clarifying action
 
-Return as JSON array of gaps.`
+Return as JSON in this exact format:
+{
+  "gaps": [
+    {
+      "gapType": "missing_requirement",
+      "severity": "critical",
+      "requirementId": "optional",
+      "section": "optional section reference",
+      "description": "specific description",
+      "aiRationale": "why this matters",
+      "suggestedAction": "what to do about it"
+    }
+  ]
+}`
   },
 
   followupQuestions: {
@@ -94,7 +107,19 @@ For each question, provide:
 - Context explaining why this matters
 - Related proposal section if applicable
 
-Return as JSON array of questions.`
+Return as JSON in this exact format:
+{
+  "questions": [
+    {
+      "category": "technical",
+      "priority": "critical",
+      "question": "the actual question",
+      "context": "why this question is important",
+      "relatedSection": "optional section reference",
+      "aiRationale": "detailed rationale"
+    }
+  ]
+}`
   },
 
   vendorComparison: {
@@ -327,7 +352,7 @@ export async function generateCompletion(
   const startTime = Date.now();
 
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
@@ -373,7 +398,7 @@ export async function* streamCompletion(
   console.log(`[AI Orchestration] Starting streaming completion...`);
 
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
     const stream = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,

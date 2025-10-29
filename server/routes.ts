@@ -1093,6 +1093,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================================================================
+  // AI FEATURES ROUTES
+  // ==================================================================
+
+  // Compliance Gap Analysis
+  app.post("/api/projects/:projectId/proposals/:proposalId/analyze-gaps", async (req, res) => {
+    try {
+      const { complianceGapService } = await import("./services/complianceGapService");
+      const { projectId, proposalId } = req.params;
+
+      // Get proposal and requirements
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+
+      const requirements = await storage.getRequirementsByProject(projectId);
+      if (requirements.length === 0) {
+        return res.status(400).json({ error: "No requirements found for project" });
+      }
+
+      // Analyze compliance gaps
+      const gaps = await complianceGapService.analyzeComplianceGaps({
+        projectId,
+        proposalId,
+        requirements: JSON.stringify(requirements[0].extractedData),
+        proposal: JSON.stringify(proposal.extractedData),
+        vendorName: proposal.vendorName
+      });
+
+      res.json({ gaps, summary: await complianceGapService.getGapSummary(projectId) });
+    } catch (error) {
+      console.error("Error analyzing compliance gaps:", error);
+      res.status(500).json({ error: "Failed to analyze compliance gaps" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/compliance-gaps", async (req, res) => {
+    try {
+      const { complianceGapService } = await import("./services/complianceGapService");
+      const gaps = await complianceGapService.getProjectComplianceGaps(req.params.projectId);
+      const summary = await complianceGapService.getGapSummary(req.params.projectId);
+      res.json({ gaps, summary });
+    } catch (error) {
+      console.error("Error fetching compliance gaps:", error);
+      res.status(500).json({ error: "Failed to fetch compliance gaps" });
+    }
+  });
+
+  app.get("/api/proposals/:proposalId/compliance-gaps", async (req, res) => {
+    try {
+      const { complianceGapService } = await import("./services/complianceGapService");
+      const gaps = await complianceGapService.getProposalComplianceGaps(req.params.proposalId);
+      res.json(gaps);
+    } catch (error) {
+      console.error("Error fetching proposal gaps:", error);
+      res.status(500).json({ error: "Failed to fetch proposal gaps" });
+    }
+  });
+
+  app.patch("/api/compliance-gaps/:id/resolve", async (req, res) => {
+    try {
+      const { complianceGapService } = await import("./services/complianceGapService");
+      await complianceGapService.resolveComplianceGap(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resolving gap:", error);
+      res.status(500).json({ error: "Failed to resolve gap" });
+    }
+  });
+
+  // Follow-up Question Generation
+  app.post("/api/projects/:projectId/proposals/:proposalId/generate-questions", async (req, res) => {
+    try {
+      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { projectId, proposalId } = req.params;
+
+      // Get proposal and requirements
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+
+      const requirements = await storage.getRequirementsByProject(projectId);
+      if (requirements.length === 0) {
+        return res.status(400).json({ error: "No requirements found for project" });
+      }
+
+      // Generate follow-up questions
+      const questions = await followupQuestionService.generateFollowupQuestions({
+        projectId,
+        proposalId,
+        requirements: JSON.stringify(requirements[0].extractedData),
+        proposal: JSON.stringify(proposal.extractedData),
+        vendorName: proposal.vendorName
+      });
+
+      res.json({ questions, summary: await followupQuestionService.getQuestionSummary(projectId) });
+    } catch (error) {
+      console.error("Error generating follow-up questions:", error);
+      res.status(500).json({ error: "Failed to generate follow-up questions" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/followup-questions", async (req, res) => {
+    try {
+      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const questions = await followupQuestionService.getProjectFollowupQuestions(req.params.projectId);
+      const summary = await followupQuestionService.getQuestionSummary(req.params.projectId);
+      res.json({ questions, summary });
+    } catch (error) {
+      console.error("Error fetching follow-up questions:", error);
+      res.status(500).json({ error: "Failed to fetch follow-up questions" });
+    }
+  });
+
+  app.get("/api/proposals/:proposalId/followup-questions", async (req, res) => {
+    try {
+      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const questions = await followupQuestionService.getProposalFollowupQuestions(req.params.proposalId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching proposal questions:", error);
+      res.status(500).json({ error: "Failed to fetch proposal questions" });
+    }
+  });
+
+  app.patch("/api/followup-questions/:id/answer", async (req, res) => {
+    try {
+      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { answer } = req.body;
+      if (!answer) {
+        return res.status(400).json({ error: "Answer is required" });
+      }
+      await followupQuestionService.answerFollowupQuestion(req.params.id, answer);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error answering question:", error);
+      res.status(500).json({ error: "Failed to answer question" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
