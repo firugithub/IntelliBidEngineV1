@@ -39,7 +39,14 @@ export default function DeepDivePage() {
       return await apiRequest("PATCH", `/api/evaluation-criteria/${criteriaId}`, { score, scoreLabel });
     },
     onSuccess: () => {
+      // Invalidate the criteria query for this evaluation
       queryClient.invalidateQueries({ queryKey: [`/api/evaluations/${id}/criteria?role=${role}`] });
+      
+      // Invalidate the evaluations list query so Dashboard cards update
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "evaluations"] });
+      }
+      
       toast({
         title: "Criteria updated",
         description: "The evaluation criteria has been updated successfully.",
