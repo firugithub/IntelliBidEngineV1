@@ -954,9 +954,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all criteria for this evaluation to recalculate scores
         const evaluationCriteria = await storage.getEvaluationCriteriaByEvaluation(updatedCriterion.evaluationId);
         
+        // Guard against empty criteria (unlikely but possible)
+        if (evaluationCriteria.length === 0) {
+          console.warn(`[Evaluation Recalculation] No criteria found for evaluation ${updatedCriterion.evaluationId}`);
+          res.json({ success: true });
+          return;
+        }
+        
         // Calculate average score from all criteria
         const totalScore = evaluationCriteria.reduce((sum, c) => sum + c.score, 0);
-        const avgScore = Math.round(totalScore / Math.max(evaluationCriteria.length, 1));
+        const avgScore = Math.round(totalScore / evaluationCriteria.length);
         
         // Group by role to calculate dimension scores
         const roleGroups = evaluationCriteria.reduce((groups, c) => {

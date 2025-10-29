@@ -166,6 +166,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const standard: Standard = {
       id,
+      category: insertStandard.category || "general",
       name: insertStandard.name,
       description: insertStandard.description || null,
       sections: insertStandard.sections,
