@@ -14,6 +14,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
 import AdminConfigPage from "@/pages/AdminConfigPage";
 import DeepDivePage from "@/pages/DeepDivePage";
+import AIFeaturesPage from "@/pages/AIFeaturesPage";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/portfolio/:id/upload" component={UploadPage} />
       <Route path="/dashboard/:id" component={DashboardPage} />
       <Route path="/project/:id" component={DashboardPage} />
+      <Route path="/project/:id/ai-features" component={AIFeaturesPage} />
       <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route component={NotFound} />
     </Switch>
