@@ -137,6 +137,81 @@ export const ragChunks = pgTable("rag_chunks", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(), // Scoped to a project
+  title: text("title"), // Auto-generated summary of conversation
+  metadata: jsonb("metadata"), // User preferences, context filters
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(), // References chatSessions.id
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  sourceReferences: jsonb("source_references"), // Links to evaluations, proposals, criteria
+  metadata: jsonb("metadata"), // Token count, model used, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const complianceGaps = pgTable("compliance_gaps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  proposalId: varchar("proposal_id").notNull(),
+  gapType: text("gap_type").notNull(), // 'missing_requirement', 'vague_answer', 'incomplete_information'
+  severity: text("severity").notNull(), // 'critical', 'high', 'medium', 'low'
+  requirementId: varchar("requirement_id"), // Which requirement is not met
+  section: text("section"), // Section of proposal where gap exists
+  description: text("description").notNull(),
+  aiRationale: text("ai_rationale"), // AI explanation of the gap
+  suggestedAction: text("suggested_action"), // What to do about it
+  isResolved: text("is_resolved").notNull().default("false"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const comparisonSnapshots = pgTable("comparison_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  title: text("title").notNull(),
+  comparisonType: text("comparison_type").notNull(), // 'full', 'technical', 'cost', 'security', 'custom'
+  vendorIds: text("vendor_ids").array().notNull(), // Proposal IDs being compared
+  comparisonData: jsonb("comparison_data").notNull(), // Matrix data with differentiators
+  highlights: jsonb("highlights"), // Key differentiators identified by AI
+  metadata: jsonb("metadata"), // Criteria selected, weights, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const executiveBriefings = pgTable("executive_briefings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  stakeholderRole: text("stakeholder_role").notNull(), // 'CEO', 'CTO', 'CFO', 'CISO', 'COO'
+  briefingType: text("briefing_type").notNull(), // 'summary', 'recommendation', 'risk_analysis'
+  title: text("title").notNull(),
+  content: text("content").notNull(), // Markdown formatted briefing
+  keyFindings: jsonb("key_findings"), // Structured key points
+  recommendations: jsonb("recommendations"), // Top recommendations
+  metadata: jsonb("metadata"), // Generation parameters, filters used
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const followupQuestions = pgTable("followup_questions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  proposalId: varchar("proposal_id").notNull(),
+  category: text("category").notNull(), // 'technical', 'delivery', 'cost', 'compliance', 'clarification'
+  priority: text("priority").notNull(), // 'critical', 'high', 'medium', 'low'
+  question: text("question").notNull(),
+  context: text("context"), // Why this question is being asked
+  relatedSection: text("related_section"), // Section of proposal that triggered this
+  aiRationale: text("ai_rationale"), // AI explanation of why this question matters
+  isAnswered: text("is_answered").notNull().default("false"),
+  answer: text("answer"), // Vendor's response if answered
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Document categories for Knowledge Base
 export const documentCategories = [
   "architecture",
@@ -210,6 +285,38 @@ export const insertRagChunkSchema = createInsertSchema(ragChunks).omit({
   createdAt: true,
 });
 
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertComplianceGapSchema = createInsertSchema(complianceGaps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertComparisonSnapshotSchema = createInsertSchema(comparisonSnapshots).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExecutiveBriefingSchema = createInsertSchema(executiveBriefings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFollowupQuestionSchema = createInsertSchema(followupQuestions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -242,3 +349,21 @@ export type RagDocument = typeof ragDocuments.$inferSelect;
 
 export type InsertRagChunk = z.infer<typeof insertRagChunkSchema>;
 export type RagChunk = typeof ragChunks.$inferSelect;
+
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
+export type InsertComplianceGap = z.infer<typeof insertComplianceGapSchema>;
+export type ComplianceGap = typeof complianceGaps.$inferSelect;
+
+export type InsertComparisonSnapshot = z.infer<typeof insertComparisonSnapshotSchema>;
+export type ComparisonSnapshot = typeof comparisonSnapshots.$inferSelect;
+
+export type InsertExecutiveBriefing = z.infer<typeof insertExecutiveBriefingSchema>;
+export type ExecutiveBriefing = typeof executiveBriefings.$inferSelect;
+
+export type InsertFollowupQuestion = z.infer<typeof insertFollowupQuestionSchema>;
+export type FollowupQuestion = typeof followupQuestions.$inferSelect;

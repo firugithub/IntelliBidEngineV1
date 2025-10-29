@@ -21,6 +21,18 @@ import {
   type InsertRagDocument,
   type RagChunk,
   type InsertRagChunk,
+  type ChatSession,
+  type InsertChatSession,
+  type ChatMessage,
+  type InsertChatMessage,
+  type ComplianceGap,
+  type InsertComplianceGap,
+  type ComparisonSnapshot,
+  type InsertComparisonSnapshot,
+  type ExecutiveBriefing,
+  type InsertExecutiveBriefing,
+  type FollowupQuestion,
+  type InsertFollowupQuestion,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -105,6 +117,47 @@ export interface IStorage {
   getRagChunksByDocumentId(documentId: string): Promise<RagChunk[]>;
   deleteRagChunk(id: string): Promise<void>;
   deleteRagChunksByDocumentId(documentId: string): Promise<void>;
+
+  // Chat Sessions
+  createChatSession(session: InsertChatSession): Promise<ChatSession>;
+  getChatSession(id: string): Promise<ChatSession | undefined>;
+  getChatSessionsByProject(projectId: string): Promise<ChatSession[]>;
+  updateChatSession(id: string, updates: Partial<InsertChatSession>): Promise<void>;
+  deleteChatSession(id: string): Promise<void>;
+
+  // Chat Messages
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessagesBySession(sessionId: string): Promise<ChatMessage[]>;
+  deleteChatMessage(id: string): Promise<void>;
+
+  // Compliance Gaps
+  createComplianceGap(gap: InsertComplianceGap): Promise<ComplianceGap>;
+  getComplianceGap(id: string): Promise<ComplianceGap | undefined>;
+  getComplianceGapsByProject(projectId: string): Promise<ComplianceGap[]>;
+  getComplianceGapsByProposal(proposalId: string): Promise<ComplianceGap[]>;
+  updateComplianceGap(id: string, updates: Partial<InsertComplianceGap>): Promise<void>;
+  deleteComplianceGap(id: string): Promise<void>;
+
+  // Comparison Snapshots
+  createComparisonSnapshot(snapshot: InsertComparisonSnapshot): Promise<ComparisonSnapshot>;
+  getComparisonSnapshot(id: string): Promise<ComparisonSnapshot | undefined>;
+  getComparisonSnapshotsByProject(projectId: string): Promise<ComparisonSnapshot[]>;
+  deleteComparisonSnapshot(id: string): Promise<void>;
+
+  // Executive Briefings
+  createExecutiveBriefing(briefing: InsertExecutiveBriefing): Promise<ExecutiveBriefing>;
+  getExecutiveBriefing(id: string): Promise<ExecutiveBriefing | undefined>;
+  getExecutiveBriefingsByProject(projectId: string): Promise<ExecutiveBriefing[]>;
+  getExecutiveBriefingsByRole(projectId: string, stakeholderRole: string): Promise<ExecutiveBriefing[]>;
+  deleteExecutiveBriefing(id: string): Promise<void>;
+
+  // Followup Questions
+  createFollowupQuestion(question: InsertFollowupQuestion): Promise<FollowupQuestion>;
+  getFollowupQuestion(id: string): Promise<FollowupQuestion | undefined>;
+  getFollowupQuestionsByProject(projectId: string): Promise<FollowupQuestion[]>;
+  getFollowupQuestionsByProposal(proposalId: string): Promise<FollowupQuestion[]>;
+  updateFollowupQuestion(id: string, updates: Partial<InsertFollowupQuestion>): Promise<void>;
+  deleteFollowupQuestion(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -119,6 +172,12 @@ export class MemStorage implements IStorage {
   private evaluationCriteria: Map<string, EvaluationCriteria>;
   private ragDocuments: Map<string, RagDocument>;
   private ragChunks: Map<string, RagChunk>;
+  private chatSessions: Map<string, ChatSession>;
+  private chatMessages: Map<string, ChatMessage>;
+  private complianceGaps: Map<string, ComplianceGap>;
+  private comparisonSnapshots: Map<string, ComparisonSnapshot>;
+  private executiveBriefings: Map<string, ExecutiveBriefing>;
+  private followupQuestions: Map<string, FollowupQuestion>;
 
   constructor() {
     this.portfolios = new Map();
@@ -132,6 +191,12 @@ export class MemStorage implements IStorage {
     this.evaluationCriteria = new Map();
     this.ragDocuments = new Map();
     this.ragChunks = new Map();
+    this.chatSessions = new Map();
+    this.chatMessages = new Map();
+    this.complianceGaps = new Map();
+    this.comparisonSnapshots = new Map();
+    this.executiveBriefings = new Map();
+    this.followupQuestions = new Map();
   }
 
   async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
@@ -588,6 +653,250 @@ export class MemStorage implements IStorage {
     for (const chunk of chunks) {
       this.ragChunks.delete(chunk.id);
     }
+  }
+
+  // Chat Sessions
+  async createChatSession(insertSession: InsertChatSession): Promise<ChatSession> {
+    const id = randomUUID();
+    const session: ChatSession = {
+      id,
+      projectId: insertSession.projectId,
+      title: insertSession.title || null,
+      metadata: insertSession.metadata || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.chatSessions.set(id, session);
+    return session;
+  }
+
+  async getChatSession(id: string): Promise<ChatSession | undefined> {
+    return this.chatSessions.get(id);
+  }
+
+  async getChatSessionsByProject(projectId: string): Promise<ChatSession[]> {
+    return Array.from(this.chatSessions.values()).filter(
+      (session) => session.projectId === projectId
+    );
+  }
+
+  async updateChatSession(id: string, updates: Partial<InsertChatSession>): Promise<void> {
+    const session = this.chatSessions.get(id);
+    if (session) {
+      const updated: ChatSession = {
+        ...session,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.chatSessions.set(id, updated);
+    }
+  }
+
+  async deleteChatSession(id: string): Promise<void> {
+    this.chatSessions.delete(id);
+  }
+
+  // Chat Messages
+  async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const id = randomUUID();
+    const message: ChatMessage = {
+      id,
+      sessionId: insertMessage.sessionId,
+      role: insertMessage.role,
+      content: insertMessage.content,
+      sourceReferences: insertMessage.sourceReferences || null,
+      metadata: insertMessage.metadata || null,
+      createdAt: new Date(),
+    };
+    this.chatMessages.set(id, message);
+    return message;
+  }
+
+  async getChatMessagesBySession(sessionId: string): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter((message) => message.sessionId === sessionId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async deleteChatMessage(id: string): Promise<void> {
+    this.chatMessages.delete(id);
+  }
+
+  // Compliance Gaps
+  async createComplianceGap(insertGap: InsertComplianceGap): Promise<ComplianceGap> {
+    const id = randomUUID();
+    const gap: ComplianceGap = {
+      id,
+      projectId: insertGap.projectId,
+      proposalId: insertGap.proposalId,
+      gapType: insertGap.gapType,
+      severity: insertGap.severity,
+      requirementId: insertGap.requirementId || null,
+      section: insertGap.section || null,
+      description: insertGap.description,
+      aiRationale: insertGap.aiRationale || null,
+      suggestedAction: insertGap.suggestedAction || null,
+      isResolved: insertGap.isResolved || "false",
+      createdAt: new Date(),
+    };
+    this.complianceGaps.set(id, gap);
+    return gap;
+  }
+
+  async getComplianceGap(id: string): Promise<ComplianceGap | undefined> {
+    return this.complianceGaps.get(id);
+  }
+
+  async getComplianceGapsByProject(projectId: string): Promise<ComplianceGap[]> {
+    return Array.from(this.complianceGaps.values()).filter(
+      (gap) => gap.projectId === projectId
+    );
+  }
+
+  async getComplianceGapsByProposal(proposalId: string): Promise<ComplianceGap[]> {
+    return Array.from(this.complianceGaps.values()).filter(
+      (gap) => gap.proposalId === proposalId
+    );
+  }
+
+  async updateComplianceGap(id: string, updates: Partial<InsertComplianceGap>): Promise<void> {
+    const gap = this.complianceGaps.get(id);
+    if (gap) {
+      const updated: ComplianceGap = {
+        ...gap,
+        ...updates,
+      };
+      this.complianceGaps.set(id, updated);
+    }
+  }
+
+  async deleteComplianceGap(id: string): Promise<void> {
+    this.complianceGaps.delete(id);
+  }
+
+  // Comparison Snapshots
+  async createComparisonSnapshot(insertSnapshot: InsertComparisonSnapshot): Promise<ComparisonSnapshot> {
+    const id = randomUUID();
+    const snapshot: ComparisonSnapshot = {
+      id,
+      projectId: insertSnapshot.projectId,
+      title: insertSnapshot.title,
+      comparisonType: insertSnapshot.comparisonType,
+      vendorIds: insertSnapshot.vendorIds,
+      comparisonData: insertSnapshot.comparisonData,
+      highlights: insertSnapshot.highlights || null,
+      metadata: insertSnapshot.metadata || null,
+      createdAt: new Date(),
+    };
+    this.comparisonSnapshots.set(id, snapshot);
+    return snapshot;
+  }
+
+  async getComparisonSnapshot(id: string): Promise<ComparisonSnapshot | undefined> {
+    return this.comparisonSnapshots.get(id);
+  }
+
+  async getComparisonSnapshotsByProject(projectId: string): Promise<ComparisonSnapshot[]> {
+    return Array.from(this.comparisonSnapshots.values()).filter(
+      (snapshot) => snapshot.projectId === projectId
+    );
+  }
+
+  async deleteComparisonSnapshot(id: string): Promise<void> {
+    this.comparisonSnapshots.delete(id);
+  }
+
+  // Executive Briefings
+  async createExecutiveBriefing(insertBriefing: InsertExecutiveBriefing): Promise<ExecutiveBriefing> {
+    const id = randomUUID();
+    const briefing: ExecutiveBriefing = {
+      id,
+      projectId: insertBriefing.projectId,
+      stakeholderRole: insertBriefing.stakeholderRole,
+      briefingType: insertBriefing.briefingType,
+      title: insertBriefing.title,
+      content: insertBriefing.content,
+      keyFindings: insertBriefing.keyFindings || null,
+      recommendations: insertBriefing.recommendations || null,
+      metadata: insertBriefing.metadata || null,
+      createdAt: new Date(),
+    };
+    this.executiveBriefings.set(id, briefing);
+    return briefing;
+  }
+
+  async getExecutiveBriefing(id: string): Promise<ExecutiveBriefing | undefined> {
+    return this.executiveBriefings.get(id);
+  }
+
+  async getExecutiveBriefingsByProject(projectId: string): Promise<ExecutiveBriefing[]> {
+    return Array.from(this.executiveBriefings.values()).filter(
+      (briefing) => briefing.projectId === projectId
+    );
+  }
+
+  async getExecutiveBriefingsByRole(projectId: string, stakeholderRole: string): Promise<ExecutiveBriefing[]> {
+    return Array.from(this.executiveBriefings.values()).filter(
+      (briefing) => briefing.projectId === projectId && briefing.stakeholderRole === stakeholderRole
+    );
+  }
+
+  async deleteExecutiveBriefing(id: string): Promise<void> {
+    this.executiveBriefings.delete(id);
+  }
+
+  // Followup Questions
+  async createFollowupQuestion(insertQuestion: InsertFollowupQuestion): Promise<FollowupQuestion> {
+    const id = randomUUID();
+    const question: FollowupQuestion = {
+      id,
+      projectId: insertQuestion.projectId,
+      proposalId: insertQuestion.proposalId,
+      category: insertQuestion.category,
+      priority: insertQuestion.priority,
+      question: insertQuestion.question,
+      context: insertQuestion.context || null,
+      relatedSection: insertQuestion.relatedSection || null,
+      aiRationale: insertQuestion.aiRationale || null,
+      isAnswered: insertQuestion.isAnswered || "false",
+      answer: insertQuestion.answer || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.followupQuestions.set(id, question);
+    return question;
+  }
+
+  async getFollowupQuestion(id: string): Promise<FollowupQuestion | undefined> {
+    return this.followupQuestions.get(id);
+  }
+
+  async getFollowupQuestionsByProject(projectId: string): Promise<FollowupQuestion[]> {
+    return Array.from(this.followupQuestions.values()).filter(
+      (question) => question.projectId === projectId
+    );
+  }
+
+  async getFollowupQuestionsByProposal(proposalId: string): Promise<FollowupQuestion[]> {
+    return Array.from(this.followupQuestions.values()).filter(
+      (question) => question.proposalId === proposalId
+    );
+  }
+
+  async updateFollowupQuestion(id: string, updates: Partial<InsertFollowupQuestion>): Promise<void> {
+    const question = this.followupQuestions.get(id);
+    if (question) {
+      const updated: FollowupQuestion = {
+        ...question,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.followupQuestions.set(id, updated);
+    }
+  }
+
+  async deleteFollowupQuestion(id: string): Promise<void> {
+    this.followupQuestions.delete(id);
   }
 }
 
