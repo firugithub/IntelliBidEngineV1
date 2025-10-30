@@ -93,12 +93,12 @@ export default function SmartRftBuilderPage() {
   // Create project
   const createProjectMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/projects", {
+      return apiRequest("POST", "/api/projects", {
         portfolioId: selectedPortfolio,
         name: businessCaseName,
         status: "draft",
         businessCaseId,
-      }) as Promise<any>;
+      });
     },
     onSuccess: (data: any) => {
       setProjectId(data.id);
@@ -109,11 +109,11 @@ export default function SmartRftBuilderPage() {
   // Generate RFT
   const generateRftMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/generate-rft", {
+      return apiRequest("POST", "/api/generate-rft", {
         businessCaseId,
         templateId: selectedTemplate,
         projectId,
-      }) as Promise<any>;
+      });
     },
     onSuccess: (data: any) => {
       setGeneratedRftId(data.id);
@@ -136,7 +136,7 @@ export default function SmartRftBuilderPage() {
   // Publish RFT
   const publishMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/generated-rfts/${generatedRftId}/publish`, {}) as Promise<any>;
+      return apiRequest("POST", `/api/generated-rfts/${generatedRftId}/publish`, {});
     },
     onSuccess: (data: any) => {
       toast({
