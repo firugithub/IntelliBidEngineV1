@@ -33,6 +33,7 @@ import {
   type InsertExecutiveBriefing,
   type FollowupQuestion,
   type InsertFollowupQuestion,
+  systemConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
