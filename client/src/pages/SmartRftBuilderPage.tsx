@@ -219,6 +219,21 @@ export default function SmartRftBuilderPage() {
     }
   };
 
+  const handleFillSampleData = () => {
+    setBusinessCaseName("Next-Generation Passenger Experience Platform");
+    setProjectObjective("Transform the end-to-end passenger journey through an integrated digital ecosystem that delivers personalized, seamless travel experiences while reducing operational costs and increasing ancillary revenue opportunities.");
+    setProjectScope("Comprehensive mobile-first platform including iOS/Android native applications, responsive web portal, airport kiosk integration, and backend microservices architecture supporting 10M+ annual passengers across 50+ destinations.");
+    setTimeline("18 months - Phased rollout with MVP in 6 months, full deployment in 18 months");
+    setBudget("$4.2M (Development: $2.5M, Infrastructure: $800K, Licenses: $400K, Contingency: $500K)");
+    setKeyRequirements("Native mobile apps with offline capabilities, real-time flight status updates, digital boarding passes, biometric authentication, baggage tracking, seat selection, meal preferences, loyalty program integration, push notifications, multi-language support (English, Arabic, French), accessibility compliance (WCAG 2.1), payment gateway integration with 3D Secure");
+    setSuccessCriteria("300K active users within 12 months, 4.7+ app store rating, 85% digital check-in adoption rate, 40% reduction in counter queue times, 25% increase in ancillary revenue per passenger, 95% uptime SLA, <2 second response time for critical operations");
+    
+    toast({
+      title: "Sample Data Loaded",
+      description: "All fields have been filled with sample aviation project data.",
+    });
+  };
+
   const handleGenerateBusinessCase = () => {
     if (!businessCaseName || !selectedPortfolio || !projectObjective) {
       toast({
@@ -365,6 +380,23 @@ export default function SmartRftBuilderPage() {
               </TabsList>
 
               <TabsContent value="generate" className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">
+                      Need sample data to test? Click to auto-fill with aviation project example
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFillSampleData}
+                    data-testid="button-fill-sample"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Fill Sample Data
+                  </Button>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="portfolio">Portfolio *</Label>
                   <Select value={selectedPortfolio} onValueChange={setSelectedPortfolio}>
