@@ -187,14 +187,35 @@ export default function SmartRftBuilderPage() {
   };
 
   const handleGenerate = () => {
-    if (!businessCaseId || !selectedTemplate || !projectId) {
+    console.log("Generate button clicked", { businessCaseId, selectedTemplate, projectId });
+    
+    if (!businessCaseId) {
       toast({
         variant: "destructive",
-        title: "Missing Information",
-        description: `Please ensure all required information is available. BC: ${!!businessCaseId}, Template: ${!!selectedTemplate}, Project: ${!!projectId}`,
+        title: "Missing Business Case",
+        description: "Business case ID is missing. Please upload your business case first.",
       });
       return;
     }
+    
+    if (!selectedTemplate) {
+      toast({
+        variant: "destructive",
+        title: "Missing Template",
+        description: "Please select an RFT template.",
+      });
+      return;
+    }
+    
+    if (!projectId) {
+      toast({
+        variant: "destructive",
+        title: "Missing Project",
+        description: "Project ID is missing. Please try selecting the template again.",
+      });
+      return;
+    }
+    
     generateRftMutation.mutate();
   };
 
