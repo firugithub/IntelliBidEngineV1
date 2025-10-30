@@ -494,56 +494,171 @@ export default function SmartRftBuilderPage() {
               Step 4: Review & Publish
             </CardTitle>
             <CardDescription>
-              Review the generated RFT and publish to start vendor submissions
+              Review the generated RFT and 4 Excel questionnaires, then publish
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* RFT Document Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold">{generatedRft.name}</h4>
-                <Badge>{(generatedRft.sections?.sections || []).length} sections</Badge>
+                <h4 className="font-semibold text-lg">RFT Document</h4>
+                <Badge variant="secondary">{(generatedRft.sections?.sections || []).length} sections</Badge>
               </div>
 
-              <Separator />
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-64 overflow-y-auto p-3 bg-muted/30 rounded-lg">
                 {(generatedRft.sections?.sections || []).map((section: any, idx: number) => (
-                  <div key={idx} className="p-3 border rounded-lg">
-                    <h5 className="font-medium">{section.title}</h5>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  <div key={idx} className="p-3 bg-background border rounded-md">
+                    <h5 className="font-medium text-sm">{section.title}</h5>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {section.content.substring(0, 150)}...
                     </p>
                   </div>
                 ))}
               </div>
-            </div>
 
-            <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   window.open(`/generated-rfts/${generatedRftId}`, "_blank");
                 }}
                 data-testid="button-view-full"
+                className="w-full"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                View Full RFT
+                View Full RFT Document
               </Button>
+            </div>
+
+            <Separator />
+
+            {/* Questionnaires Section */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-lg">Excel Questionnaires</h4>
+              <p className="text-sm text-muted-foreground">
+                Four comprehensive questionnaires with dropdown compliance scoring (100%-Fully Met, 50%-Partially Met, 25%-Not Compliant, 0%-Not Applicable) and remarks column.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Product Questionnaire */}
+                <div className="p-4 border rounded-lg space-y-2 hover-elevate">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium">Product Questionnaire</h5>
+                    <Badge variant="outline">30 Questions</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Product features, capabilities, roadmap, and vendor support
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`/api/questionnaires/download/${generatedRftId}/product`, "_blank");
+                    }}
+                    data-testid="button-download-product"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Excel
+                  </Button>
+                </div>
+
+                {/* NFR Questionnaire */}
+                <div className="p-4 border rounded-lg space-y-2 hover-elevate">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium">NFR Questionnaire</h5>
+                    <Badge variant="outline">50 Questions</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Non-functional requirements: performance, scalability, reliability
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`/api/questionnaires/download/${generatedRftId}/nfr`, "_blank");
+                    }}
+                    data-testid="button-download-nfr"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Excel
+                  </Button>
+                </div>
+
+                {/* Cybersecurity Questionnaire */}
+                <div className="p-4 border rounded-lg space-y-2 hover-elevate">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium">Cybersecurity Questionnaire</h5>
+                    <Badge variant="outline">20 Questions</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Security, compliance, data protection, and certifications
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`/api/questionnaires/download/${generatedRftId}/cybersecurity`, "_blank");
+                    }}
+                    data-testid="button-download-cybersecurity"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Excel
+                  </Button>
+                </div>
+
+                {/* Agile Delivery Questionnaire */}
+                <div className="p-4 border rounded-lg space-y-2 hover-elevate">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium">Agile Delivery Questionnaire</h5>
+                    <Badge variant="outline">20 Questions</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Agile methodology, sprint planning, CI/CD, and team structure
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`/api/questionnaires/download/${generatedRftId}/agile`, "_blank");
+                    }}
+                    data-testid="button-download-agile"
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Excel
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Publish Section */}
+            <div className="space-y-3">
+              <div className="bg-accent p-4 rounded-lg">
+                <h5 className="font-semibold mb-2">Ready to Publish</h5>
+                <p className="text-sm text-muted-foreground">
+                  Publishing will make the RFT document available to vendors and create evaluation criteria in the system.
+                </p>
+              </div>
+
               <Button
                 onClick={handlePublish}
                 disabled={publishMutation.isPending}
-                className="flex-1"
+                className="w-full"
                 data-testid="button-publish"
               >
                 {publishMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Publishing...
+                    Publishing RFT...
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4 mr-2" />
-                    Publish RFT
+                    Publish RFT to Vendors
                   </>
                 )}
               </Button>
