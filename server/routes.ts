@@ -10,6 +10,8 @@ import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
+import fs from "fs";
+import path from "path";
 
 const lookupAsync = promisify(dnsLookup);
 
@@ -1932,6 +1934,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error regenerating RFT section:", error);
       res.status(500).json({ error: "Failed to regenerate section" });
+    }
+  });
+
+  // Download questionnaire file
+  app.get("/api/questionnaires/download/:rftId/:type", async (req, res) => {
+    try {
+      const { rftId, type } = req.params;
+      
+      const rft = await storage.getGeneratedRft(rftId);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      // Get file path based on type
+      let filePath: string | null = null;
+      let fileName = "";
+      
+      switch (type) {
+        case "product":
+          filePath = rft.productQuestionnairePath || null;
+          fileName = "Product_Questionnaire.xlsx";
+          break;
+        case "nfr":
+          filePath = rft.nfrQuestionnairePath || null;
+          fileName = "NFR_Questionnaire.xlsx";
+          break;
+        case "cybersecurity":
+          filePath = rft.cybersecurityQuestionnairePath || null;
+          fileName = "Cybersecurity_Questionnaire.xlsx";
+          break;
+        case "agile":
+          filePath = rft.agileQuestionnairePath || null;
+          fileName = "Agile_Delivery_Questionnaire.xlsx";
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid questionnaire type" });
+      }
+
+      if (!filePath || !fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "Questionnaire file not found" });
+      }
+
+      // Send file
+      res.download(filePath, fileName, (err) => {
+        if (err) {
+          console.error("Error downloading questionnaire:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to download file" });
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error serving questionnaire:", error);
+      res.status(500).json({ error: "Failed to serve questionnaire file" });
     }
   });
 
