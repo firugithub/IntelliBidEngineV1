@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb } from "lucide-react";
+import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb, Edit, FileDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -39,6 +40,10 @@ export default function SmartRftBuilderPage() {
   const [budget, setBudget] = useState("");
   const [keyRequirements, setKeyRequirements] = useState("");
   const [successCriteria, setSuccessCriteria] = useState("");
+  
+  // RFT Document Edit Dialog
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedSections, setEditedSections] = useState<any[]>([]);
 
   // Fetch portfolios
   const { data: portfolios = [] } = useQuery<any[]>({
@@ -213,6 +218,30 @@ export default function SmartRftBuilderPage() {
     },
   });
 
+  // Update RFT Document
+  const updateRftMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", `/api/generated-rfts/${generatedRftId}`, {
+        sections: { sections: editedSections },
+      });
+    },
+    onSuccess: (data: any) => {
+      setGeneratedRft(data);
+      setIsEditDialogOpen(false);
+      toast({
+        title: "RFT Updated!",
+        description: "Your changes have been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Failed to save changes. Please try again.",
+      });
+    },
+  });
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -278,6 +307,23 @@ export default function SmartRftBuilderPage() {
       return;
     }
     createProjectMutation.mutate();
+  };
+
+  const handleOpenEditDialog = () => {
+    if (generatedRft?.sections?.sections) {
+      setEditedSections([...generatedRft.sections.sections]);
+      setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleSectionChange = (index: number, field: "title" | "content", value: string) => {
+    const updated = [...editedSections];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditedSections(updated);
+  };
+
+  const handleSaveEdits = () => {
+    updateRftMutation.mutate();
   };
 
   const handleGenerate = () => {
@@ -761,17 +807,36 @@ export default function SmartRftBuilderPage() {
                 ))}
               </div>
 
-              <Button
-                variant="outline"
-                onClick={() => {
-                  window.open(`/generated-rfts/${generatedRftId}`, "_blank");
-                }}
-                data-testid="button-view-full"
-                className="w-full"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                View Full RFT Document
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleOpenEditDialog}
+                  data-testid="button-edit-rft"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Document
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    window.open(`/api/generated-rfts/${generatedRftId}/download/doc`, "_blank");
+                  }}
+                  data-testid="button-download-doc"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download DOC
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    window.open(`/api/generated-rfts/${generatedRftId}/download/pdf`, "_blank");
+                  }}
+                  data-testid="button-download-pdf"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download PDF
+                </Button>
+              </div>
             </div>
 
             <Separator />
@@ -911,6 +976,66 @@ export default function SmartRftBuilderPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit RFT Document Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit RFT Document</DialogTitle>
+            <DialogDescription>
+              Review and edit each section of your RFT document. Changes will be saved to the database.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {editedSections.map((section: any, index: number) => (
+              <div key={index} className="space-y-2 p-4 border rounded-lg">
+                <Label htmlFor={`section-title-${index}`}>Section {index + 1} - Title</Label>
+                <Input
+                  id={`section-title-${index}`}
+                  value={section.title}
+                  onChange={(e) => handleSectionChange(index, "title", e.target.value)}
+                  data-testid={`input-section-title-${index}`}
+                />
+                
+                <Label htmlFor={`section-content-${index}`}>Content</Label>
+                <Textarea
+                  id={`section-content-${index}`}
+                  value={section.content}
+                  onChange={(e) => handleSectionChange(index, "content", e.target.value)}
+                  className="min-h-32 font-mono text-sm"
+                  data-testid={`textarea-section-content-${index}`}
+                />
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={updateRftMutation.isPending}
+              data-testid="button-cancel-edit"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdits}
+              disabled={updateRftMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              {updateRftMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
