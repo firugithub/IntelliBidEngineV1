@@ -2042,6 +2042,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download RFT as DOC
+  app.get("/api/generated-rfts/:id/download/doc", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const rft = await storage.getGeneratedRft(id);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      const sections = (rft.sections as any)?.sections || [];
+      if (sections.length === 0) {
+        return res.status(400).json({ error: "No sections found in RFT" });
+      }
+
+      // Generate DOC file
+      const { generateDocxDocument } = await import("./services/documentGenerator");
+      const outputPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}.docx`);
+      
+      await generateDocxDocument({
+        projectName: rft.name,
+        sections,
+        outputPath,
+      });
+
+      // Send file and clean up after
+      res.download(outputPath, `${rft.name.replace(/[^a-zA-Z0-9]/g, "_")}_RFT.docx`, (err) => {
+        if (err) {
+          console.error("Error downloading DOC:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to download file" });
+          }
+        }
+        // Clean up file after download
+        setTimeout(() => {
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath);
+          }
+        }, 1000);
+      });
+    } catch (error) {
+      console.error("Error generating DOC:", error);
+      res.status(500).json({ error: "Failed to generate DOC file" });
+    }
+  });
+
+  // Download RFT as PDF
+  app.get("/api/generated-rfts/:id/download/pdf", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const rft = await storage.getGeneratedRft(id);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      const sections = (rft.sections as any)?.sections || [];
+      if (sections.length === 0) {
+        return res.status(400).json({ error: "No sections found in RFT" });
+      }
+
+      // Generate PDF file
+      const { generatePdfDocument } = await import("./services/documentGenerator");
+      const outputPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}.pdf`);
+      
+      await generatePdfDocument({
+        projectName: rft.name,
+        sections,
+        outputPath,
+      });
+
+      // Send file and clean up after
+      res.download(outputPath, `${rft.name.replace(/[^a-zA-Z0-9]/g, "_")}_RFT.pdf`, (err) => {
+        if (err) {
+          console.error("Error downloading PDF:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to download file" });
+          }
+        }
+        // Clean up file after download
+        setTimeout(() => {
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath);
+          }
+        }, 1000);
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF file" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
