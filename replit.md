@@ -26,6 +26,17 @@ Preferred communication style: Simple, everyday language.
 **Dynamic Score Recalculation:** Automatically recalculates overall and dimension-specific scores and evaluation status in real-time when users modify individual criterion scores.
 
 ### Smart RFT Builder
+**Dual Business Case Creation:** Step 1 offers two methods for creating business cases:
+1.  **Generate from Idea:** AI-powered generation of comprehensive lean business case from user inputs
+    - Required fields: Portfolio, Project Name, Business Objective
+    - Optional fields: Scope, Timeline, Budget, Key Requirements, Success Criteria
+    - Uses GPT-4o to generate 11-section aviation-focused business case (Executive Summary, Business Context, Scope & Objectives, Stakeholder Analysis, Solution Overview, Business Benefits, Cost Analysis, Timeline, Risk Assessment, Success Criteria, Recommendations)
+    - Status: "generated"
+2.  **Upload Document:** Traditional file upload for existing business case documents
+    - Accepts: PDF, DOC, DOCX, TXT files
+    - Parses and extracts document content
+    - Status: "uploaded"
+
 **Multi-Deliverable Generation System:** AI-powered workflow that generates 5 comprehensive RFT deliverables from business case documents:
 1.  **Sample RFT Document:** Complete RFT with AI-generated sections based on business case analysis
 2.  **Product Questionnaire (30 questions):** Excel file with questions about features, product roadmap, support, and maintenance
@@ -38,7 +49,7 @@ Preferred communication style: Simple, everyday language.
 -   **Remarks Column:** For vendor explanations and additional context
 -   **Professional Styling:** Headers, borders, column widths, and freeze panes for easy vendor completion
 
-**Workflow:** 4-step process (Upload Business Case → Select Template → Generate with AI → Download Deliverables)
+**Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Download Deliverables)
 **AI Generation:** Uses GPT-4o to analyze business case and generate context-aware questions across all dimensions
 **Storage:** Excel files stored in `uploads/questionnaires/{projectId}/` directory with database references
 
