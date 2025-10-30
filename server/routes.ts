@@ -1709,6 +1709,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate business case with AI
+  app.post("/api/business-cases/generate", async (req, res) => {
+    try {
+      const {
+        portfolioId,
+        name,
+        description,
+        projectObjective,
+        projectScope,
+        timeline,
+        budget,
+        keyRequirements,
+        successCriteria,
+      } = req.body;
+
+      if (!portfolioId || !name || !projectObjective) {
+        return res.status(400).json({
+          error: "Portfolio ID, name, and project objective are required",
+        });
+      }
+
+      // Generate lean business case with AI
+      const { generateLeanBusinessCase } = await import("./services/businessCaseGenerator");
+      const generatedContent = await generateLeanBusinessCase({
+        projectName: name,
+        projectObjective,
+        projectScope,
+        timeline,
+        budget,
+        keyRequirements,
+        successCriteria,
+      });
+
+      // Create business case with AI-generated content
+      const businessCase = await storage.createBusinessCase({
+        portfolioId,
+        name,
+        description: description || null,
+        fileName: "AI Generated Business Case.txt",
+        documentContent: generatedContent,
+        extractedData: null,
+        ragDocumentId: null,
+        status: "generated",
+      });
+
+      res.json(businessCase);
+    } catch (error) {
+      console.error("Error generating business case:", error);
+      res.status(500).json({ error: "Failed to generate business case" });
+    }
+  });
+
   // Upload business case document
   app.post("/api/business-cases/upload", upload.single("document"), async (req, res) => {
     try {
