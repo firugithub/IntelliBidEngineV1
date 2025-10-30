@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,8 @@ export default function SmartRftBuilderPage() {
   const [projectId, setProjectId] = useState("");
   const [generatedRftId, setGeneratedRftId] = useState("");
   const [generatedRft, setGeneratedRft] = useState<any>(null);
+  const [isSeedingTemplates, setIsSeedingTemplates] = useState(false);
+  const hasSeededTemplatesRef = useRef(false);
 
   // Fetch portfolios
   const { data: portfolios = [] } = useQuery<any[]>({
@@ -33,9 +35,33 @@ export default function SmartRftBuilderPage() {
   });
 
   // Fetch active RFT templates
-  const { data: templates = [] } = useQuery<any[]>({
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<any[]>({
     queryKey: ["/api/rft-templates/active"],
   });
+
+  // Auto-seed templates if empty
+  useEffect(() => {
+    const seedTemplates = async () => {
+      if (templates && templates.length === 0 && !hasSeededTemplatesRef.current && !isSeedingTemplates) {
+        hasSeededTemplatesRef.current = true;
+        setIsSeedingTemplates(true);
+        try {
+          await apiRequest("POST", "/api/seed-rft-templates");
+          await queryClient.refetchQueries({ queryKey: ["/api/rft-templates/active"] });
+          toast({
+            title: "Templates Loaded",
+            description: "RFT templates are now available for selection.",
+          });
+        } catch (error) {
+          console.error("Failed to seed RFT templates:", error);
+          hasSeededTemplatesRef.current = false;
+        } finally {
+          setIsSeedingTemplates(false);
+        }
+      }
+    };
+    seedTemplates();
+  }, [templates, isSeedingTemplates, toast]);
 
   // Upload business case
   const uploadMutation = useMutation({
@@ -315,33 +341,46 @@ export default function SmartRftBuilderPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              {templates.map((template: any) => (
-                <div
-                  key={template.id}
-                  className={`p-4 border rounded-lg cursor-pointer hover-elevate ${
-                    selectedTemplate === template.id ? "border-primary bg-accent" : ""
-                  }`}
-                  onClick={() => setSelectedTemplate(template.id)}
-                  data-testid={`template-${template.category}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{template.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {template.description}
-                      </p>
-                      <div className="flex gap-2 mt-2">
-                        <Badge variant="outline">{template.category}</Badge>
-                        <Badge variant="secondary">
-                          {(template.sections?.sections || []).length} sections
-                        </Badge>
+            {(templatesLoading || isSeedingTemplates) ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {isSeedingTemplates ? "Loading RFT templates..." : "Loading..."}
+                </p>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No templates available</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {templates.map((template: any) => (
+                  <div
+                    key={template.id}
+                    className={`p-4 border rounded-lg cursor-pointer hover-elevate ${
+                      selectedTemplate === template.id ? "border-primary bg-accent" : ""
+                    }`}
+                    onClick={() => setSelectedTemplate(template.id)}
+                    data-testid={`template-${template.category}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{template.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {template.description}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">{template.category}</Badge>
+                          <Badge variant="secondary">
+                            {(template.sections?.sections || []).length} sections
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
