@@ -48,6 +48,41 @@ export default function AdminConfigPage() {
     },
   });
 
+  const testConnectivityMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/test-azure-connectivity", {});
+    },
+    onSuccess: (data: any) => {
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: data.message,
+        });
+      } else if (data.partialSuccess) {
+        toast({
+          variant: "destructive",
+          title: "Partial Success",
+          description: data.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Connection Failed",
+          description: data.message,
+        });
+      }
+      console.log("Azure connectivity test results:", data);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Test Failed",
+        description: "Failed to test Azure connectivity. Please try again.",
+      });
+      console.error("Test error:", error);
+    },
+  });
+
   const getConfigValue = (key: string): string => {
     if (localConfig[key] !== undefined) {
       return localConfig[key];
@@ -433,6 +468,28 @@ export default function AdminConfigPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Test Azure Connectivity</CardTitle>
+          <CardDescription>
+            Verify that Azure OpenAI and Azure AI Search are configured correctly and accessible
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => testConnectivityMutation.mutate()}
+            disabled={testConnectivityMutation.isPending}
+            data-testid="button-test-connectivity"
+            className="w-full"
+          >
+            {testConnectivityMutation.isPending ? "Testing..." : "Test Azure Connectivity"}
+          </Button>
+          <p className="text-sm text-muted-foreground mt-2">
+            This will test both Azure OpenAI embeddings and Azure AI Search services. Check the console for detailed results.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

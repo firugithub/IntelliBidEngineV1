@@ -5,6 +5,8 @@ import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
 import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData } from "./services/sampleData";
+import { azureEmbeddingService } from "./services/azureEmbedding";
+import { azureAISearchService } from "./services/azureAISearch";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 
@@ -670,6 +672,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error deleting system config:", error);
       res.status(500).json({ error: "Failed to delete configuration" });
     }
+  });
+
+  // Test Azure connectivity
+  app.post("/api/test-azure-connectivity", async (req, res) => {
+    const results: any = {
+      timestamp: new Date().toISOString(),
+      azureOpenAI: { configured: false, working: false, error: null, details: null },
+      azureSearch: { configured: false, working: false, error: null, details: null },
+    };
+
+    // Test Azure OpenAI Embeddings
+    try {
+      console.log("[Test] Initializing Azure OpenAI embedding service...");
+      await azureEmbeddingService.initialize();
+      results.azureOpenAI.configured = true;
+
+      console.log("[Test] Testing embedding generation...");
+      const testResult = await azureEmbeddingService.generateEmbedding("test");
+      
+      results.azureOpenAI.working = true;
+      results.azureOpenAI.details = {
+        embeddingDimensions: testResult.embedding.length,
+        tokenCount: testResult.tokenCount,
+        testText: "test",
+      };
+      console.log("[Test] Azure OpenAI test successful!");
+    } catch (error: any) {
+      console.error("[Test] Azure OpenAI test failed:", error);
+      results.azureOpenAI.error = error.message || String(error);
+    }
+
+    // Test Azure AI Search
+    try {
+      console.log("[Test] Initializing Azure AI Search service...");
+      await azureAISearchService.initialize();
+      results.azureSearch.configured = true;
+
+      console.log("[Test] Getting index statistics...");
+      const stats = await azureAISearchService.getIndexStats();
+      
+      results.azureSearch.working = true;
+      results.azureSearch.details = {
+        indexName: "intellibid-rag",
+        documentCount: stats.documentCount,
+        storageSize: stats.storageSize,
+      };
+      console.log("[Test] Azure AI Search test successful!");
+    } catch (error: any) {
+      console.error("[Test] Azure AI Search test failed:", error);
+      results.azureSearch.error = error.message || String(error);
+    }
+
+    // Determine overall status
+    const allWorking = results.azureOpenAI.working && results.azureSearch.working;
+    const someWorking = results.azureOpenAI.working || results.azureSearch.working;
+
+    res.json({
+      success: allWorking,
+      partialSuccess: someWorking && !allWorking,
+      results,
+      message: allWorking 
+        ? "All Azure services are configured and working correctly!" 
+        : someWorking 
+          ? "Some Azure services are working, but not all. Check the details below."
+          : "Azure services are not configured or not working. Please check your configuration.",
+    });
   });
 
   // Create a new project
