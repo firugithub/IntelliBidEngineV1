@@ -902,4 +902,55 @@ export class MemStorage implements IStorage {
   }
 }
 
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
+
 export const storage = new MemStorage();
+
+// Override system config methods to use PostgreSQL
+const originalUpsertSystemConfig = storage.upsertSystemConfig.bind(storage);
+storage.upsertSystemConfig = async function(insertConfig: InsertSystemConfig): Promise<SystemConfig> {
+  const existing = await db.select().from(systemConfig).where(eq(systemConfig.key, insertConfig.key)).limit(1);
+  
+  if (existing.length > 0) {
+    const updated = await db.update(systemConfig)
+      .set({
+        category: insertConfig.category,
+        value: insertConfig.value || null,
+        isEncrypted: insertConfig.isEncrypted || "false",
+        description: insertConfig.description || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(systemConfig.key, insertConfig.key))
+      .returning();
+    return updated[0]!;
+  } else {
+    const created = await db.insert(systemConfig)
+      .values({
+        category: insertConfig.category,
+        key: insertConfig.key,
+        value: insertConfig.value || null,
+        isEncrypted: insertConfig.isEncrypted || "false",
+        description: insertConfig.description || null,
+      })
+      .returning();
+    return created[0]!;
+  }
+};
+
+storage.getAllSystemConfig = async function(): Promise<SystemConfig[]> {
+  return await db.select().from(systemConfig);
+};
+
+storage.getSystemConfigByKey = async function(key: string): Promise<SystemConfig | undefined> {
+  const results = await db.select().from(systemConfig).where(eq(systemConfig.key, key)).limit(1);
+  return results[0];
+};
+
+storage.getSystemConfigByCategory = async function(category: string): Promise<SystemConfig[]> {
+  return await db.select().from(systemConfig).where(eq(systemConfig.category, category));
+};
+
+storage.deleteSystemConfig = async function(key: string): Promise<void> {
+  await db.delete(systemConfig).where(eq(systemConfig.key, key));
+};
