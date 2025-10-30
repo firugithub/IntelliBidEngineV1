@@ -50,9 +50,11 @@ export default function AdminConfigPage() {
 
   const testConnectivityMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/test-azure-connectivity", {});
+      const response = await apiRequest("POST", "/api/test-azure-connectivity", {});
+      return response.json();
     },
     onSuccess: (data: any) => {
+      console.log("Azure connectivity test results:", data);
       if (data.success) {
         toast({
           title: "Success!",
@@ -71,7 +73,6 @@ export default function AdminConfigPage() {
           description: data.message,
         });
       }
-      console.log("Azure connectivity test results:", data);
     },
     onError: (error) => {
       toast({
