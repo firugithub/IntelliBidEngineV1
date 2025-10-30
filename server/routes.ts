@@ -132,8 +132,8 @@ async function validateUrlSecurity(url: string): Promise<{ valid: boolean; error
     // Resolve DNS to check the actual IP addresses (both IPv4 and IPv6)
     try {
       // Use dns.lookup to get all addresses (IPv4 and IPv6)
-      const result = await lookupAsync(hostname, { all: true });
-      const addresses = Array.isArray(result) ? result.map(r => r.address) : [result.address];
+      const result = await lookupAsync(hostname, { all: true }) as { address: string; family: number }[];
+      const addresses = result.map(r => r.address);
       
       // Validate all resolved addresses
       for (const address of addresses) {
@@ -1530,9 +1530,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { conversationalAIService } = await import("./services/conversationalAIService");
       const { projectId } = req.params;
-      const { userId } = req.body;
 
-      const session = await conversationalAIService.createChatSession(projectId, userId);
+      const session = await conversationalAIService.createChatSession(projectId);
       res.json(session);
     } catch (error) {
       console.error("Error creating chat session:", error);

@@ -93,6 +93,7 @@ export default function SmartRftBuilderPage() {
   // Create project
   const createProjectMutation = useMutation({
     mutationFn: async () => {
+      console.log("Creating project with:", { portfolioId: selectedPortfolio, name: businessCaseName, businessCaseId });
       return apiRequest("POST", "/api/projects", {
         portfolioId: selectedPortfolio,
         name: businessCaseName,
@@ -101,8 +102,30 @@ export default function SmartRftBuilderPage() {
       });
     },
     onSuccess: (data: any) => {
+      console.log("Project created successfully:", data);
+      if (!data || !data.id) {
+        console.error("Invalid project data received:", data);
+        toast({
+          variant: "destructive",
+          title: "Project Creation Error",
+          description: "Project was created but invalid data was returned.",
+        });
+        return;
+      }
       setProjectId(data.id);
+      toast({
+        title: "Project Created",
+        description: "Project created successfully. Ready to generate RFT.",
+      });
       setCurrentStep(3);
+    },
+    onError: (error: any) => {
+      console.error("Error creating project:", error);
+      toast({
+        variant: "destructive",
+        title: "Project Creation Failed",
+        description: "Failed to create project. Please try again.",
+      });
     },
   });
 
