@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
-import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData } from "./services/sampleData";
+import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly } from "./services/sampleData";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { lookup as dnsLookup } from "dns";
@@ -189,6 +189,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error wiping data:", error);
       res.status(500).json({ error: "Failed to wipe data" });
+    }
+  });
+
+  app.post("/api/wipe-azure", async (req, res) => {
+    try {
+      const result = await wipeAzureOnly();
+      res.json(result);
+    } catch (error) {
+      console.error("Error wiping Azure resources:", error);
+      res.status(500).json({ error: "Failed to wipe Azure resources" });
     }
   });
 

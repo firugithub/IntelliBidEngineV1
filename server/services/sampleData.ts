@@ -938,3 +938,46 @@ export async function wipeAllData() {
     throw error;
   }
 }
+
+export async function wipeAzureOnly() {
+  try {
+    console.log("Starting Azure-only cleanup...");
+    
+    const deletionSummary = {
+      azure: {
+        blobDocuments: 0,
+        searchDocuments: 0,
+      },
+    };
+    
+    // Delete Azure Blob Storage documents
+    try {
+      const { azureBlobStorageService } = await import("./azureBlobStorage");
+      const blobCount = await azureBlobStorageService.deleteAllDocuments();
+      deletionSummary.azure.blobDocuments = blobCount;
+      console.log(`✓ Deleted ${blobCount} documents from Azure Blob Storage`);
+    } catch (error: any) {
+      console.log(`⚠️  Azure Blob Storage cleanup skipped: ${error.message}`);
+    }
+    
+    // Delete Azure AI Search documents
+    try {
+      const { azureAISearchService } = await import("./azureAISearch");
+      const searchCount = await azureAISearchService.deleteAllDocuments();
+      deletionSummary.azure.searchDocuments = searchCount;
+      console.log(`✓ Deleted ${searchCount} documents from Azure AI Search`);
+    } catch (error: any) {
+      console.log(`⚠️  Azure AI Search cleanup skipped: ${error.message}`);
+    }
+    
+    console.log("\n✅ Azure resources wiped successfully!");
+    return { 
+      success: true, 
+      message: "Azure resources wiped successfully",
+      summary: deletionSummary,
+    };
+  } catch (error) {
+    console.error("Error wiping Azure resources:", error);
+    throw error;
+  }
+}

@@ -51,7 +51,10 @@ IntelliBid includes 5 production-ready AI-powered features accessible via a unif
 **Admin Configuration:** Allows configuration of OpenAI API keys, Azure AI Search keys, Azure Blob Storage connection strings, and Azure OpenAI embeddings.
 
 ### Data Management
-Features for generating comprehensive mock data (portfolios, projects, requirements, proposals, evaluations, standards, MCP connectors) and safely wiping all application data.
+**Mock Data Generation:** Features for generating comprehensive mock data (portfolios, projects, requirements, proposals, evaluations, standards, MCP connectors).
+**Data Wipe Utilities:** Two separate wipe operations available in Admin Config:
+- **Wipe All Data:** Completely deletes all database records (17 tables) AND all Azure resources (Blob Storage + AI Search).
+- **Wipe Azure Resources Only:** Deletes only Azure Blob Storage documents and Azure AI Search embeddings, leaving all database data intact. Useful for re-indexing with different settings.
 
 ## External Dependencies
 

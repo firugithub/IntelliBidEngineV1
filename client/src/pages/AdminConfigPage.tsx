@@ -119,6 +119,29 @@ export default function AdminConfigPage() {
     },
   });
 
+  const wipeAzureMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/wipe-azure", {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      console.log("Wipe Azure results:", data);
+      toast({
+        title: "Azure Resources Wiped Successfully",
+        description: `Deleted ${data.summary?.azure?.blobDocuments || 0} documents from Blob Storage and ${data.summary?.azure?.searchDocuments || 0} documents from AI Search. Database data remains intact.`,
+      });
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Azure Wipe Failed",
+        description: "Failed to wipe Azure resources. Please try again.",
+      });
+      console.error("Azure wipe error:", error);
+    },
+  });
+
   const getConfigValue = (key: string): string => {
     if (localConfig[key] !== undefined) {
       return localConfig[key];
@@ -534,57 +557,105 @@ export default function AdminConfigPage() {
             Irreversible actions that will permanently delete data
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4" data-testid="alert-wipe-warning">
+        <CardContent className="space-y-4">
+          <Alert variant="destructive" data-testid="alert-wipe-warning">
             <AlertCircle className="w-4 h-4" />
             <AlertDescription>
-              <strong>Warning:</strong> This will permanently delete ALL data from both the database and Azure resources (Blob Storage and AI Search). This action cannot be undone.
+              <strong>Warning:</strong> These operations will permanently delete data and cannot be undone.
             </AlertDescription>
           </Alert>
           
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="w-full"
-                data-testid="button-wipe-all-data"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Wipe All Data
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete:
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>All portfolios, projects, proposals, and evaluations</li>
-                    <li>All requirements, standards, and MCP connectors</li>
-                    <li>All RAG documents and embeddings</li>
-                    <li>All chat sessions, compliance gaps, and follow-up questions</li>
-                    <li>All comparison snapshots and executive briefings</li>
-                    <li>All documents from Azure Blob Storage</li>
-                    <li>All embeddings from Azure AI Search</li>
-                  </ul>
-                  <p className="mt-4 font-semibold text-destructive">
-                    This action cannot be undone.
-                  </p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel data-testid="button-cancel-wipe">Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => wipeDataMutation.mutate()}
-                  disabled={wipeDataMutation.isPending}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  data-testid="button-confirm-wipe"
+          <div className="space-y-3">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  data-testid="button-wipe-all-data"
                 >
-                  {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Wipe All Data (Database + Azure)
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Wipe All Data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>All portfolios, projects, proposals, and evaluations</li>
+                      <li>All requirements, standards, and MCP connectors</li>
+                      <li>All RAG documents and embeddings</li>
+                      <li>All chat sessions, compliance gaps, and follow-up questions</li>
+                      <li>All comparison snapshots and executive briefings</li>
+                      <li>All documents from Azure Blob Storage</li>
+                      <li>All embeddings from Azure AI Search</li>
+                    </ul>
+                    <p className="mt-4 font-semibold text-destructive">
+                      This action cannot be undone.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-wipe">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => wipeDataMutation.mutate()}
+                    disabled={wipeDataMutation.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-wipe"
+                  >
+                    {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  data-testid="button-wipe-azure-only"
+                >
+                  <Cloud className="w-4 h-4 mr-2" />
+                  Wipe Azure Resources Only
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Wipe Azure Resources Only?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>All documents from Azure Blob Storage</li>
+                      <li>All embeddings from Azure AI Search</li>
+                    </ul>
+                    <p className="mt-4 font-semibold">
+                      Your database data (portfolios, projects, evaluations, etc.) will remain intact.
+                    </p>
+                    <p className="mt-2 text-destructive">
+                      This action cannot be undone.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-wipe-azure">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => wipeAzureMutation.mutate()}
+                    disabled={wipeAzureMutation.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-wipe-azure"
+                  >
+                    {wipeAzureMutation.isPending ? "Wiping..." : "Yes, Wipe Azure Resources"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            <strong>Tip:</strong> Use "Wipe Azure Resources Only" if you want to re-index documents with different settings, or "Wipe All Data" to start completely fresh.
+          </p>
         </CardContent>
       </Card>
     </div>
