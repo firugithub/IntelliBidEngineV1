@@ -49,9 +49,17 @@ Preferred communication style: Simple, everyday language.
 -   **Remarks Column:** For vendor explanations and additional context
 -   **Professional Styling:** Headers, borders, column widths, and freeze panes for easy vendor completion
 
-**Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Download Deliverables)
+**Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Review & Download Deliverables)
 **AI Generation:** Uses GPT-4o to analyze business case and generate context-aware questions across all dimensions
 **Storage:** Excel files stored in `uploads/questionnaires/{projectId}/` directory with database references
+
+**RFT Document Edit & Download:** Step 4 includes comprehensive review and editing capabilities:
+-   **Edit Modal:** Section-by-section editing interface with title and content fields for each RFT section
+-   **Real-time Updates:** Changes are saved to database and immediately reflected in preview
+-   **DOC Download:** Generates professional Word documents using docx library with formatted sections, title page, and proper styling
+-   **PDF Download:** Generates professional PDF documents using pdfkit library (pure Node.js, no Chromium dependency) with formatted sections, title page, and proper layout
+-   **Document Features:** Both formats include title page with project name, generation date, section headings with underlines, and justified paragraph text
+-   **Fill Sample Data:** Quick-fill button auto-populates all business case fields with comprehensive aviation project example for testing
 
 ### Advanced AI Features
 IntelliBid includes 5 production-ready AI-powered features accessible via a unified tab-based interface:
