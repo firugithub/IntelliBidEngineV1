@@ -248,6 +248,10 @@ export const generatedRfts = pgTable("generated_rfts", {
   templateId: varchar("template_id").notNull(),
   name: text("name").notNull(),
   sections: jsonb("sections").notNull(), // Generated RFT content by section
+  productQuestionnairePath: text("product_questionnaire_path"), // Path to Product Excel (30 questions)
+  nfrQuestionnairePath: text("nfr_questionnaire_path"), // Path to NFR Excel (50 questions)
+  cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Path to Cybersecurity Excel (20 questions)
+  agileQuestionnairePath: text("agile_questionnaire_path"), // Path to Agile Delivery Excel (20 questions)
   status: text("status").notNull().default("draft"), // 'draft', 'review', 'published', 'archived'
   version: integer("version").notNull().default(1),
   publishedAt: timestamp("published_at"),
