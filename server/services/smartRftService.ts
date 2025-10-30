@@ -1,6 +1,7 @@
 import { type InsertGeneratedRft, type RftTemplate, type BusinessCase } from "@shared/schema";
 import { OpenAI } from "openai";
 import { storage } from "../storage";
+import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -75,6 +76,129 @@ Return ONLY valid JSON, no additional text.`;
   } catch (error) {
     console.error("Error extracting business case info:", error);
     throw new Error("Failed to extract business case information");
+  }
+}
+
+/**
+ * Generate questionnaire questions using AI based on business case
+ */
+export async function generateQuestionnaireQuestions(
+  businessCaseExtract: BusinessCaseExtract,
+  questionnaireType: "product" | "nfr" | "cybersecurity" | "agile",
+  count: number
+): Promise<QuestionnaireQuestion[]> {
+  const questionnairePrompts = {
+    product: `Generate ${count} detailed product capability questions for evaluating vendor solutions.
+Focus on:
+- Core product features and functionality
+- User experience and interface
+- Integration capabilities
+- Scalability and performance
+- Product roadmap and innovation
+- Vendor support and training
+
+Each question should be specific, measurable, and relevant to ${businessCaseExtract.projectName}.`,
+    
+    nfr: `Generate ${count} comprehensive Non-Functional Requirements (NFR) questions for vendor evaluation.
+Focus on:
+- Performance (response time, throughput, load handling)
+- Reliability and availability (uptime, failover, disaster recovery)
+- Scalability (horizontal/vertical scaling, multi-tenancy)
+- Security (authentication, authorization, encryption, data protection)
+- Maintainability (monitoring, logging, troubleshooting)
+- Usability (accessibility, user training, documentation)
+- Compatibility (browser support, mobile, integrations)
+- Compliance (data privacy, regulatory requirements)
+
+Each question should be specific and measurable for ${businessCaseExtract.projectName}.`,
+    
+    cybersecurity: `Generate ${count} detailed cybersecurity and compliance questions for vendor evaluation.
+Focus on:
+- Data encryption (at rest, in transit)
+- Access control and authentication (SSO, MFA, RBAC)
+- Vulnerability management and penetration testing
+- Incident response and security monitoring
+- Compliance certifications (ISO 27001, SOC 2, GDPR, PCI-DSS)
+- Data backup and recovery
+- Third-party security audits
+- Security training for staff
+
+Each question should address airline industry security standards for ${businessCaseExtract.projectName}.`,
+    
+    agile: `Generate ${count} detailed agile project delivery questions for vendor evaluation.
+Focus on:
+- Development methodology (Scrum, Kanban, SAFe)
+- Sprint planning and execution
+- Collaboration tools and practices
+- CI/CD pipeline and deployment frequency
+- Quality assurance and testing approach
+- Change management process
+- Communication and reporting
+- Team structure and expertise
+- Risk management approach
+
+Each question should evaluate vendor's agile maturity for ${businessCaseExtract.projectName}.`
+  };
+
+  const prompt = `You are creating a vendor evaluation questionnaire for ${businessCaseExtract.projectName}.
+
+Business Context:
+- Objective: ${businessCaseExtract.businessObjective}
+- Scope: ${businessCaseExtract.scope}
+- Key Requirements: ${businessCaseExtract.keyRequirements.join(", ")}
+
+${questionnairePrompts[questionnaireType]}
+
+Return a JSON array of exactly ${count} questions in this format:
+[
+  {
+    "number": 1,
+    "question": "Detailed question text here?",
+    "category": "Category name"
+  }
+]
+
+Requirements:
+- Each question must be clear, specific, and measurable
+- Questions should require detailed vendor responses
+- Avoid yes/no questions - ask for capabilities, processes, or evidence
+- Use aviation industry context where relevant
+- Number questions sequentially from 1 to ${count}
+
+Return ONLY valid JSON array, no additional text.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert procurement specialist for airline industry, creating comprehensive vendor evaluation questionnaires.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.5,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
+
+    const parsed = JSON.parse(content);
+    const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+    
+    return questions.slice(0, count) as QuestionnaireQuestion[];
+  } catch (error) {
+    console.error(`Error generating ${questionnaireType} questionnaire:`, error);
+    
+    // Fallback: generate generic questions
+    return Array.from({ length: count }, (_, i) => ({
+      number: i + 1,
+      question: `[AI generation failed] Please provide details about ${questionnaireType} aspect ${i + 1}.`,
+      category: questionnaireType.toUpperCase()
+    }));
   }
 }
 
@@ -201,13 +325,38 @@ export async function generateRftFromBusinessCase(
 
   console.log(`Generated ${sections.length} RFT sections`);
 
-  // Create generated RFT record
+  // Generate all 4 questionnaires using AI
+  console.log("Generating questionnaires...");
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+  ]);
+
+  console.log("Generated all questionnaire questions, creating Excel files...");
+
+  // Generate Excel files
+  const questionnairePaths = await generateAllQuestionnaires(projectId, {
+    product: productQuestions,
+    nfr: nfrQuestions,
+    cybersecurity: cybersecurityQuestions,
+    agile: agileQuestions,
+  });
+
+  console.log("Excel questionnaires created successfully");
+
+  // Create generated RFT record with all deliverables
   const generatedRft: InsertGeneratedRft = {
     projectId,
     businessCaseId,
     templateId,
     name: `${businessCaseExtract.projectName} - RFT`,
     sections: { sections },
+    productQuestionnairePath: questionnairePaths.productPath,
+    nfrQuestionnairePath: questionnairePaths.nfrPath,
+    cybersecurityQuestionnairePath: questionnairePaths.cybersecurityPath,
+    agileQuestionnairePath: questionnairePaths.agilePath,
     status: "draft",
     version: 1,
     metadata: {
@@ -215,6 +364,12 @@ export async function generateRftFromBusinessCase(
       model: "gpt-4o",
       templateName: template.name,
       businessCaseName: businessCase.name,
+      questionnaireStats: {
+        productQuestions: productQuestions.length,
+        nfrQuestions: nfrQuestions.length,
+        cybersecurityQuestions: cybersecurityQuestions.length,
+        agileQuestions: agileQuestions.length,
+      },
     },
   };
 
