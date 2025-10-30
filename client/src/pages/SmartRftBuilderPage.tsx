@@ -7,16 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download } from "lucide-react";
+import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 type Step = 1 | 2 | 3 | 4;
+type BusinessCaseMethod = "generate" | "upload";
 
 export default function SmartRftBuilderPage() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>(1);
+  const [businessCaseMethod, setBusinessCaseMethod] = useState<BusinessCaseMethod>("generate");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [businessCaseName, setBusinessCaseName] = useState("");
   const [businessCaseDescription, setBusinessCaseDescription] = useState("");
@@ -28,6 +31,14 @@ export default function SmartRftBuilderPage() {
   const [generatedRft, setGeneratedRft] = useState<any>(null);
   const [isSeedingTemplates, setIsSeedingTemplates] = useState(false);
   const hasSeededTemplatesRef = useRef(false);
+  
+  // Fields for AI generation
+  const [projectObjective, setProjectObjective] = useState("");
+  const [projectScope, setProjectScope] = useState("");
+  const [timeline, setTimeline] = useState("");
+  const [budget, setBudget] = useState("");
+  const [keyRequirements, setKeyRequirements] = useState("");
+  const [successCriteria, setSuccessCriteria] = useState("");
 
   // Fetch portfolios
   const { data: portfolios = [] } = useQuery<any[]>({
@@ -62,6 +73,38 @@ export default function SmartRftBuilderPage() {
     };
     seedTemplates();
   }, [templates, isSeedingTemplates, toast]);
+
+  // Generate business case with AI
+  const generateBusinessCaseMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/business-cases/generate", {
+        portfolioId: selectedPortfolio,
+        name: businessCaseName,
+        description: businessCaseDescription,
+        projectObjective,
+        projectScope,
+        timeline,
+        budget,
+        keyRequirements,
+        successCriteria,
+      });
+    },
+    onSuccess: (data: any) => {
+      setBusinessCaseId(data.id);
+      toast({
+        title: "Business Case Generated",
+        description: "AI has generated your lean business case document.",
+      });
+      setCurrentStep(2);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Failed to generate business case. Please try again.",
+      });
+    },
+  });
 
   // Upload business case
   const uploadMutation = useMutation({
@@ -176,6 +219,19 @@ export default function SmartRftBuilderPage() {
     }
   };
 
+  const handleGenerateBusinessCase = () => {
+    if (!businessCaseName || !selectedPortfolio || !projectObjective) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in required fields: name, portfolio, and project objective.",
+      });
+      return;
+    }
+
+    generateBusinessCaseMutation.mutate();
+  };
+
   const handleUpload = () => {
     if (!selectedFile || !businessCaseName || !selectedPortfolio) {
       toast({
@@ -283,91 +339,225 @@ export default function SmartRftBuilderPage() {
         ))}
       </div>
 
-      {/* Step 1: Upload Business Case */}
+      {/* Step 1: Create Business Case */}
       {currentStep === 1 && (
         <Card data-testid="step-upload">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Step 1: Upload Business Case
+              <FileText className="w-5 h-5" />
+              Step 1: Create Business Case
             </CardTitle>
             <CardDescription>
-              Upload your Lean Business Case document to start the RFT generation process
+              Generate a lean business case from your idea or upload an existing document
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="portfolio">Portfolio *</Label>
-              <Select value={selectedPortfolio} onValueChange={setSelectedPortfolio}>
-                <SelectTrigger id="portfolio" data-testid="select-portfolio">
-                  <SelectValue placeholder="Select a portfolio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {portfolios.map((portfolio: any) => (
-                    <SelectItem key={portfolio.id} value={portfolio.id}>
-                      {portfolio.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Business Case Name *</Label>
-              <Input
-                id="name"
-                value={businessCaseName}
-                onChange={(e) => setBusinessCaseName(e.target.value)}
-                placeholder="e.g., Digital Transformation Initiative 2025"
-                data-testid="input-business-case-name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={businessCaseDescription}
-                onChange={(e) => setBusinessCaseDescription(e.target.value)}
-                placeholder="Brief description of the business case"
-                data-testid="textarea-description"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="document">Document *</Label>
-              <Input
-                id="document"
-                type="file"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx,.txt"
-                data-testid="input-file"
-              />
-              {selectedFile && (
-                <p className="text-sm text-muted-foreground">
-                  Selected: {selectedFile.name}
-                </p>
-              )}
-            </div>
-
-            <Button
-              onClick={handleUpload}
-              disabled={uploadMutation.isPending}
-              className="w-full"
-              data-testid="button-upload"
-            >
-              {uploadMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
+            <Tabs value={businessCaseMethod} onValueChange={(v) => setBusinessCaseMethod(v as BusinessCaseMethod)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="generate" data-testid="tab-generate">
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Generate from Idea
+                </TabsTrigger>
+                <TabsTrigger value="upload" data-testid="tab-upload">
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload & Continue
-                </>
-              )}
-            </Button>
+                  Upload Document
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="generate" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="portfolio">Portfolio *</Label>
+                  <Select value={selectedPortfolio} onValueChange={setSelectedPortfolio}>
+                    <SelectTrigger id="portfolio" data-testid="select-portfolio">
+                      <SelectValue placeholder="Select a portfolio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {portfolios.map((portfolio: any) => (
+                        <SelectItem key={portfolio.id} value={portfolio.id}>
+                          {portfolio.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Project Name *</Label>
+                  <Input
+                    id="name"
+                    value={businessCaseName}
+                    onChange={(e) => setBusinessCaseName(e.target.value)}
+                    placeholder="e.g., Mobile Passenger App"
+                    data-testid="input-business-case-name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="objective">Business Objective *</Label>
+                  <Textarea
+                    id="objective"
+                    value={projectObjective}
+                    onChange={(e) => setProjectObjective(e.target.value)}
+                    placeholder="e.g., Modernize passenger experience with digital services"
+                    data-testid="textarea-objective"
+                    className="min-h-20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="scope">Scope</Label>
+                    <Input
+                      id="scope"
+                      value={projectScope}
+                      onChange={(e) => setProjectScope(e.target.value)}
+                      placeholder="e.g., iOS/Android app"
+                      data-testid="input-scope"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline">Timeline</Label>
+                    <Input
+                      id="timeline"
+                      value={timeline}
+                      onChange={(e) => setTimeline(e.target.value)}
+                      placeholder="e.g., 12 months"
+                      data-testid="input-timeline"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="budget">Budget</Label>
+                  <Input
+                    id="budget"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    placeholder="e.g., $2M"
+                    data-testid="input-budget"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requirements">Key Requirements</Label>
+                  <Textarea
+                    id="requirements"
+                    value={keyRequirements}
+                    onChange={(e) => setKeyRequirements(e.target.value)}
+                    placeholder="e.g., Offline mode, push notifications, biometric login"
+                    data-testid="textarea-requirements"
+                    className="min-h-20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="success">Success Criteria</Label>
+                  <Textarea
+                    id="success"
+                    value={successCriteria}
+                    onChange={(e) => setSuccessCriteria(e.target.value)}
+                    placeholder="e.g., 100K downloads, 4.5+ rating"
+                    data-testid="textarea-success"
+                    className="min-h-20"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleGenerateBusinessCase}
+                  disabled={generateBusinessCaseMutation.isPending}
+                  className="w-full"
+                  data-testid="button-generate"
+                >
+                  {generateBusinessCaseMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating Business Case...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Generate with AI & Continue
+                    </>
+                  )}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="portfolio-upload">Portfolio *</Label>
+                  <Select value={selectedPortfolio} onValueChange={setSelectedPortfolio}>
+                    <SelectTrigger id="portfolio-upload" data-testid="select-portfolio-upload">
+                      <SelectValue placeholder="Select a portfolio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {portfolios.map((portfolio: any) => (
+                        <SelectItem key={portfolio.id} value={portfolio.id}>
+                          {portfolio.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name-upload">Business Case Name *</Label>
+                  <Input
+                    id="name-upload"
+                    value={businessCaseName}
+                    onChange={(e) => setBusinessCaseName(e.target.value)}
+                    placeholder="e.g., Digital Transformation Initiative 2025"
+                    data-testid="input-business-case-name-upload"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={businessCaseDescription}
+                    onChange={(e) => setBusinessCaseDescription(e.target.value)}
+                    placeholder="Brief description of the business case"
+                    data-testid="textarea-description"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="document">Document *</Label>
+                  <Input
+                    id="document"
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.txt"
+                    data-testid="input-file"
+                  />
+                  {selectedFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {selectedFile.name}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleUpload}
+                  disabled={uploadMutation.isPending}
+                  className="w-full"
+                  data-testid="button-upload"
+                >
+                  {uploadMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload & Continue
+                    </>
+                  )}
+                </Button>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
