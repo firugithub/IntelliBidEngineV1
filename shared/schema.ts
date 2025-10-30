@@ -52,6 +52,8 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   initiativeName: text("initiative_name"),
   vendorList: text("vendor_list").array(),
+  businessCaseId: varchar("business_case_id"), // Link to business case document
+  generatedRftId: varchar("generated_rft_id"), // Link to generated RFT
   status: text("status").notNull().default("analyzing"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -212,6 +214,48 @@ export const followupQuestions = pgTable("followup_questions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const businessCases = pgTable("business_cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  portfolioId: varchar("portfolio_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  fileName: text("file_name").notNull(),
+  documentContent: text("document_content"), // Extracted text content
+  extractedData: jsonb("extracted_data"), // AI-extracted structured data
+  ragDocumentId: varchar("rag_document_id"), // Link to RAG system
+  status: text("status").notNull().default("uploaded"), // 'uploaded', 'analyzed', 'processed'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rftTemplates = pgTable("rft_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  category: text("category").notNull(), // 'IT', 'Aviation', 'Infrastructure', 'Professional Services', 'Custom'
+  sections: jsonb("sections").notNull(), // Template structure with sections and prompts
+  metadata: jsonb("metadata"), // Tags, industry, complexity level
+  isActive: text("is_active").notNull().default("true"),
+  createdBy: text("created_by").notNull().default("system"), // 'system' or user ID
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const generatedRfts = pgTable("generated_rfts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  businessCaseId: varchar("business_case_id").notNull(),
+  templateId: varchar("template_id").notNull(),
+  name: text("name").notNull(),
+  sections: jsonb("sections").notNull(), // Generated RFT content by section
+  status: text("status").notNull().default("draft"), // 'draft', 'review', 'published', 'archived'
+  version: integer("version").notNull().default(1),
+  publishedAt: timestamp("published_at"),
+  metadata: jsonb("metadata"), // Generation parameters, AI model used
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Document categories for Knowledge Base
 export const documentCategories = [
   "architecture",
@@ -317,6 +361,24 @@ export const insertFollowupQuestionSchema = createInsertSchema(followupQuestions
   updatedAt: true,
 });
 
+export const insertBusinessCaseSchema = createInsertSchema(businessCases).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRftTemplateSchema = createInsertSchema(rftTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGeneratedRftSchema = createInsertSchema(generatedRfts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -367,3 +429,12 @@ export type ExecutiveBriefing = typeof executiveBriefings.$inferSelect;
 
 export type InsertFollowupQuestion = z.infer<typeof insertFollowupQuestionSchema>;
 export type FollowupQuestion = typeof followupQuestions.$inferSelect;
+
+export type InsertBusinessCase = z.infer<typeof insertBusinessCaseSchema>;
+export type BusinessCase = typeof businessCases.$inferSelect;
+
+export type InsertRftTemplate = z.infer<typeof insertRftTemplateSchema>;
+export type RftTemplate = typeof rftTemplates.$inferSelect;
+
+export type InsertGeneratedRft = z.infer<typeof insertGeneratedRftSchema>;
+export type GeneratedRft = typeof generatedRfts.$inferSelect;

@@ -33,6 +33,12 @@ import {
   type InsertExecutiveBriefing,
   type FollowupQuestion,
   type InsertFollowupQuestion,
+  type BusinessCase,
+  type InsertBusinessCase,
+  type RftTemplate,
+  type InsertRftTemplate,
+  type GeneratedRft,
+  type InsertGeneratedRft,
   systemConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -159,6 +165,31 @@ export interface IStorage {
   getFollowupQuestionsByProposal(proposalId: string): Promise<FollowupQuestion[]>;
   updateFollowupQuestion(id: string, updates: Partial<InsertFollowupQuestion>): Promise<void>;
   deleteFollowupQuestion(id: string): Promise<void>;
+
+  // Business Cases
+  createBusinessCase(businessCase: InsertBusinessCase): Promise<BusinessCase>;
+  getBusinessCase(id: string): Promise<BusinessCase | undefined>;
+  getAllBusinessCases(): Promise<BusinessCase[]>;
+  getBusinessCasesByPortfolio(portfolioId: string): Promise<BusinessCase[]>;
+  updateBusinessCase(id: string, updates: Partial<InsertBusinessCase>): Promise<void>;
+  deleteBusinessCase(id: string): Promise<void>;
+
+  // RFT Templates
+  createRftTemplate(template: InsertRftTemplate): Promise<RftTemplate>;
+  getRftTemplate(id: string): Promise<RftTemplate | undefined>;
+  getAllRftTemplates(): Promise<RftTemplate[]>;
+  getActiveRftTemplates(): Promise<RftTemplate[]>;
+  getRftTemplatesByCategory(category: string): Promise<RftTemplate[]>;
+  updateRftTemplate(id: string, updates: Partial<InsertRftTemplate>): Promise<void>;
+  deleteRftTemplate(id: string): Promise<void>;
+
+  // Generated RFTs
+  createGeneratedRft(rft: InsertGeneratedRft): Promise<GeneratedRft>;
+  getGeneratedRft(id: string): Promise<GeneratedRft | undefined>;
+  getGeneratedRftsByProject(projectId: string): Promise<GeneratedRft[]>;
+  getGeneratedRftsByBusinessCase(businessCaseId: string): Promise<GeneratedRft[]>;
+  updateGeneratedRft(id: string, updates: Partial<InsertGeneratedRft>): Promise<void>;
+  deleteGeneratedRft(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -179,6 +210,9 @@ export class MemStorage implements IStorage {
   private comparisonSnapshots: Map<string, ComparisonSnapshot>;
   private executiveBriefings: Map<string, ExecutiveBriefing>;
   private followupQuestions: Map<string, FollowupQuestion>;
+  private businessCases: Map<string, BusinessCase>;
+  private rftTemplates: Map<string, RftTemplate>;
+  private generatedRfts: Map<string, GeneratedRft>;
 
   constructor() {
     this.portfolios = new Map();
@@ -198,6 +232,9 @@ export class MemStorage implements IStorage {
     this.comparisonSnapshots = new Map();
     this.executiveBriefings = new Map();
     this.followupQuestions = new Map();
+    this.businessCases = new Map();
+    this.rftTemplates = new Map();
+    this.generatedRfts = new Map();
   }
 
   async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
@@ -900,6 +937,144 @@ export class MemStorage implements IStorage {
 
   async deleteFollowupQuestion(id: string): Promise<void> {
     this.followupQuestions.delete(id);
+  }
+
+  // Business Cases
+  async createBusinessCase(insertBusinessCase: InsertBusinessCase): Promise<BusinessCase> {
+    const id = randomUUID();
+    const businessCase: BusinessCase = {
+      id,
+      ...insertBusinessCase,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.businessCases.set(id, businessCase);
+    return businessCase;
+  }
+
+  async getBusinessCase(id: string): Promise<BusinessCase | undefined> {
+    return this.businessCases.get(id);
+  }
+
+  async getAllBusinessCases(): Promise<BusinessCase[]> {
+    return Array.from(this.businessCases.values());
+  }
+
+  async getBusinessCasesByPortfolio(portfolioId: string): Promise<BusinessCase[]> {
+    return Array.from(this.businessCases.values()).filter(
+      (bc) => bc.portfolioId === portfolioId
+    );
+  }
+
+  async updateBusinessCase(id: string, updates: Partial<InsertBusinessCase>): Promise<void> {
+    const businessCase = this.businessCases.get(id);
+    if (businessCase) {
+      const updated: BusinessCase = {
+        ...businessCase,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.businessCases.set(id, updated);
+    }
+  }
+
+  async deleteBusinessCase(id: string): Promise<void> {
+    this.businessCases.delete(id);
+  }
+
+  // RFT Templates
+  async createRftTemplate(insertTemplate: InsertRftTemplate): Promise<RftTemplate> {
+    const id = randomUUID();
+    const template: RftTemplate = {
+      id,
+      ...insertTemplate,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.rftTemplates.set(id, template);
+    return template;
+  }
+
+  async getRftTemplate(id: string): Promise<RftTemplate | undefined> {
+    return this.rftTemplates.get(id);
+  }
+
+  async getAllRftTemplates(): Promise<RftTemplate[]> {
+    return Array.from(this.rftTemplates.values());
+  }
+
+  async getActiveRftTemplates(): Promise<RftTemplate[]> {
+    return Array.from(this.rftTemplates.values()).filter(
+      (template) => template.isActive === "true"
+    );
+  }
+
+  async getRftTemplatesByCategory(category: string): Promise<RftTemplate[]> {
+    return Array.from(this.rftTemplates.values()).filter(
+      (template) => template.category === category
+    );
+  }
+
+  async updateRftTemplate(id: string, updates: Partial<InsertRftTemplate>): Promise<void> {
+    const template = this.rftTemplates.get(id);
+    if (template) {
+      const updated: RftTemplate = {
+        ...template,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.rftTemplates.set(id, updated);
+    }
+  }
+
+  async deleteRftTemplate(id: string): Promise<void> {
+    this.rftTemplates.delete(id);
+  }
+
+  // Generated RFTs
+  async createGeneratedRft(insertRft: InsertGeneratedRft): Promise<GeneratedRft> {
+    const id = randomUUID();
+    const rft: GeneratedRft = {
+      id,
+      publishedAt: null,
+      ...insertRft,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.generatedRfts.set(id, rft);
+    return rft;
+  }
+
+  async getGeneratedRft(id: string): Promise<GeneratedRft | undefined> {
+    return this.generatedRfts.get(id);
+  }
+
+  async getGeneratedRftsByProject(projectId: string): Promise<GeneratedRft[]> {
+    return Array.from(this.generatedRfts.values()).filter(
+      (rft) => rft.projectId === projectId
+    );
+  }
+
+  async getGeneratedRftsByBusinessCase(businessCaseId: string): Promise<GeneratedRft[]> {
+    return Array.from(this.generatedRfts.values()).filter(
+      (rft) => rft.businessCaseId === businessCaseId
+    );
+  }
+
+  async updateGeneratedRft(id: string, updates: Partial<InsertGeneratedRft>): Promise<void> {
+    const rft = this.generatedRfts.get(id);
+    if (rft) {
+      const updated: GeneratedRft = {
+        ...rft,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.generatedRfts.set(id, updated);
+    }
+  }
+
+  async deleteGeneratedRft(id: string): Promise<void> {
+    this.generatedRfts.delete(id);
   }
 }
 
