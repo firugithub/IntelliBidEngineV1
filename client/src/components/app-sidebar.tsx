@@ -23,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const navigationItems = [
   {
-    title: "Home",
+    title: "Smart RFT Evaluator",
     url: "/",
     icon: Home,
   },
