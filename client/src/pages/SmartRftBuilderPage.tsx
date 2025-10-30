@@ -161,6 +161,14 @@ export default function SmartRftBuilderPage() {
   };
 
   const handleGenerate = () => {
+    if (!businessCaseId || !selectedTemplate || !projectId) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: `Please ensure all required information is available. BC: ${!!businessCaseId}, Template: ${!!selectedTemplate}, Project: ${!!projectId}`,
+      });
+      return;
+    }
     generateRftMutation.mutate();
   };
 

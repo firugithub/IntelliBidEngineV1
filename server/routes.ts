@@ -754,13 +754,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new project
   app.post("/api/projects", async (req, res) => {
     try {
-      const { portfolioId, name, initiativeName, vendorList } = req.body;
+      const { portfolioId, name, initiativeName, vendorList, status, businessCaseId } = req.body;
       const project = await storage.createProject({
         portfolioId,
         name,
-        initiativeName,
-        vendorList,
-        status: "analyzing",
+        initiativeName: initiativeName || null,
+        vendorList: vendorList || null,
+        status: status || "analyzing",
+        businessCaseId: businessCaseId || null,
       });
       res.json(project);
     } catch (error) {
