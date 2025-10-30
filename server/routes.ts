@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
-import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly } from "./services/sampleData";
+import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/sampleData";
+import { generateRftFromBusinessCase, regenerateRftSection } from "./services/smartRftService";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { lookup as dnsLookup } from "dns";
@@ -1652,6 +1653,284 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in streaming chat:", error);
       res.status(500).json({ error: "Failed to stream chat response" });
+    }
+  });
+
+  // ============================================
+  // SMART RFT CREATION ROUTES
+  // ============================================
+
+  // Seed RFT templates
+  app.post("/api/seed-rft-templates", async (req, res) => {
+    try {
+      const result = await seedRftTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error("Error seeding RFT templates:", error);
+      res.status(500).json({ error: "Failed to seed RFT templates" });
+    }
+  });
+
+  // Get all RFT templates
+  app.get("/api/rft-templates", async (req, res) => {
+    try {
+      const templates = await storage.getAllRftTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching RFT templates:", error);
+      res.status(500).json({ error: "Failed to fetch RFT templates" });
+    }
+  });
+
+  // Get active RFT templates
+  app.get("/api/rft-templates/active", async (req, res) => {
+    try {
+      const templates = await storage.getActiveRftTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching active RFT templates:", error);
+      res.status(500).json({ error: "Failed to fetch active RFT templates" });
+    }
+  });
+
+  // Get RFT template by ID
+  app.get("/api/rft-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getRftTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "RFT template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching RFT template:", error);
+      res.status(500).json({ error: "Failed to fetch RFT template" });
+    }
+  });
+
+  // Upload business case document
+  app.post("/api/business-cases/upload", upload.single("document"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { portfolioId, name, description } = req.body;
+      if (!portfolioId || !name) {
+        return res.status(400).json({ error: "Portfolio ID and name are required" });
+      }
+
+      // Parse document
+      const parsedDocument = await parseDocument(req.file.buffer, req.file.originalname);
+
+      // Create business case
+      const businessCase = await storage.createBusinessCase({
+        portfolioId,
+        name,
+        description: description || null,
+        fileName: req.file.originalname,
+        documentContent: parsedDocument.text,
+        extractedData: null,
+        ragDocumentId: null,
+        status: "uploaded",
+      });
+
+      res.json(businessCase);
+    } catch (error) {
+      console.error("Error uploading business case:", error);
+      res.status(500).json({ error: "Failed to upload business case" });
+    }
+  });
+
+  // Get all business cases
+  app.get("/api/business-cases", async (req, res) => {
+    try {
+      const businessCases = await storage.getAllBusinessCases();
+      res.json(businessCases);
+    } catch (error) {
+      console.error("Error fetching business cases:", error);
+      res.status(500).json({ error: "Failed to fetch business cases" });
+    }
+  });
+
+  // Get business cases by portfolio
+  app.get("/api/portfolios/:portfolioId/business-cases", async (req, res) => {
+    try {
+      const businessCases = await storage.getBusinessCasesByPortfolio(req.params.portfolioId);
+      res.json(businessCases);
+    } catch (error) {
+      console.error("Error fetching business cases:", error);
+      res.status(500).json({ error: "Failed to fetch business cases" });
+    }
+  });
+
+  // Get business case by ID
+  app.get("/api/business-cases/:id", async (req, res) => {
+    try {
+      const businessCase = await storage.getBusinessCase(req.params.id);
+      if (!businessCase) {
+        return res.status(404).json({ error: "Business case not found" });
+      }
+      res.json(businessCase);
+    } catch (error) {
+      console.error("Error fetching business case:", error);
+      res.status(500).json({ error: "Failed to fetch business case" });
+    }
+  });
+
+  // Generate RFT from business case
+  app.post("/api/generate-rft", async (req, res) => {
+    try {
+      const { businessCaseId, templateId, projectId } = req.body;
+
+      if (!businessCaseId || !templateId || !projectId) {
+        return res.status(400).json({ 
+          error: "Business case ID, template ID, and project ID are required" 
+        });
+      }
+
+      console.log(`Generating RFT for project ${projectId} using template ${templateId}`);
+
+      // Generate RFT
+      const generatedRftData = await generateRftFromBusinessCase(
+        businessCaseId,
+        templateId,
+        projectId
+      );
+
+      // Save to database
+      const generatedRft = await storage.createGeneratedRft(generatedRftData);
+
+      // Update project with generated RFT ID
+      const project = await storage.getProject(projectId);
+      if (project) {
+        await storage.updateProjectStatus(projectId, "rft_generated");
+      }
+
+      res.json(generatedRft);
+    } catch (error) {
+      console.error("Error generating RFT:", error);
+      res.status(500).json({ error: "Failed to generate RFT" });
+    }
+  });
+
+  // Get generated RFTs by project
+  app.get("/api/projects/:projectId/generated-rfts", async (req, res) => {
+    try {
+      const rfts = await storage.getGeneratedRftsByProject(req.params.projectId);
+      res.json(rfts);
+    } catch (error) {
+      console.error("Error fetching generated RFTs:", error);
+      res.status(500).json({ error: "Failed to fetch generated RFTs" });
+    }
+  });
+
+  // Get generated RFT by ID
+  app.get("/api/generated-rfts/:id", async (req, res) => {
+    try {
+      const rft = await storage.getGeneratedRft(req.params.id);
+      if (!rft) {
+        return res.status(404).json({ error: "Generated RFT not found" });
+      }
+      res.json(rft);
+    } catch (error) {
+      console.error("Error fetching generated RFT:", error);
+      res.status(500).json({ error: "Failed to fetch generated RFT" });
+    }
+  });
+
+  // Update generated RFT
+  app.patch("/api/generated-rfts/:id", async (req, res) => {
+    try {
+      const { sections, status, name } = req.body;
+      const updates: any = {};
+      
+      if (sections) updates.sections = sections;
+      if (status) updates.status = status;
+      if (name) updates.name = name;
+
+      await storage.updateGeneratedRft(req.params.id, updates);
+      
+      const updatedRft = await storage.getGeneratedRft(req.params.id);
+      res.json(updatedRft);
+    } catch (error) {
+      console.error("Error updating generated RFT:", error);
+      res.status(500).json({ error: "Failed to update generated RFT" });
+    }
+  });
+
+  // Publish RFT (convert to requirements)
+  app.post("/api/generated-rfts/:id/publish", async (req, res) => {
+    try {
+      const rft = await storage.getGeneratedRft(req.params.id);
+      if (!rft) {
+        return res.status(404).json({ error: "Generated RFT not found" });
+      }
+
+      // Update RFT status to published
+      await storage.updateGeneratedRft(req.params.id, {
+        status: "published",
+        publishedAt: new Date(),
+      });
+
+      // Create requirements from RFT sections
+      const sections = (rft.sections as any)?.sections || [];
+      const allRequirements = [];
+
+      for (const section of sections) {
+        const requirement = await storage.createRequirement({
+          projectId: rft.projectId,
+          documentType: "RFT",
+          fileName: `${rft.name} - ${section.title}`,
+          extractedData: {
+            sectionId: section.sectionId,
+            title: section.title,
+            content: section.content,
+          },
+          evaluationCriteria: null,
+          standardId: null,
+          taggedSections: null,
+        });
+        allRequirements.push(requirement);
+      }
+
+      // Update project status
+      await storage.updateProjectStatus(rft.projectId, "rft_published");
+
+      res.json({
+        success: true,
+        rft,
+        requirementsCreated: allRequirements.length,
+      });
+    } catch (error) {
+      console.error("Error publishing RFT:", error);
+      res.status(500).json({ error: "Failed to publish RFT" });
+    }
+  });
+
+  // Regenerate specific RFT section
+  app.post("/api/generated-rfts/:rftId/sections/:sectionId/regenerate", async (req, res) => {
+    try {
+      const { rftId, sectionId } = req.params;
+
+      const newSection = await regenerateRftSection(rftId, sectionId);
+
+      // Update the RFT with the new section
+      const rft = await storage.getGeneratedRft(rftId);
+      if (rft) {
+        const sections = (rft.sections as any)?.sections || [];
+        const updatedSections = sections.map((s: any) =>
+          s.sectionId === sectionId ? newSection : s
+        );
+
+        await storage.updateGeneratedRft(rftId, {
+          sections: { sections: updatedSections },
+        });
+      }
+
+      res.json(newSection);
+    } catch (error) {
+      console.error("Error regenerating RFT section:", error);
+      res.status(500).json({ error: "Failed to regenerate section" });
     }
   });
 

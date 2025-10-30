@@ -981,3 +981,247 @@ export async function wipeAzureOnly() {
     throw error;
   }
 }
+
+/**
+ * Seed RFT Templates for different industries
+ */
+export async function seedRftTemplates() {
+  try {
+    console.log("Seeding RFT templates...");
+
+    // IT & Software Development Template
+    await storage.createRftTemplate({
+      name: "IT & Software Development RFT",
+      description: "Comprehensive RFT template for IT projects, software development, and digital transformation initiatives",
+      category: "IT",
+      isActive: "true",
+      createdBy: "system",
+      metadata: {
+        industry: "Technology",
+        complexity: "High",
+        tags: ["software", "digital", "cloud", "agile"],
+      },
+      sections: {
+        sections: [
+          {
+            id: "exec_summary",
+            title: "Executive Summary",
+            prompt_template: "Provide a concise executive summary covering project background, objectives, and expected outcomes. Focus on business value and strategic alignment.",
+          },
+          {
+            id: "business_requirements",
+            title: "Business Requirements",
+            prompt_template: "Detail all business requirements including functional needs, business processes to be supported, user roles, and expected business outcomes. Include KPIs and success metrics.",
+          },
+          {
+            id: "functional_requirements",
+            title: "Functional Requirements",
+            prompt_template: "Specify detailed functional requirements covering: core features, user interfaces, integrations, data management, reporting capabilities, and workflow automation. Use clear acceptance criteria.",
+          },
+          {
+            id: "technical_requirements",
+            title: "Technical & Non-Functional Requirements",
+            prompt_template: "Define technical requirements: technology stack preferences, performance requirements, scalability needs, availability/uptime, disaster recovery, backup requirements, and technical constraints.",
+            subsections: [
+              {
+                id: "performance",
+                title: "Performance Requirements",
+                prompt_template: "Specify response times, throughput, concurrent users, data volumes.",
+              },
+              {
+                id: "security",
+                title: "Security Requirements",
+                prompt_template: "Detail authentication, authorization, encryption, audit logging, compliance needs.",
+              },
+              {
+                id: "integration",
+                title: "Integration Requirements",
+                prompt_template: "List all required integrations with existing systems, APIs, data sources.",
+              },
+            ],
+          },
+          {
+            id: "cybersecurity",
+            title: "Cybersecurity & Compliance",
+            prompt_template: "Specify cybersecurity requirements: data protection, access controls, vulnerability management, incident response, compliance standards (ISO 27001, SOC 2, GDPR, etc.).",
+          },
+          {
+            id: "delivery_approach",
+            title: "Delivery Approach & Methodology",
+            prompt_template: "Define preferred delivery methodology (Agile, Waterfall, DevOps), sprint duration, release cycles, testing approach, change management process.",
+          },
+          {
+            id: "support_maintenance",
+            title: "Support & Maintenance",
+            prompt_template: "Outline support requirements: SLA expectations, support hours, escalation procedures, maintenance windows, documentation needs.",
+          },
+          {
+            id: "evaluation_criteria",
+            title: "Evaluation Criteria",
+            prompt_template: "Define how proposals will be evaluated: technical capability (30%), cost (25%), delivery approach (20%), team experience (15%), support model (10%).",
+          },
+        ],
+      },
+    });
+
+    // Aviation & Airline Operations Template
+    await storage.createRftTemplate({
+      name: "Aviation & Airline Operations RFT",
+      description: "Specialized RFT template for aviation industry projects including airline operations, passenger services, and aviation systems",
+      category: "Aviation",
+      isActive: "true",
+      createdBy: "system",
+      metadata: {
+        industry: "Aviation",
+        complexity: "High",
+        tags: ["aviation", "airline", "IATA", "safety", "operations"],
+      },
+      sections: {
+        sections: [
+          {
+            id: "exec_summary",
+            title: "Executive Summary",
+            prompt_template: "Provide executive summary emphasizing aviation industry context, operational impact, and alignment with airline strategic goals.",
+          },
+          {
+            id: "aviation_context",
+            title: "Aviation Industry Context",
+            prompt_template: "Detail aviation-specific context: regulatory environment, IATA/ICAO standards, safety requirements, operational constraints, fleet information if applicable.",
+          },
+          {
+            id: "operational_requirements",
+            title: "Operational Requirements",
+            prompt_template: "Specify operational requirements: flight operations impact, passenger service requirements, ground operations needs, baggage handling, crew management, schedule optimization.",
+          },
+          {
+            id: "functional_requirements",
+            title: "Functional Requirements",
+            prompt_template: "Detail functional requirements specific to aviation operations: reservation systems, check-in processes, boarding systems, loyalty programs, revenue management.",
+          },
+          {
+            id: "technical_requirements",
+            title: "Technical Requirements",
+            prompt_template: "Define technical requirements: system availability (99.9%+), disaster recovery (RTO/RPO), real-time processing capabilities, mobile compatibility, integration with legacy systems.",
+          },
+          {
+            id: "regulatory_compliance",
+            title: "Regulatory & Safety Compliance",
+            prompt_template: "Specify compliance requirements: aviation regulations, data privacy (GDPR, local laws), security standards, safety management systems, audit trail requirements.",
+          },
+          {
+            id: "security_cybersecurity",
+            title: "Security & Cybersecurity",
+            prompt_template: "Detail cybersecurity for aviation: PCI-DSS for payments, passenger data protection, system access controls, threat detection, incident response aligned with aviation security protocols.",
+          },
+          {
+            id: "implementation",
+            title: "Implementation & Go-Live",
+            prompt_template: "Define implementation approach: phased rollout, pilot programs, training requirements for airline staff, cutover strategy, rollback procedures, operational testing.",
+          },
+          {
+            id: "support_sla",
+            title: "Support & Service Level Agreements",
+            prompt_template: "Specify support requirements: 24/7 support for critical systems, response times, escalation procedures, maintenance windows (must avoid peak travel times), backup support.",
+          },
+        ],
+      },
+    });
+
+    // Infrastructure & Construction Template
+    await storage.createRftTemplate({
+      name: "Infrastructure & Construction RFT",
+      description: "RFT template for infrastructure projects, construction, and physical asset development",
+      category: "Infrastructure",
+      isActive: "true",
+      createdBy: "system",
+      metadata: {
+        industry: "Construction",
+        complexity: "Medium",
+        tags: ["construction", "infrastructure", "facilities", "engineering"],
+      },
+      sections: {
+        sections: [
+          {
+            id: "project_overview",
+            title: "Project Overview",
+            prompt_template: "Provide comprehensive project overview: location, scope, scale, strategic importance, stakeholder benefits.",
+          },
+          {
+            id: "technical_specifications",
+            title: "Technical Specifications",
+            prompt_template: "Detail technical specifications: design requirements, materials, engineering standards, quality specifications, capacity requirements.",
+          },
+          {
+            id: "delivery_timeline",
+            title: "Delivery Timeline & Milestones",
+            prompt_template: "Define project timeline: key milestones, phase delivery dates, dependencies, critical path items, seasonal considerations.",
+          },
+          {
+            id: "quality_safety",
+            title: "Quality & Safety Requirements",
+            prompt_template: "Specify quality standards, safety protocols, inspection requirements, certifications needed, environmental considerations.",
+          },
+          {
+            id: "compliance",
+            title: "Compliance & Permits",
+            prompt_template: "List regulatory compliance needs, permits required, environmental impact assessments, local authority approvals.",
+          },
+          {
+            id: "warranty_maintenance",
+            title: "Warranty & Maintenance",
+            prompt_template: "Define warranty requirements, maintenance obligations, handover procedures, documentation requirements.",
+          },
+        ],
+      },
+    });
+
+    // Professional Services Template
+    await storage.createRftTemplate({
+      name: "Professional Services RFT",
+      description: "RFT template for consulting, advisory, and professional service engagements",
+      category: "Professional Services",
+      isActive: "true",
+      createdBy: "system",
+      metadata: {
+        industry: "Services",
+        complexity: "Low",
+        tags: ["consulting", "advisory", "services", "expertise"],
+      },
+      sections: {
+        sections: [
+          {
+            id: "engagement_overview",
+            title: "Engagement Overview",
+            prompt_template: "Describe the consulting engagement: objectives, scope, expected deliverables, business challenges to address.",
+          },
+          {
+            id: "scope_deliverables",
+            title: "Scope of Work & Deliverables",
+            prompt_template: "Detail specific work to be performed, deliverables expected, timelines, acceptance criteria for each deliverable.",
+          },
+          {
+            id: "team_expertise",
+            title: "Team & Expertise Requirements",
+            prompt_template: "Specify required expertise: qualifications, experience levels, certifications, industry knowledge, team size and composition.",
+          },
+          {
+            id: "methodology",
+            title: "Methodology & Approach",
+            prompt_template: "Describe preferred approach: project management methodology, communication protocols, reporting frequency, stakeholder engagement.",
+          },
+          {
+            id: "evaluation",
+            title: "Evaluation Criteria",
+            prompt_template: "Define evaluation: team expertise (40%), methodology (25%), cost (20%), references (15%).",
+          },
+        ],
+      },
+    });
+
+    console.log("✓ RFT templates seeded successfully");
+    return { success: true, message: "RFT templates seeded" };
+  } catch (error) {
+    console.error("Error seeding RFT templates:", error);
+    throw error;
+  }
+}
