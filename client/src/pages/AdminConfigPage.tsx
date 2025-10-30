@@ -7,8 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Database, Cloud, Brain, Save, AlertCircle, Users } from "lucide-react";
+import { Settings, Database, Cloud, Brain, Save, AlertCircle, Users, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface SystemConfig {
   id: string;
@@ -81,6 +92,30 @@ export default function AdminConfigPage() {
         description: "Failed to test Azure connectivity. Please try again.",
       });
       console.error("Test error:", error);
+    },
+  });
+
+  const wipeDataMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/wipe-data", {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      console.log("Wipe data results:", data);
+      const dbTotal = Object.values(data.summary?.database || {}).reduce((a, b) => (a as number) + (b as number), 0);
+      toast({
+        title: "Data Wiped Successfully",
+        description: `Deleted all application data and Azure resources. Database: ${dbTotal} items. Azure: ${data.summary?.azure?.blobDocuments || 0} blobs, ${data.summary?.azure?.searchDocuments || 0} search docs.`,
+      });
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Wipe Failed",
+        description: "Failed to wipe data. Please try again.",
+      });
+      console.error("Wipe error:", error);
     },
   });
 
@@ -489,6 +524,67 @@ export default function AdminConfigPage() {
           <p className="text-sm text-muted-foreground mt-2">
             This will test both Azure OpenAI embeddings and Azure AI Search services. Check the console for detailed results.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Dangerous Operations</CardTitle>
+          <CardDescription>
+            Irreversible actions that will permanently delete data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4" data-testid="alert-wipe-warning">
+            <AlertCircle className="w-4 h-4" />
+            <AlertDescription>
+              <strong>Warning:</strong> This will permanently delete ALL data from both the database and Azure resources (Blob Storage and AI Search). This action cannot be undone.
+            </AlertDescription>
+          </Alert>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="w-full"
+                data-testid="button-wipe-all-data"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Wipe All Data
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>All portfolios, projects, proposals, and evaluations</li>
+                    <li>All requirements, standards, and MCP connectors</li>
+                    <li>All RAG documents and embeddings</li>
+                    <li>All chat sessions, compliance gaps, and follow-up questions</li>
+                    <li>All comparison snapshots and executive briefings</li>
+                    <li>All documents from Azure Blob Storage</li>
+                    <li>All embeddings from Azure AI Search</li>
+                  </ul>
+                  <p className="mt-4 font-semibold text-destructive">
+                    This action cannot be undone.
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-wipe">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => wipeDataMutation.mutate()}
+                  disabled={wipeDataMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  data-testid="button-confirm-wipe"
+                >
+                  {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

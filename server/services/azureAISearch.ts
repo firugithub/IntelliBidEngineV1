@@ -228,6 +228,35 @@ export class AzureAISearchService {
     };
   }
 
+  async deleteAllDocuments(): Promise<number> {
+    if (!this.searchClient) {
+      await this.initialize();
+    }
+
+    if (!this.searchClient) {
+      throw new Error("Search client not initialized");
+    }
+
+    // Get all document IDs first
+    const searchResults = await this.searchClient.search("*", {
+      select: ["id"],
+      top: 10000, // Max limit
+    });
+
+    const documentIds: string[] = [];
+    for await (const result of searchResults.results) {
+      if (result.document.id) {
+        documentIds.push(result.document.id);
+      }
+    }
+
+    if (documentIds.length > 0) {
+      await this.deleteDocuments(documentIds);
+    }
+
+    return documentIds.length;
+  }
+
   isConfigured(): boolean {
     return this.searchClient !== null;
   }

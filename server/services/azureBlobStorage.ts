@@ -109,6 +109,25 @@ export class AzureBlobStorageService {
     return blobNames;
   }
 
+  async deleteAllDocuments(): Promise<number> {
+    if (!this.containerClient) {
+      await this.initialize();
+    }
+
+    if (!this.containerClient) {
+      throw new Error("Azure Blob Storage client not initialized");
+    }
+
+    let count = 0;
+    for await (const blob of this.containerClient.listBlobsFlat()) {
+      const blockBlobClient = this.containerClient.getBlockBlobClient(blob.name);
+      await blockBlobClient.deleteIfExists();
+      count++;
+    }
+
+    return count;
+  }
+
   isConfigured(): boolean {
     return this.client !== null;
   }

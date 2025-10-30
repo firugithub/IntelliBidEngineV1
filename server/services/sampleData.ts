@@ -749,11 +749,37 @@ export async function wipeAllData() {
   try {
     console.log("Starting data wipe...");
     
+    const deletionSummary = {
+      database: {
+        evaluations: 0,
+        proposals: 0,
+        requirements: 0,
+        projects: 0,
+        portfolios: 0,
+        standards: 0,
+        connectors: 0,
+        ragDocuments: 0,
+        ragChunks: 0,
+        chatSessions: 0,
+        chatMessages: 0,
+        complianceGaps: 0,
+        followupQuestions: 0,
+        comparisonSnapshots: 0,
+        executiveBriefings: 0,
+      },
+      azure: {
+        blobDocuments: 0,
+        searchDocuments: 0,
+      },
+    };
+    
     // Get all items to delete
     const portfolios = await storage.getAllPortfolios();
     const projects = await storage.getAllProjects();
     const standards = await storage.getAllStandards();
     const connectors = await storage.getAllMcpConnectors();
+    const ragDocuments = await storage.getAllRagDocuments();
+    const chatSessions: any[] = []; // TODO: Implement getAllChatSessions when needed
     
     // Delete all evaluations (by getting all projects and their proposals)
     for (const project of projects) {
@@ -762,55 +788,151 @@ export async function wipeAllData() {
         const evaluation = await storage.getEvaluationByProposal(proposal.id);
         if (evaluation) {
           await storage.deleteEvaluation(evaluation.id);
+          deletionSummary.database.evaluations++;
         }
       }
     }
-    console.log(`✓ Deleted evaluations`);
+    console.log(`✓ Deleted ${deletionSummary.database.evaluations} evaluations`);
     
     // Delete all proposals
     for (const project of projects) {
       const proposals = await storage.getProposalsByProject(project.id);
       for (const proposal of proposals) {
         await storage.deleteProposal(proposal.id);
+        deletionSummary.database.proposals++;
       }
     }
-    console.log(`✓ Deleted proposals`);
+    console.log(`✓ Deleted ${deletionSummary.database.proposals} proposals`);
     
     // Delete all requirements
     for (const project of projects) {
       const requirements = await storage.getRequirementsByProject(project.id);
       for (const requirement of requirements) {
         await storage.deleteRequirement(requirement.id);
+        deletionSummary.database.requirements++;
       }
     }
-    console.log(`✓ Deleted requirements`);
+    console.log(`✓ Deleted ${deletionSummary.database.requirements} requirements`);
     
     // Delete all projects
     for (const project of projects) {
       await storage.deleteProject(project.id);
+      deletionSummary.database.projects++;
     }
-    console.log(`✓ Deleted ${projects.length} projects`);
+    console.log(`✓ Deleted ${deletionSummary.database.projects} projects`);
     
     // Delete all portfolios
     for (const portfolio of portfolios) {
       await storage.deletePortfolio(portfolio.id);
+      deletionSummary.database.portfolios++;
     }
-    console.log(`✓ Deleted ${portfolios.length} portfolios`);
+    console.log(`✓ Deleted ${deletionSummary.database.portfolios} portfolios`);
     
     // Deactivate all standards (soft delete)
     for (const standard of standards) {
       await storage.deactivateStandard(standard.id);
+      deletionSummary.database.standards++;
     }
-    console.log(`✓ Deactivated ${standards.length} standards`);
+    console.log(`✓ Deactivated ${deletionSummary.database.standards} standards`);
     
     // Delete all MCP connectors
     for (const connector of connectors) {
       await storage.deleteMcpConnector(connector.id);
+      deletionSummary.database.connectors++;
     }
-    console.log(`✓ Deleted ${connectors.length} MCP connectors`);
+    console.log(`✓ Deleted ${deletionSummary.database.connectors} MCP connectors`);
     
-    console.log("✅ All data wiped successfully!");
-    return { success: true, message: "All data wiped successfully" };
+    // Delete all RAG documents and chunks
+    for (const ragDoc of ragDocuments) {
+      const chunks = await storage.getRagChunksByDocumentId(ragDoc.id);
+      for (const chunk of chunks) {
+        await storage.deleteRagChunk(chunk.id);
+        deletionSummary.database.ragChunks++;
+      }
+      await storage.deleteRagDocument(ragDoc.id);
+      deletionSummary.database.ragDocuments++;
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.ragDocuments} RAG documents and ${deletionSummary.database.ragChunks} chunks`);
+    
+    // Delete all chat sessions and messages
+    for (const session of chatSessions) {
+      const messages = await storage.getChatMessagesBySession(session.id);
+      for (const message of messages) {
+        await storage.deleteChatMessage(message.id);
+        deletionSummary.database.chatMessages++;
+      }
+      await storage.deleteChatSession(session.id);
+      deletionSummary.database.chatSessions++;
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.chatSessions} chat sessions and ${deletionSummary.database.chatMessages} messages`);
+    
+    // Delete all compliance gaps
+    for (const project of projects) {
+      const gaps = await storage.getComplianceGapsByProject(project.id);
+      for (const gap of gaps) {
+        await storage.deleteComplianceGap(gap.id);
+        deletionSummary.database.complianceGaps++;
+      }
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.complianceGaps} compliance gaps`);
+    
+    // Delete all follow-up questions
+    for (const project of projects) {
+      const questions = await storage.getFollowupQuestionsByProject(project.id);
+      for (const question of questions) {
+        await storage.deleteFollowupQuestion(question.id);
+        deletionSummary.database.followupQuestions++;
+      }
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.followupQuestions} follow-up questions`);
+    
+    // Delete all comparison snapshots
+    for (const project of projects) {
+      const snapshots = await storage.getComparisonSnapshotsByProject(project.id);
+      for (const snapshot of snapshots) {
+        await storage.deleteComparisonSnapshot(snapshot.id);
+        deletionSummary.database.comparisonSnapshots++;
+      }
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.comparisonSnapshots} comparison snapshots`);
+    
+    // Delete all executive briefings
+    for (const project of projects) {
+      const briefings = await storage.getExecutiveBriefingsByProject(project.id);
+      for (const briefing of briefings) {
+        await storage.deleteExecutiveBriefing(briefing.id);
+        deletionSummary.database.executiveBriefings++;
+      }
+    }
+    console.log(`✓ Deleted ${deletionSummary.database.executiveBriefings} executive briefings`);
+    
+    // Delete Azure resources
+    console.log("\n🔵 Starting Azure cleanup...");
+    
+    try {
+      const { azureBlobStorageService } = await import("./azureBlobStorage");
+      const blobCount = await azureBlobStorageService.deleteAllDocuments();
+      deletionSummary.azure.blobDocuments = blobCount;
+      console.log(`✓ Deleted ${blobCount} documents from Azure Blob Storage`);
+    } catch (error: any) {
+      console.log(`⚠️  Azure Blob Storage cleanup skipped: ${error.message}`);
+    }
+    
+    try {
+      const { azureAISearchService } = await import("./azureAISearch");
+      const searchCount = await azureAISearchService.deleteAllDocuments();
+      deletionSummary.azure.searchDocuments = searchCount;
+      console.log(`✓ Deleted ${searchCount} documents from Azure AI Search`);
+    } catch (error: any) {
+      console.log(`⚠️  Azure AI Search cleanup skipped: ${error.message}`);
+    }
+    
+    console.log("\n✅ All data wiped successfully!");
+    return { 
+      success: true, 
+      message: "All data wiped successfully",
+      summary: deletionSummary,
+    };
   } catch (error) {
     console.error("Error wiping data:", error);
     throw error;
