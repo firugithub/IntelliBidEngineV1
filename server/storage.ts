@@ -43,6 +43,7 @@ import {
   mcpConnectors,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { encryptApiKey, decryptApiKey } from "./utils/encryption";
 
 export interface IStorage {
   // Portfolios
@@ -1142,7 +1143,7 @@ storage.createMcpConnector = async function(insertConnector: InsertMcpConnector)
       name: insertConnector.name,
       description: insertConnector.description || null,
       serverUrl: insertConnector.serverUrl,
-      apiKey: insertConnector.apiKey || null,
+      apiKey: encryptApiKey(insertConnector.apiKey),
       connectorType: insertConnector.connectorType || "rest",
       authType: insertConnector.authType || "bearer",
       roleMapping: insertConnector.roleMapping || null,
@@ -1150,25 +1151,48 @@ storage.createMcpConnector = async function(insertConnector: InsertMcpConnector)
       isActive: insertConnector.isActive || "true",
     })
     .returning();
-  return created[0]!;
+  
+  const result = created[0]!;
+  return {
+    ...result,
+    apiKey: decryptApiKey(result.apiKey),
+  };
 };
 
 storage.getMcpConnector = async function(id: string): Promise<McpConnector | undefined> {
   const results = await db.select().from(mcpConnectors).where(eq(mcpConnectors.id, id)).limit(1);
-  return results[0];
+  const connector = results[0];
+  if (!connector) return undefined;
+  return {
+    ...connector,
+    apiKey: decryptApiKey(connector.apiKey),
+  };
 };
 
 storage.getAllMcpConnectors = async function(): Promise<McpConnector[]> {
-  return await db.select().from(mcpConnectors);
+  const connectors = await db.select().from(mcpConnectors);
+  return connectors.map(c => ({
+    ...c,
+    apiKey: decryptApiKey(c.apiKey),
+  }));
 };
 
 storage.getActiveMcpConnectors = async function(): Promise<McpConnector[]> {
-  return await db.select().from(mcpConnectors).where(eq(mcpConnectors.isActive, "true"));
+  const connectors = await db.select().from(mcpConnectors).where(eq(mcpConnectors.isActive, "true"));
+  return connectors.map(c => ({
+    ...c,
+    apiKey: decryptApiKey(c.apiKey),
+  }));
 };
 
 storage.updateMcpConnector = async function(id: string, updates: Partial<InsertMcpConnector>): Promise<void> {
+  const updateData = { ...updates };
+  if (updateData.apiKey !== undefined) {
+    updateData.apiKey = encryptApiKey(updateData.apiKey);
+  }
+  
   await db.update(mcpConnectors)
-    .set(updates)
+    .set(updateData)
     .where(eq(mcpConnectors.id, id));
 };
 
