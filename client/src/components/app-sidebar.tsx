@@ -1,4 +1,4 @@
-import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2 } from "lucide-react";
+import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +36,11 @@ const navigationItems = [
     title: "Knowledge Base",
     url: "/standards",
     icon: BookOpen,
+  },
+  {
+    title: "KB Chatbot",
+    url: "/kb-chatbot",
+    icon: Bot,
   },
   {
     title: "Admin Config",

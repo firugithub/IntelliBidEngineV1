@@ -1665,6 +1665,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // KNOWLEDGE BASE CHATBOT ROUTES
+  // ============================================
+
+  // Check chatbot readiness (RAG + MCP status)
+  app.get("/api/kb-chatbot/status", async (req, res) => {
+    try {
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const status = await knowledgeBaseChatbotService.isReady();
+      res.json(status);
+    } catch (error) {
+      console.error("Error checking chatbot status:", error);
+      res.status(500).json({ error: "Failed to check chatbot status" });
+    }
+  });
+
+  // Query knowledge base chatbot (non-streaming)
+  app.post("/api/kb-chatbot/query", async (req, res) => {
+    try {
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const { query, conversationHistory } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      const response = await knowledgeBaseChatbotService.generateResponse(
+        query,
+        conversationHistory || []
+      );
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error querying chatbot:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to query chatbot";
+      
+      // Return 400 for configuration errors, 500 for runtime errors
+      if (errorMessage.includes("not configured") || errorMessage.includes("API key")) {
+        return res.status(400).json({ error: errorMessage, type: "configuration" });
+      }
+      
+      res.status(500).json({ error: errorMessage, type: "runtime" });
+    }
+  });
+
+  // Query knowledge base chatbot (streaming)
+  app.post("/api/kb-chatbot/query/stream", async (req, res) => {
+    try {
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const { query, conversationHistory } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      // Set up SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const stream = knowledgeBaseChatbotService.generateStreamingResponse(
+        query,
+        conversationHistory || []
+      );
+
+      for await (const chunk of stream) {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+
+      res.end();
+    } catch (error) {
+      console.error("Error in streaming chatbot:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to stream chatbot response";
+      
+      // Return 400 for configuration errors, 500 for runtime errors
+      if (errorMessage.includes("not configured") || errorMessage.includes("API key")) {
+        return res.status(400).json({ error: errorMessage, type: "configuration" });
+      }
+      
+      res.status(500).json({ error: errorMessage, type: "runtime" });
+    }
+  });
+
+  // ============================================
   // SMART RFT CREATION ROUTES
   // ============================================
 

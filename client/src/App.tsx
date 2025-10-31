@@ -16,6 +16,7 @@ import AdminConfigPage from "@/pages/AdminConfigPage";
 import DeepDivePage from "@/pages/DeepDivePage";
 import AIFeaturesPage from "@/pages/AIFeaturesPage";
 import SmartRftBuilderPage from "@/pages/SmartRftBuilderPage";
+import KnowledgeBaseChatbotPage from "@/pages/KnowledgeBaseChatbotPage";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/project/:id/ai-features" component={AIFeaturesPage} />
       <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route path="/smart-rft-builder" component={SmartRftBuilderPage} />
+      <Route path="/kb-chatbot" component={KnowledgeBaseChatbotPage} />
       <Route component={NotFound} />
     </Switch>
   );
