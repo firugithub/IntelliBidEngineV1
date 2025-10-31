@@ -127,6 +127,9 @@ export default function StandardsPage() {
     description: "",
     serverUrl: "",
     apiKey: "",
+    connectorType: "rest" as "rest" | "graphql" | "webhook",
+    authType: "bearer" as "bearer" | "basic" | "apikey" | "oauth",
+    roleMapping: [] as string[],
   });
 
   // Standards queries
@@ -194,7 +197,7 @@ export default function StandardsPage() {
 
   // MCP Connectors mutations
   const createConnectorMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; serverUrl: string; apiKey: string }) => {
+    mutationFn: async (data: { name: string; description: string; serverUrl: string; apiKey: string; connectorType: string; authType: string; roleMapping: string[] }) => {
       return await apiRequest("POST", "/api/mcp-connectors", data);
     },
     onSuccess: () => {
@@ -209,7 +212,7 @@ export default function StandardsPage() {
   });
 
   const updateConnectorMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; description: string; serverUrl: string; apiKey: string; isActive: string }> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ name: string; description: string; serverUrl: string; apiKey: string; connectorType: string; authType: string; roleMapping: string[]; isActive: string }> }) => {
       return await apiRequest("PATCH", `/api/mcp-connectors/${id}`, data);
     },
     onSuccess: () => {
@@ -423,7 +426,15 @@ export default function StandardsPage() {
 
   // MCP Connector handlers
   const resetConnectorForm = () => {
-    setConnectorFormData({ name: "", description: "", serverUrl: "", apiKey: "" });
+    setConnectorFormData({ 
+      name: "", 
+      description: "", 
+      serverUrl: "", 
+      apiKey: "",
+      connectorType: "rest" as "rest" | "graphql" | "webhook",
+      authType: "bearer" as "bearer" | "basic" | "apikey" | "oauth",
+      roleMapping: [] as string[],
+    });
     setEditingConnector(null);
   };
 
@@ -434,6 +445,9 @@ export default function StandardsPage() {
       description: connector.description || "",
       serverUrl: connector.serverUrl,
       apiKey: "", // Don't populate redacted API key, let user enter new one if needed
+      connectorType: (connector.connectorType || "rest") as "rest" | "graphql" | "webhook",
+      authType: (connector.authType || "bearer") as "bearer" | "basic" | "apikey" | "oauth",
+      roleMapping: connector.roleMapping || [],
     });
     setIsConnectorDialogOpen(true);
   };
@@ -457,6 +471,9 @@ export default function StandardsPage() {
         name: connectorFormData.name,
         description: connectorFormData.description,
         serverUrl: connectorFormData.serverUrl,
+        connectorType: connectorFormData.connectorType,
+        authType: connectorFormData.authType,
+        roleMapping: connectorFormData.roleMapping,
         ...(connectorFormData.apiKey && { apiKey: connectorFormData.apiKey }),
       };
       updateConnectorMutation.mutate({
@@ -1127,6 +1144,80 @@ export default function StandardsPage() {
                       />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Connector Type</label>
+                        <Select
+                          value={connectorFormData.connectorType}
+                          onValueChange={(value) => setConnectorFormData(prev => ({ ...prev, connectorType: value as "rest" | "graphql" | "webhook" }))}
+                        >
+                          <SelectTrigger data-testid="select-connector-type">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="rest">REST API</SelectItem>
+                            <SelectItem value="graphql">GraphQL</SelectItem>
+                            <SelectItem value="webhook">Webhook</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Auth Type</label>
+                        <Select
+                          value={connectorFormData.authType}
+                          onValueChange={(value) => setConnectorFormData(prev => ({ ...prev, authType: value as "bearer" | "basic" | "apikey" | "oauth" }))}
+                        >
+                          <SelectTrigger data-testid="select-auth-type">
+                            <SelectValue placeholder="Select auth type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bearer">Bearer Token</SelectItem>
+                            <SelectItem value="basic">Basic Auth</SelectItem>
+                            <SelectItem value="apikey">API Key</SelectItem>
+                            <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Agent Role Mapping</label>
+                      <div className="grid grid-cols-2 gap-2 border rounded-md p-3">
+                        {[
+                          { value: "delivery", label: "Delivery" },
+                          { value: "product", label: "Product" },
+                          { value: "architecture", label: "Architecture" },
+                          { value: "engineering", label: "Engineering" },
+                          { value: "procurement", label: "Procurement" },
+                          { value: "security", label: "Security" },
+                        ].map((role) => (
+                          <label key={role.value} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={connectorFormData.roleMapping.includes(role.value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setConnectorFormData(prev => ({
+                                    ...prev,
+                                    roleMapping: [...prev.roleMapping, role.value],
+                                  }));
+                                } else {
+                                  setConnectorFormData(prev => ({
+                                    ...prev,
+                                    roleMapping: prev.roleMapping.filter((r) => r !== role.value),
+                                  }));
+                                }
+                              }}
+                              className="h-4 w-4"
+                              data-testid={`checkbox-role-${role.value}`}
+                            />
+                            <span className="text-sm">{role.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button
                         type="button"
@@ -1213,6 +1304,38 @@ export default function StandardsPage() {
                             <p className="text-xs text-muted-foreground">Server URL</p>
                             <p className="text-sm font-mono truncate">{connector.serverUrl}</p>
                           </div>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Type</p>
+                              <Badge variant="outline" className="text-xs">
+                                {connector.connectorType === "rest" ? "REST API" : 
+                                 connector.connectorType === "graphql" ? "GraphQL" : "Webhook"}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Auth</p>
+                              <Badge variant="outline" className="text-xs">
+                                {connector.authType === "bearer" ? "Bearer" :
+                                 connector.authType === "basic" ? "Basic" :
+                                 connector.authType === "apikey" ? "API Key" : "OAuth"}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {connector.roleMapping && connector.roleMapping.length > 0 && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Mapped Agents</p>
+                              <div className="flex flex-wrap gap-1">
+                                {connector.roleMapping.map((role) => (
+                                  <Badge key={role} variant="secondary" className="text-xs">
+                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {connector.apiKey && (
                             <div>
                               <p className="text-xs text-muted-foreground">API Key</p>
