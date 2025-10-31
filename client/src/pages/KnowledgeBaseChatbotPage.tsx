@@ -18,31 +18,46 @@ interface ChatMessage {
   mcpConnectorsUsed?: number;
 }
 
+interface ChatbotStatus {
+  ready: boolean;
+  openAIConfigured: boolean;
+  ragConfigured: boolean;
+  mcpConnectorsAvailable: number;
+  missingConfiguration: string[];
+}
+
+interface ChatbotResponse {
+  answer: string;
+  sources: Array<{ type: "rag" | "mcp"; name: string; content?: string }>;
+  ragChunksUsed: number;
+  mcpConnectorsUsed: number;
+}
+
 export default function KnowledgeBaseChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Check chatbot status
-  const { data: status } = useQuery({
+  const { data: status } = useQuery<ChatbotStatus>({
     queryKey: ["/api/kb-chatbot/status"],
   });
 
   // Query mutation
   const queryMutation = useMutation({
     mutationFn: async (query: string) => {
-      const response = await apiRequest({
-        url: "/api/kb-chatbot/query",
-        method: "POST",
-        body: {
+      const response = await apiRequest<ChatbotResponse>(
+        "POST",
+        "/api/kb-chatbot/query",
+        {
           query,
           conversationHistory: messages.map((m) => ({
             role: m.role,
             content: m.content,
             timestamp: m.timestamp,
           })),
-        },
-      });
+        }
+      );
       return response;
     },
     onSuccess: (data, query) => {

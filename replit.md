@@ -76,6 +76,13 @@ IntelliBid includes 5 production-ready AI-powered features accessible via a unif
 ### Knowledge Base
 **Purpose:** Centralized repository for managing organizational documents and guidelines to enhance AI evaluation accuracy, with integration for external Model Context Protocol (MCP) connectors.
 **Document Management with RAG Integration:** Admin interface for uploading and managing organizational documents (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction. Documents are categorized and grouped by stakeholder (Technical, Delivery & Operations, Finance & Procurement, Security & Compliance, General) and automatically ingested into the RAG system.
+**Knowledge Base Chatbot:** Dedicated testing interface for RAG and MCP integrations with real-time conversational AI:
+-   **Purpose:** Test RAG system and MCP connectors through natural language queries about RFT/RFI processes, compliance standards, and vendor evaluations
+-   **Architecture:** Lazy OpenAI client initialization (no import-time failures), comprehensive status dashboard, strict "knowledge-base-only" system prompts
+-   **Features:** Message history with source attribution badges (RAG docs + MCP connectors), stats display (docs used, connectors queried), streaming and non-streaming responses
+-   **Integration:** Retrieves up to 8 RAG document chunks, fetches data from all active MCP connectors, enforces context-only answers (no general AI knowledge)
+-   **Error Handling:** Configuration errors return 400 (actionable), runtime errors return 500, status endpoint works without credentials, graceful degradation
+-   **UI:** Status cards showing readiness (OpenAI + RAG), active MCP connectors count, missing configuration details, and full-featured chat interface
 **MCP Connectors:** Pluggable adapter system for integrating external enterprise data sources into AI evaluations:
 -   **Architecture:** Modular adapter pattern supporting REST, GraphQL, and WebSocket connectors with role-based mappings to 6 AI agents (delivery, product, architecture, engineering, procurement, security)
 -   **Security:** AES-256-GCM encryption for API keys at rest using PBKDF2 key derivation (100k iterations) from SESSION_SECRET; all API responses mask credentials; unique salt and IV per encryption
