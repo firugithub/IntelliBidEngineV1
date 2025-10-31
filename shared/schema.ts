@@ -30,6 +30,9 @@ export const mcpConnectors = pgTable("mcp_connectors", {
   description: text("description"),
   serverUrl: text("server_url").notNull(),
   apiKey: text("api_key"),
+  connectorType: text("connector_type").notNull().default("rest"), // 'rest', 'graphql', 'websocket'
+  authType: text("auth_type").notNull().default("bearer"), // 'bearer', 'basic', 'apikey', 'oauth2'
+  roleMapping: text("role_mapping").array(), // Which agent roles can use this connector: 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security'
   config: jsonb("config"),
   isActive: text("is_active").notNull().default("true"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

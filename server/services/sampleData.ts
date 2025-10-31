@@ -643,6 +643,9 @@ export async function seedAllMockData() {
         description: "Access to airline operations documentation and technical knowledge base",
         serverUrl: "https://nujumair.atlassian.net/wiki",
         apiKey: "demo-key-nujum-confluence-12345",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["product", "architecture", "engineering"],
         isActive: "true",
       });
       
@@ -651,6 +654,9 @@ export async function seedAllMockData() {
         description: "Integration with flight ops, maintenance, and crew communication channels",
         serverUrl: "https://nujumair.slack.com/api",
         apiKey: "demo-key-nujum-slack-67890",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["delivery", "product"],
         isActive: "true",
       });
       
@@ -659,6 +665,9 @@ export async function seedAllMockData() {
         description: "Source code repositories for airline systems and integrations",
         serverUrl: "https://api.github.com",
         apiKey: "demo-key-nujum-github-abcde",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["engineering", "architecture"],
         isActive: "false",
       });
       
@@ -667,6 +676,9 @@ export async function seedAllMockData() {
         description: "Procurement system integration for vendor contracts and purchase orders",
         serverUrl: "https://procurement.nujumair.com/api",
         apiKey: "demo-key-procurement-xyz789",
+        connectorType: "rest",
+        authType: "apikey",
+        roleMapping: ["procurement"],
         isActive: "true",
       });
       
@@ -675,6 +687,9 @@ export async function seedAllMockData() {
         description: "Access to airline documentation, policies, and collaborative workspaces",
         serverUrl: "https://nujumair.sharepoint.com/_api",
         apiKey: "demo-key-sharepoint-sp1234",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["product", "delivery", "architecture"],
         isActive: "true",
       });
       
@@ -683,6 +698,9 @@ export async function seedAllMockData() {
         description: "Enterprise architecture repository for systems, services, and integrations",
         serverUrl: "https://archregistry.nujumair.com/api",
         apiKey: "demo-key-architecture-arc456",
+        connectorType: "rest",
+        authType: "apikey",
+        roleMapping: ["architecture", "engineering"],
         isActive: "true",
       });
       
@@ -691,6 +709,9 @@ export async function seedAllMockData() {
         description: "Security posture management and compliance tracking system",
         serverUrl: "https://seccomp.nujumair.com/api",
         apiKey: "demo-key-security-sec789",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["security"],
         isActive: "true",
       });
       
@@ -699,6 +720,9 @@ export async function seedAllMockData() {
         description: "Historical vendor performance metrics and SLA tracking database",
         serverUrl: "https://vendordb.nujumair.com/api",
         apiKey: "demo-key-vendorperf-vp2468",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["procurement", "delivery"],
         isActive: "true",
       });
       
@@ -707,6 +731,9 @@ export async function seedAllMockData() {
         description: "Electronic signature platform for vendor contracts and legal agreements",
         serverUrl: "https://api.docusign.com",
         apiKey: "demo-key-docusign-ds1357",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["procurement"],
         isActive: "true",
       });
       
@@ -715,6 +742,9 @@ export async function seedAllMockData() {
         description: "Intellectual property and patent registry for technology assets",
         serverUrl: "https://ipreg.nujumair.com/api",
         apiKey: "demo-key-ipreg-ip9753",
+        connectorType: "rest",
+        authType: "apikey",
+        roleMapping: ["architecture", "security"],
         isActive: "false",
       });
       
@@ -723,6 +753,9 @@ export async function seedAllMockData() {
         description: "Incident management and operational risk tracking system",
         serverUrl: "https://incidents.nujumair.com/api",
         apiKey: "demo-key-incidents-ir4862",
+        connectorType: "rest",
+        authType: "bearer",
+        roleMapping: ["security", "delivery"],
         isActive: "true",
       });
       
@@ -731,6 +764,9 @@ export async function seedAllMockData() {
         description: "Historical evaluation criteria and scoring frameworks repository",
         serverUrl: "https://evalmatrix.nujumair.com/api",
         apiKey: "demo-key-evalmatrix-em3691",
+        connectorType: "rest",
+        authType: "apikey",
+        roleMapping: ["product", "procurement", "delivery"],
         isActive: "true",
       });
       

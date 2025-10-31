@@ -1,6 +1,7 @@
 import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation } from "./aiAnalysis";
 import { getOpenAIClient } from "./aiAnalysis";
 import { ragRetrievalService } from "./ragRetrieval";
+import { mcpConnectorService, type ConnectorError } from "./mcpConnectorService";
 
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
@@ -430,6 +431,7 @@ async function executeAgent(
   proposal: ProposalAnalysis,
   standardData?: StandardData,
   ragContext?: string,
+  mcpContext?: string,
   timeout: number = 30000
 ): Promise<AgentResult> {
   const startTime = Date.now();
@@ -457,6 +459,11 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
   // Add RAG context if available
   if (ragContext) {
     standardsContext += `\n\n${ragContext}`;
+  }
+
+  // Add MCP connector context if available
+  if (mcpContext) {
+    standardsContext += `\n\n${mcpContext}`;
   }
   
   const userMessage = prompt.userTemplate
@@ -646,11 +653,59 @@ export async function evaluateProposalMultiAgent(
     console.error(`   ❌ RAG retrieval failed, proceeding without it:`, error);
   }
   
+  // Retrieve external data from MCP connectors
+  const mcpContextByRole: Map<AgentRole, string> = new Map();
+  const mcpErrors: ConnectorError[] = [];
+  
+  try {
+    console.log(`   🔌 Retrieving external intelligence from MCP connectors...`);
+    
+    const evaluationContext = {
+      projectName: requirements.scope,
+      vendorName: proposal.vendorName,
+      requirements: requirements.technicalRequirements,
+      proposalSummary: proposal.technicalApproach,
+    };
+    
+    const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
+    
+    // Fetch MCP data for all roles in parallel
+    const mcpResults = await Promise.allSettled(
+      roles.map(role => mcpConnectorService.fetchAllConnectorDataForRole(role, evaluationContext))
+    );
+    
+    mcpResults.forEach((result, index) => {
+      const role = roles[index];
+      if (result.status === "fulfilled") {
+        const { payload, diagnostics } = result.value;
+        if (payload) {
+          mcpContextByRole.set(role, payload);
+        }
+        mcpErrors.push(...diagnostics);
+      }
+    });
+    
+    const activeConnectorsCount = Array.from(mcpContextByRole.values()).filter(p => p.length > 0).length;
+    if (activeConnectorsCount > 0) {
+      console.log(`   ✅ Retrieved external data for ${activeConnectorsCount} agent roles`);
+    } else {
+      console.log(`   ⚠️  No active MCP connectors found or no data retrieved`);
+    }
+    
+    if (mcpErrors.length > 0) {
+      console.warn(`   ⚠️  ${mcpErrors.length} MCP connector errors occurred (non-blocking)`);
+    }
+  } catch (error) {
+    console.error(`   ❌ MCP connector retrieval failed, proceeding without it:`, error);
+  }
+  
   const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
   
   try {
     // Execute all agents in parallel with allSettled for resilience
-    const agentPromises = roles.map(role => executeAgent(role, requirements, proposal, standardData, ragContext));
+    const agentPromises = roles.map(role => 
+      executeAgent(role, requirements, proposal, standardData, ragContext, mcpContextByRole.get(role))
+    );
     const settledResults = await Promise.allSettled(agentPromises);
     
     // Extract successful results and track failures
