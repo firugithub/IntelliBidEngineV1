@@ -1034,7 +1034,7 @@ export default function StandardsPage() {
                               <div className="flex items-center gap-2 text-xs">
                                 {Object.entries(doc.metadata as Record<string, unknown>).slice(0, 3).map(([key, value]) => (
                                   <span key={key} className="px-2 py-1 bg-muted rounded text-muted-foreground">
-                                    {key}: {value !== null && value !== undefined ? String(value) : 'N/A'}
+                                    {key}: {String(value !== null && value !== undefined ? value : 'N/A')}
                                   </span>
                                 ))}
                               </div>

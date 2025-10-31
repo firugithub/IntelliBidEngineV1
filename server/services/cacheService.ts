@@ -13,6 +13,12 @@ class CacheService {
   }
 
   set<T>(key: string, value: T, ttlSeconds: number = 300): void {
+    // If updating existing key, delete it first to move it to end of insertion order
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    }
+
+    // Evict least recently used (first) entry if cache is full
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) {
@@ -34,6 +40,10 @@ class CacheService {
       this.cache.delete(key);
       return null;
     }
+
+    // Move accessed entry to end of insertion order (LRU refresh)
+    this.cache.delete(key);
+    this.cache.set(key, entry);
 
     return entry.value as T;
   }
