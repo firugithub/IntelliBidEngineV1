@@ -76,7 +76,14 @@ IntelliBid includes 5 production-ready AI-powered features accessible via a unif
 ### Knowledge Base
 **Purpose:** Centralized repository for managing organizational documents and guidelines to enhance AI evaluation accuracy, with integration for external Model Context Protocol (MCP) connectors.
 **Document Management with RAG Integration:** Admin interface for uploading and managing organizational documents (PDF/TXT/DOC/DOCX or URL) with AI-powered section extraction. Documents are categorized and grouped by stakeholder (Technical, Delivery & Operations, Finance & Procurement, Security & Compliance, General) and automatically ingested into the RAG system.
-**MCP Connectors:** Management of external MCP server connections.
+**MCP Connectors:** Pluggable adapter system for integrating external enterprise data sources into AI evaluations:
+-   **Architecture:** Modular adapter pattern supporting REST, GraphQL, and WebSocket connectors with role-based mappings to 6 AI agents (delivery, product, architecture, engineering, procurement, security)
+-   **Security:** AES-256-GCM encryption for API keys at rest using PBKDF2 key derivation (100k iterations) from SESSION_SECRET; all API responses mask credentials; unique salt and IV per encryption
+-   **Caching:** LRU cache with configurable TTL (default 5 minutes) for API responses to minimize external API calls and improve performance
+-   **Authentication:** Supports Bearer tokens, Basic auth, API keys, and OAuth with automatic header injection
+-   **Error Handling:** Graceful degradation for legacy/invalid data; timeout handling; URL allowlist validation for SSRF prevention
+-   **Database Persistence:** Full CRUD operations with PostgreSQL; all connector metadata including roleMapping arrays persisted
+-   **Multi-Agent Integration:** Enriches AI agent prompts with real-time external data (e.g., JIRA tickets, ServiceNow incidents, vendor databases)
 
 ### RAG Infrastructure (Retrieval Augmented Generation)
 **Components:** Azure Embedding Service (`text-embedding-ada-002`), Intelligent Chunking Service, Azure Blob Storage Service, and Azure AI Search Service (vector database with hybrid search).
