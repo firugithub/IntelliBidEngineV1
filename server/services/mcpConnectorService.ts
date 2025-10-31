@@ -46,6 +46,7 @@ class RESTAdapter implements ConnectorAdapter {
 
     try {
       const headers: Record<string, string> = {
+        "Accept": "application/json, text/event-stream",
         "Content-Type": "application/json",
       };
 
@@ -57,16 +58,23 @@ class RESTAdapter implements ConnectorAdapter {
         headers["Authorization"] = `Basic ${Buffer.from(connector.apiKey).toString("base64")}`;
       }
 
-      const queryParams = new URLSearchParams({
-        vendor: context.vendorName || "",
-        project: context.projectName || "",
-      }).toString();
+      // Build JSON-RPC 2.0 request for MCP
+      const jsonRpcRequest = {
+        jsonrpc: "2.0",
+        id: Date.now(),
+        method: "tools/list",
+        params: {
+          vendor: context.vendorName || "",
+          project: context.projectName || "",
+          requirements: context.requirements || [],
+          proposalSummary: context.proposalSummary || "",
+        },
+      };
 
-      const url = `${connector.serverUrl}${queryParams ? `?${queryParams}` : ""}`;
-
-      const response = await fetch(url, {
-        method: "GET",
+      const response = await fetch(connector.serverUrl, {
+        method: "POST",
         headers,
+        body: JSON.stringify(jsonRpcRequest),
         signal: controller.signal,
       });
 
@@ -82,7 +90,23 @@ class RESTAdapter implements ConnectorAdapter {
         throw { category: "network", message: `HTTP ${response.status}: ${response.statusText}` };
       }
 
-      const data = await response.json();
+      // Parse response (could be JSON or Server-Sent Events format)
+      const contentType = response.headers.get("content-type") || "";
+      let data: any;
+
+      if (contentType.includes("text/event-stream")) {
+        // Parse SSE format: "event: message\ndata: {...}\n"
+        const text = await response.text();
+        const dataMatch = text.match(/data: ({.*})/);
+        if (dataMatch && dataMatch[1]) {
+          data = JSON.parse(dataMatch[1]);
+        } else {
+          throw { category: "parsing", message: "Failed to parse SSE response" };
+        }
+      } else {
+        // Regular JSON response
+        data = await response.json();
+      }
 
       const roleContext = this.formatDataForRoles(data, connector, context);
       const ttl = 300;
