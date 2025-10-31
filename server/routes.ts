@@ -570,12 +570,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/mcp-connectors", async (req, res) => {
     try {
-      const { name, description, serverUrl, apiKey, config } = req.body;
+      const { name, description, serverUrl, apiKey, connectorType, authType, roleMapping, config } = req.body;
       const connector = await storage.createMcpConnector({
         name,
         description,
         serverUrl,
         apiKey,
+        connectorType,
+        authType,
+        roleMapping,
         config,
         isActive: "true",
       });
@@ -592,12 +595,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/mcp-connectors/:id", async (req, res) => {
     try {
-      const { name, description, serverUrl, apiKey, config, isActive } = req.body;
+      const { name, description, serverUrl, apiKey, connectorType, authType, roleMapping, config, isActive } = req.body;
       await storage.updateMcpConnector(req.params.id, {
         name,
         description,
         serverUrl,
         apiKey,
+        connectorType,
+        authType,
+        roleMapping,
         config,
         isActive,
       });

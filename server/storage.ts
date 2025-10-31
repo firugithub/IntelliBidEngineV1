@@ -40,6 +40,7 @@ import {
   type GeneratedRft,
   type InsertGeneratedRft,
   systemConfig,
+  mcpConnectors,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -1132,4 +1133,45 @@ storage.getSystemConfigByCategory = async function(category: string): Promise<Sy
 
 storage.deleteSystemConfig = async function(key: string): Promise<void> {
   await db.delete(systemConfig).where(eq(systemConfig.key, key));
+};
+
+// Override MCP connector methods to use PostgreSQL
+storage.createMcpConnector = async function(insertConnector: InsertMcpConnector): Promise<McpConnector> {
+  const created = await db.insert(mcpConnectors)
+    .values({
+      name: insertConnector.name,
+      description: insertConnector.description || null,
+      serverUrl: insertConnector.serverUrl,
+      apiKey: insertConnector.apiKey || null,
+      connectorType: insertConnector.connectorType || "rest",
+      authType: insertConnector.authType || "bearer",
+      roleMapping: insertConnector.roleMapping || null,
+      config: insertConnector.config || null,
+      isActive: insertConnector.isActive || "true",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getMcpConnector = async function(id: string): Promise<McpConnector | undefined> {
+  const results = await db.select().from(mcpConnectors).where(eq(mcpConnectors.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllMcpConnectors = async function(): Promise<McpConnector[]> {
+  return await db.select().from(mcpConnectors);
+};
+
+storage.getActiveMcpConnectors = async function(): Promise<McpConnector[]> {
+  return await db.select().from(mcpConnectors).where(eq(mcpConnectors.isActive, "true"));
+};
+
+storage.updateMcpConnector = async function(id: string, updates: Partial<InsertMcpConnector>): Promise<void> {
+  await db.update(mcpConnectors)
+    .set(updates)
+    .where(eq(mcpConnectors.id, id));
+};
+
+storage.deleteMcpConnector = async function(id: string): Promise<void> {
+  await db.delete(mcpConnectors).where(eq(mcpConnectors.id, id));
 };
