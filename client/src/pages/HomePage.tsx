@@ -21,14 +21,10 @@ interface Project {
   status: string;
 }
 
-interface GeneratedRft {
-  id: string;
-  projectId: string;
-  businessCaseId: string;
-  name: string;
-  status: string;
-  createdAt: Date;
-  sections?: any;
+interface PortfolioRftStats {
+  totalRfts: number;
+  active: number;
+  evaluationInProgress: number;
 }
 
 export default function HomePage() {
@@ -41,10 +37,6 @@ export default function HomePage() {
 
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
-  });
-
-  const { data: generatedRfts } = useQuery<GeneratedRft[]>({
-    queryKey: ["/api/generated-rfts"],
   });
 
   // Seed portfolios on first load if empty (one-shot)
@@ -82,13 +74,74 @@ export default function HomePage() {
     );
   }
 
-  const getPortfolioStats = (portfolioId: string) => {
-    const portfolioProjects = projects?.filter(p => p.portfolioId === portfolioId) || [];
-    const totalProjects = portfolioProjects.length;
-    const completedProjects = portfolioProjects.filter(p => p.status === "completed").length;
-    const activeProjects = portfolioProjects.filter(p => p.status === "analyzing").length;
+  // Component for fetching and displaying portfolio stats
+  const PortfolioCard = ({ portfolio }: { portfolio: Portfolio }) => {
+    const { data: stats } = useQuery<PortfolioRftStats>({
+      queryKey: ["/api/portfolios", portfolio.id, "rft-stats"],
+      queryFn: async () => {
+        const response = await fetch(`/api/portfolios/${portfolio.id}/rft-stats`);
+        if (!response.ok) throw new Error("Failed to fetch stats");
+        return response.json();
+      },
+    });
 
-    return { totalProjects, completedProjects, activeProjects };
+    return (
+      <Link
+        href={`/portfolio/${portfolio.id}`}
+        data-testid={`link-portfolio-${portfolio.id}`}
+      >
+        <Card className="h-full hover-elevate active-elevate-2 cursor-pointer transition-all">
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg" data-testid={`text-portfolio-${portfolio.id}`}>
+                    {portfolio.name}
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-sm">
+                  {portfolio.description}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <FileText className="h-3 h-3" />
+                  Total RFTs
+                </div>
+                <div className="text-2xl font-bold" data-testid={`stat-total-${portfolio.id}`}>
+                  {stats?.totalRfts ?? 0}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Active
+                </div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid={`stat-active-${portfolio.id}`}>
+                  {stats?.active ?? 0}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3" />
+                  In Progress
+                </div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400" data-testid={`stat-progress-${portfolio.id}`}>
+                  {stats?.evaluationInProgress ?? 0}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
   };
 
   return (
@@ -118,161 +171,17 @@ export default function HomePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* My RFTs Section */}
-        {generatedRfts && generatedRfts.length > 0 && (
-          <div className="mb-12">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold mb-2">My RFTs</h2>
-              <p className="text-muted-foreground">
-                Recently created Request for Technology documents
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {generatedRfts.slice(0, 6).map((rft) => (
-                <Card key={rft.id} className="h-full hover-elevate" data-testid={`card-rft-${rft.id}`}>
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg" data-testid={`text-rft-${rft.id}`}>
-                          {rft.name}
-                        </CardTitle>
-                        <CardDescription className="text-sm mt-1">
-                          {rft.sections?.sections?.length || 0} sections • {rft.status}
-                        </CardDescription>
-                      </div>
-                      <Badge variant={rft.status === "published" ? "default" : "secondary"}>
-                        {rft.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-xs text-muted-foreground">
-                      Created {new Date(rft.createdAt).toLocaleDateString()}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          window.open(`/api/generated-rfts/${rft.id}/download/doc`, "_blank");
-                        }}
-                        data-testid={`button-download-doc-${rft.id}`}
-                      >
-                        <FileDown className="w-3 h-3 mr-1" />
-                        DOC
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          window.open(`/api/generated-rfts/${rft.id}/download/pdf`, "_blank");
-                        }}
-                        data-testid={`button-download-pdf-${rft.id}`}
-                      >
-                        <FileDown className="w-3 h-3 mr-1" />
-                        PDF
-                      </Button>
-                    </div>
-                    
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        window.open(`/api/generated-rfts/${rft.id}/download/all`, "_blank");
-                      }}
-                      data-testid={`button-download-all-${rft.id}`}
-                      className="w-full"
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      Download All (ZIP)
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-2">Portfolios</h2>
           <p className="text-muted-foreground">
-            Select a portfolio to view projects and start vendor shortlisting
+            Select a portfolio to create RFTs or evaluate vendor proposals
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {portfolios?.map((portfolio) => {
-            const stats = getPortfolioStats(portfolio.id);
-            
-            return (
-              <Link
-                key={portfolio.id}
-                href={`/portfolio/${portfolio.id}`}
-                data-testid={`link-portfolio-${portfolio.id}`}
-              >
-                <Card className="h-full hover-elevate active-elevate-2 cursor-pointer transition-all">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="rounded-lg bg-primary/10 p-2">
-                            <Building2 className="h-5 w-5 text-primary" />
-                          </div>
-                          <CardTitle className="text-lg" data-testid={`text-portfolio-${portfolio.id}`}>
-                            {portfolio.name}
-                          </CardTitle>
-                        </div>
-                        <CardDescription className="text-sm">
-                          {portfolio.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <FileText className="h-3 w-3" />
-                          <span>Total</span>
-                        </div>
-                        <p className="text-xl font-bold font-mono" data-testid={`stat-total-${portfolio.id}`}>
-                          {stats.totalProjects}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <TrendingUp className="h-3 w-3" />
-                          <span>Active</span>
-                        </div>
-                        <p className="text-xl font-bold font-mono text-chart-1">
-                          {stats.activeProjects}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>Done</span>
-                        </div>
-                        <p className="text-xl font-bold font-mono text-chart-2">
-                          {stats.completedProjects}
-                        </p>
-                      </div>
-                    </div>
-
-                    {stats.completedProjects > 0 && (
-                      <div className="pt-2 border-t">
-                        <Badge variant="secondary" className="text-xs">
-                          {Math.round((stats.completedProjects / stats.totalProjects) * 100)}% completion rate
-                        </Badge>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+          {portfolios?.map((portfolio) => (
+            <PortfolioCard key={portfolio.id} portfolio={portfolio} />
+          ))}
         </div>
       </div>
     </div>
