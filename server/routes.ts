@@ -2308,6 +2308,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Seed sample RFT for demonstration
+  app.post("/api/seed-sample-rft", async (req, res) => {
+    try {
+      // Get first portfolio
+      const portfolios = await storage.getAllPortfolios();
+      if (portfolios.length === 0) {
+        return res.status(400).json({ error: "No portfolios found. Please seed portfolios first." });
+      }
+      const portfolioId = portfolios[0].id;
+
+      // Create a test project
+      const project = await storage.createProject({
+        portfolioId,
+        name: "Sample Cloud Infrastructure Modernization",
+        description: "Migrating legacy systems to cloud-native architecture",
+        status: "rft_generated",
+      });
+
+      // Create a business case
+      const businessCase = await storage.createBusinessCase({
+        projectId: project.id,
+        content: `# Executive Summary\n\nThis business case outlines the strategic initiative to modernize our legacy infrastructure by migrating to cloud-native technologies.\n\n## Business Objectives\n\n- Reduce operational costs by 40%\n- Improve system reliability and uptime to 99.99%\n- Enable rapid scaling for seasonal demand`,
+        status: "generated",
+      });
+
+      // Create generated RFT with markdown examples
+      const generatedRft = await storage.createGeneratedRft({
+        projectId: project.id,
+        businessCaseId: businessCase.id,
+        name: "Cloud Infrastructure Modernization RFT",
+        status: "draft",
+        sections: {
+          sections: [
+            {
+              id: "1",
+              title: "Executive Summary",
+              content: "This Request for Technology (RFT) seeks proposals from qualified vendors to support our cloud infrastructure modernization initiative. We are looking for a comprehensive solution that includes **migration strategy**, *security implementation*, and ongoing support.",
+            },
+            {
+              id: "2",
+              title: "Project Overview",
+              content: "**Objective**: Modernize legacy infrastructure through cloud migration\n\n**Timeline**: 12-month implementation\n\n**Budget**: $2M - $3M\n\n### Key Deliverables\n\n- Complete infrastructure assessment\n- Migration roadmap and strategy\n- Implementation and deployment\n- Training and knowledge transfer",
+            },
+            {
+              id: "3",
+              title: "Technical Requirements",
+              content: "## Infrastructure Requirements\n\n- Multi-region deployment capability\n- Auto-scaling and load balancing\n- Database migration tools and services\n- Monitoring and observability platform\n\n## Security Requirements\n\n1. ISO 27001 certification\n2. SOC 2 Type II compliance\n3. Encryption at rest and in transit\n4. Identity and access management (IAM)\n\n## Performance Requirements\n\n| Metric | Target | Measurement |\n|--------|--------|-------------|\n| Uptime | 99.99% | Monthly |\n| Response Time | < 1s | p95 |\n| Throughput | 10k req/s | Peak load |",
+            },
+          ],
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Sample RFT created successfully",
+        rft: generatedRft,
+      });
+    } catch (error) {
+      console.error("Error creating sample RFT:", error);
+      res.status(500).json({ error: "Failed to create sample RFT" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
