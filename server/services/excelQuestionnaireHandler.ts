@@ -288,3 +288,111 @@ export async function updateQuestionnaireFromJSON(
   
   return await workbook.xlsx.writeBuffer() as Buffer;
 }
+
+// Simple interface for frontend editing
+export interface QuestionnaireQuestion {
+  section: string;
+  question: string;
+  complianceScore: string;
+  remarks: string;
+}
+
+// Parse Excel to simple question array for frontend
+export async function parseExcelQuestionnaire(buffer: Buffer): Promise<QuestionnaireQuestion[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error("Worksheet not found");
+  }
+  
+  // Find column indices
+  const headerRow = worksheet.getRow(1);
+  let sectionCol = -1;
+  let questionCol = -1;
+  let complianceCol = -1;
+  let remarksCol = -1;
+  
+  headerRow.eachCell((cell, colNumber) => {
+    const cellValue = cell.value?.toString().toLowerCase() || "";
+    if (cellValue.includes("section") || cellValue.includes("category")) {
+      sectionCol = colNumber;
+    } else if (cellValue.includes("question") || cellValue === "#") {
+      questionCol = colNumber;
+    } else if (cellValue.includes("compliance")) {
+      complianceCol = colNumber;
+    } else if (cellValue.includes("remark")) {
+      remarksCol = colNumber;
+    }
+  });
+  
+  const questions: QuestionnaireQuestion[] = [];
+  
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header
+    
+    const questionCell = questionCol > 0 ? row.getCell(questionCol) : null;
+    if (!questionCell || !questionCell.value) return; // Skip empty rows
+    
+    questions.push({
+      section: sectionCol > 0 ? (row.getCell(sectionCol).value?.toString() || "General") : "General",
+      question: questionCell.value.toString(),
+      complianceScore: complianceCol > 0 ? (row.getCell(complianceCol).value?.toString() || "") : "",
+      remarks: remarksCol > 0 ? (row.getCell(remarksCol).value?.toString() || "") : "",
+    });
+  });
+  
+  return questions;
+}
+
+// Create Excel from question array
+export async function createExcelQuestionnaire(
+  name: string,
+  questions: QuestionnaireQuestion[]
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(name);
+  
+  // Add header row
+  worksheet.columns = [
+    { header: "Section", key: "section", width: 20 },
+    { header: "Question", key: "question", width: 50 },
+    { header: "Compliance Score", key: "complianceScore", width: 20 },
+    { header: "Remarks", key: "remarks", width: 40 },
+  ];
+  
+  // Style header row
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF4472C4" },
+  };
+  headerRow.alignment = { vertical: "middle", horizontal: "left" };
+  
+  // Add data rows
+  questions.forEach((q) => {
+    worksheet.addRow({
+      section: q.section,
+      question: q.question,
+      complianceScore: q.complianceScore,
+      remarks: q.remarks,
+    });
+  });
+  
+  // Add data validation for compliance scores
+  const complianceColumn = worksheet.getColumn(3);
+  complianceColumn.eachCell((cell, rowNumber) => {
+    if (rowNumber > 1) { // Skip header
+      cell.dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Full,Partial,Not Applicable,None"'],
+      };
+    }
+  });
+  
+  return await workbook.xlsx.writeBuffer() as Buffer;
+}
