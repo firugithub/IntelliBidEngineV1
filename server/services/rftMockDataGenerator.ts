@@ -233,9 +233,9 @@ export async function generateRftPack(rftId: string) {
     [`Agile_Questionnaire.xlsx`]: agileExcel,
   });
 
-  // Upload to Azure Blob Storage
+  // Upload to Azure Blob Storage under project-specific folder
   await azureBlobStorageService.uploadDocument(
-    `RFT Generated/${rft.name}/RFT_Package.zip`,
+    `project-${rft.projectId}/RFT Generated/RFT_Package.zip`,
     zipBuffer,
     { rftId: rft.id, projectId: rft.projectId, type: "rft-package" }
   );
@@ -244,7 +244,7 @@ export async function generateRftPack(rftId: string) {
     success: true,
     rftId: rft.id,
     filesCount: 6,
-    folder: "RFT Generated"
+    folder: `project-${rft.projectId}/RFT Generated`
   };
 }
 
@@ -269,27 +269,27 @@ export async function generateVendorResponses(rftId: string) {
     const securityResponse = await generateQuestionnaireResponse("Security", vendorName);
     const agileResponse = await generateQuestionnaireResponse("Agile", vendorName);
 
-    // Upload to Azure Blob Storage in vendor-specific folder
+    // Upload to Azure Blob Storage under project-specific folder
     await azureBlobStorageService.uploadDocument(
-      `RFT Responses/${rft.name}/${vendorName}/Product_Response.xlsx`,
+      `project-${project.id}/RFT Responses/${vendorName}/Product_Response.xlsx`,
       productResponse,
       { rftId: rft.id, vendorName, type: "product-response" }
     );
 
     await azureBlobStorageService.uploadDocument(
-      `RFT Responses/${rft.name}/${vendorName}/NFR_Response.xlsx`,
+      `project-${project.id}/RFT Responses/${vendorName}/NFR_Response.xlsx`,
       nfrResponse,
       { rftId: rft.id, vendorName, type: "nfr-response" }
     );
 
     await azureBlobStorageService.uploadDocument(
-      `RFT Responses/${rft.name}/${vendorName}/Security_Response.xlsx`,
+      `project-${project.id}/RFT Responses/${vendorName}/Security_Response.xlsx`,
       securityResponse,
       { rftId: rft.id, vendorName, type: "security-response" }
     );
 
     await azureBlobStorageService.uploadDocument(
-      `RFT Responses/${rft.name}/${vendorName}/Agile_Response.xlsx`,
+      `project-${project.id}/RFT Responses/${vendorName}/Agile_Response.xlsx`,
       agileResponse,
       { rftId: rft.id, vendorName, type: "agile-response" }
     );
@@ -299,7 +299,7 @@ export async function generateVendorResponses(rftId: string) {
     success: true,
     rftId: rft.id,
     vendorCount: vendors.length,
-    folder: "RFT Responses"
+    folder: `project-${project.id}/RFT Responses`
   };
 }
 
@@ -420,9 +420,9 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
 
   const reportBuffer = Buffer.from(reportContent, "utf-8");
 
-  // Upload to Azure Blob Storage
+  // Upload to Azure Blob Storage under project-specific folder
   await azureBlobStorageService.uploadDocument(
-    `RFT Evaluation/${rft.name}/Evaluation_Report.txt`,
+    `project-${project.id}/RFT Evaluation/Evaluation_Report.txt`,
     reportBuffer,
     { rftId: rft.id, projectId: project.id, type: "evaluation-report" }
   );
@@ -431,7 +431,7 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
     success: true,
     rftId: rft.id,
     proposalsCount: proposals.length,
-    folder: "RFT Evaluation"
+    folder: `project-${project.id}/RFT Evaluation`
   };
 }
 

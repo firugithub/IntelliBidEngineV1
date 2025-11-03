@@ -90,7 +90,7 @@ export default function GenerateMockDataPage() {
     onSuccess: (data: any) => {
       toast({ 
         title: "RFT Pack Generated!", 
-        description: `Complete package with ${data.filesCount} files uploaded to Azure Blob Storage.` 
+        description: `Complete package with ${data.filesCount} files uploaded to: ${data.folder}` 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
@@ -107,7 +107,7 @@ export default function GenerateMockDataPage() {
     onSuccess: (data: any) => {
       toast({ 
         title: "Vendor Responses Generated!", 
-        description: `${data.vendorCount} vendors with complete responses uploaded to Azure Blob Storage.` 
+        description: `${data.vendorCount} vendor responses uploaded to: ${data.folder}` 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
@@ -124,7 +124,7 @@ export default function GenerateMockDataPage() {
     onSuccess: (data: any) => {
       toast({ 
         title: "Evaluation Generated!", 
-        description: `Complete evaluation report with ${data.proposalsCount} proposals uploaded to Azure Blob Storage.` 
+        description: `Evaluation report for ${data.proposalsCount} vendors uploaded to: ${data.folder}` 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
