@@ -37,9 +37,8 @@ export class AzureBlobStorageService {
       throw new Error("Azure Blob Storage client not initialized");
     }
 
-    // Generate unique blob name
-    const timestamp = Date.now();
-    const blobName = `${timestamp}-${fileName}`;
+    // Use fileName directly if it's a path (contains '/'), otherwise add timestamp for uniqueness
+    const blobName = fileName.includes('/') ? fileName : `${Date.now()}-${fileName}`;
     const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
 
     // Upload with metadata
