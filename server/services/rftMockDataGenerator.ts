@@ -256,15 +256,19 @@ export async function generateRftPack(rftId: string) {
     agile: agileQuestions,
   });
 
-  console.log("Generating RFT document files...");
+  console.log("Generating professional RFT document content using AI...");
 
-  // Generate detailed RFT document content
-  const sections = (rft.sections as any)?.sections || [];
-  const rftSections = sections.map((s: any, index: number) => ({
-    sectionId: s.id || `section-${index + 1}`,
+  // Generate professional RFT sections using AI
+  const { generateProfessionalRftSections } = await import("./smartRftService");
+  const professionalSections = await generateProfessionalRftSections(businessCaseExtract);
+  
+  const rftSections = professionalSections.map((s, index) => ({
+    sectionId: s.sectionId || `section-${index + 1}`,
     title: s.title || `Section ${index + 1}`,
     content: s.content || ""
   }));
+
+  console.log(`Generated ${rftSections.length} professional RFT sections`);
 
   // Generate DOCX
   const docxFileName = `${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.docx`;

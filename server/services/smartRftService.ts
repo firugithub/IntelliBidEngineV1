@@ -28,6 +28,84 @@ interface BusinessCaseExtract {
 }
 
 /**
+ * Generate comprehensive RFT document sections following professional standards
+ */
+export async function generateProfessionalRftSections(
+  businessCaseExtract: BusinessCaseExtract
+): Promise<RftSection[]> {
+  const prompt = `You are creating a professional Request for Tender (RFT) document for ${businessCaseExtract.projectName}.
+
+Business Context:
+- Project: ${businessCaseExtract.projectName}
+- Objective: ${businessCaseExtract.businessObjective}
+- Scope: ${businessCaseExtract.scope}
+- Timeline: ${businessCaseExtract.timeline}
+- Budget: ${businessCaseExtract.budget}
+- Key Requirements: ${businessCaseExtract.keyRequirements.join(', ')}
+
+Generate a comprehensive RFT document with the following 10 sections. Each section should be detailed, professional, and specific to this aviation/airline project:
+
+1. **Introduction & Overview** - Purpose, background, objectives, tendering process summary
+2. **Scope of Work / Requirements** - Detailed requirements, functional/technical specs, deliverables, milestones, timelines
+3. **Instructions to Tenderers** - Eligibility criteria, submission process, deadlines, clarification protocol
+4. **Evaluation Criteria** - Evaluation methodology, weightings, scoring, mandatory vs desirable criteria
+5. **Commercial Terms & Conditions** - Pricing structure, payment terms, taxes, warranty, maintenance
+6. **Contractual Requirements** - Contract terms, IP rights, confidentiality, liability, insurance, dispute resolution
+7. **Non-Functional Requirements (NFRs)** - Security, compliance, availability, scalability, performance, SLAs
+8. **Governance & Risk Management** - Project governance, reporting, risk mitigation, change control
+9. **Response Templates / Schedules** - Vendor response templates, mandatory documentation, declarations
+10. **Appendices** - Glossary, standards, reference documents, regulatory attachments
+
+Return a JSON array with this structure:
+[
+  {
+    "sectionId": "section-1",
+    "title": "Introduction & Overview",
+    "content": "Detailed multi-paragraph content for this section..."
+  },
+  ...
+]
+
+Make the content:
+- Professional and formal in tone
+- Specific to airline/aviation industry
+- Detailed with 3-5 paragraphs per section
+- Include realistic requirements, timelines, and evaluation criteria
+- Reference industry standards (IATA, ISO, etc.) where appropriate
+
+Return ONLY valid JSON array, no additional text.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert procurement specialist with 20+ years of experience in airline industry RFT/RFP creation. You understand aviation regulations, IATA standards, and airline operational requirements.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
+
+    const result = JSON.parse(content);
+    // Handle both array and object with sections array
+    const sections = Array.isArray(result) ? result : (result.sections || []);
+    
+    return sections as RftSection[];
+  } catch (error) {
+    console.error("Error generating RFT sections:", error);
+    throw new Error("Failed to generate professional RFT sections");
+  }
+}
+
+/**
  * Extract structured information from a business case document
  */
 export async function extractBusinessCaseInfo(

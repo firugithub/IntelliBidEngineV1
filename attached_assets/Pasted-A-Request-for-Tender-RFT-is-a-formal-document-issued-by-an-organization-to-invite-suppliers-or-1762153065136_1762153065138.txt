@@ -1,0 +1,103 @@
+A **Request for Tender (RFT)** is a formal document issued by an organization to invite suppliers or vendors to submit bids to supply goods, services, or works. It ensures transparency, comparability, and fairness in procurement.
+
+Below are the **standard sections** of a well-structured RFT:
+
+---
+
+### 🧭 **1. Introduction & Overview**
+
+* Purpose of the RFT
+* Background of the organization or project
+* Objectives and expected outcomes
+* Tendering process summary
+
+---
+
+### 📘 **2. Scope of Work / Requirements**
+
+* Detailed description of the goods, services, or works required
+* Functional and technical requirements
+* Performance expectations and deliverables
+* Constraints, dependencies, or assumptions
+* Expected milestones and timelines
+
+---
+
+### 📑 **3. Instructions to Tenderers**
+
+* Eligibility and qualification criteria
+* Submission process (format, deadline, delivery method, etc.)
+* Tender validity period
+* Clarification and communication protocol
+* Site visits or pre-bid meetings (if applicable)
+
+---
+
+### ⚙️ **4. Evaluation Criteria**
+
+* Evaluation methodology (technical, financial, and compliance)
+* Weightings and scoring formula
+* Mandatory vs. desirable criteria
+* Shortlisting and selection process
+
+---
+
+### 💼 **5. Commercial Terms & Conditions**
+
+* Pricing structure and format (unit rates, lump sum, etc.)
+* Payment terms and invoicing procedures
+* Taxes, duties, and exchange rates
+* Warranty and maintenance terms
+
+---
+
+### 📜 **6. Contractual Requirements**
+
+* Draft contract or agreement terms
+* Intellectual property rights
+* Confidentiality and data protection clauses
+* Liability, indemnity, and insurance requirements
+* Termination and dispute resolution process
+
+---
+
+### 🧰 **7. Non-Functional Requirements (NFRs)**
+
+*(Typically for technology or system-related tenders)*
+
+* Security and compliance requirements
+* Availability, scalability, and performance
+* Data protection, encryption, and access control
+* Integration and interoperability
+* Support and service level agreements (SLAs)
+
+---
+
+### 🔒 **8. Governance & Risk Management**
+
+* Project governance model
+* Reporting and communication expectations
+* Risk identification and mitigation framework
+* Change control and escalation procedures
+
+---
+
+### 📋 **9. Response Templates / Schedules**
+
+* Vendor response templates (technical, commercial, and compliance)
+* Checklists for mandatory documentation
+* Declarations (e.g., conflict of interest, legal compliance, etc.)
+* Reference forms or past performance details
+
+---
+
+### 📎 **10. Appendices**
+
+* Glossary of terms
+* Related standards, drawings, or data sheets
+* Reference documents or specifications
+* Any legal or regulatory attachments
+
+---
+
+Would you like me to generate a **sample RFT document structure** (with detailed placeholders and guidance text) — e.g., for a **technology procurement (like enterprise caching platform)** or a **construction/services contract**?
