@@ -1120,8 +1120,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get unique vendor names from proposals
       const vendorNames = [...new Set(proposals.map(p => p.vendorName))];
       
+      // Import score calculator
+      const { calculateExcelScoresForVendor, calculateHybridScore, mapExcelScoresToEvaluation } = 
+        await import("./services/excelScoreCalculator");
+      
       // Create enriched results for all vendors (with or without evaluations)
-      const enrichedEvaluations = vendorNames.map((vendorName) => {
+      const enrichedEvaluations = await Promise.all(vendorNames.map(async (vendorName) => {
         // Find evaluation for this vendor (may not exist)
         const evaluation = evaluations.find((e) => {
           const proposal = proposals.find((p) => p.id === e.proposalId);
@@ -1136,15 +1140,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             documentType: p.documentType,
             fileName: p.fileName,
             blobUrl: p.blobUrl,
+            blobName: p.blobName,
             createdAt: p.createdAt,
           }));
 
-        // If evaluation exists, return it enriched with documents
+        // Calculate Excel-based scores
+        let excelScores = null;
+        let hybridScores = null;
+        try {
+          excelScores = await calculateExcelScoresForVendor(vendorDocuments);
+          
+          // Calculate hybrid scores if evaluation exists
+          if (evaluation) {
+            const excelEvaluationScores = mapExcelScoresToEvaluation(excelScores);
+            
+            hybridScores = {
+              overallScore: calculateHybridScore(evaluation.overallScore, excelScores.averageScore),
+              technicalFit: calculateHybridScore(evaluation.technicalFit, excelEvaluationScores.technicalFit),
+              deliveryRisk: calculateHybridScore(evaluation.deliveryRisk, excelEvaluationScores.deliveryRisk),
+              compliance: calculateHybridScore(evaluation.compliance, excelEvaluationScores.compliance),
+              integration: calculateHybridScore(
+                evaluation.detailedScores?.integration || 0, 
+                excelEvaluationScores.integration
+              ),
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to calculate Excel scores for ${vendorName}:`, error);
+        }
+
+        // If evaluation exists, return it enriched with documents and scores
         if (evaluation) {
           return {
             ...evaluation,
             vendorName,
             documents: vendorDocuments,
+            excelScores,
+            hybridScores,
           };
         }
         
@@ -1163,8 +1195,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           roleInsights: {},
           detailedScores: {},
           documents: vendorDocuments,
+          excelScores,
+          hybridScores: null,
         };
-      });
+      }));
 
       res.json(enrichedEvaluations);
     } catch (error) {
