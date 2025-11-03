@@ -37,8 +37,10 @@ export class AzureBlobStorageService {
       throw new Error("Azure Blob Storage client not initialized");
     }
 
-    // Use fileName directly if it's a path (contains '/'), otherwise add timestamp for uniqueness
-    const blobName = fileName.includes('/') ? fileName : `${Date.now()}-${fileName}`;
+    // Normalize path separators to forward slashes for Azure Blob Storage
+    // Use fileName directly if it's a path (contains '/' or '\'), otherwise add timestamp for uniqueness
+    const normalizedFileName = fileName.replace(/\\/g, '/');
+    const blobName = normalizedFileName.includes('/') ? normalizedFileName : `${Date.now()}-${normalizedFileName}`;
     const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
 
     // Upload with metadata

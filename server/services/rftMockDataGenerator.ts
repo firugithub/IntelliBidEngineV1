@@ -1,7 +1,11 @@
 import { storage } from "../storage";
 import { azureBlobStorageService } from "./azureBlobStorage";
-import archiver from "archiver";
+import { generateQuestionnaireQuestions } from "./smartRftService";
+import { generateAllQuestionnaires } from "./excelGenerator";
+import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";
 import ExcelJS from "exceljs";
+import fs from "fs";
+import path from "path";
 
 // RFT topic configurations
 const RFT_TOPICS = {
@@ -212,39 +216,143 @@ export async function generateRftPack(rftId: string) {
     throw new Error("Project not found");
   }
 
-  // Generate DOCX and PDF (placeholder content for now)
-  const docContent = `${rft.name}\n\n${JSON.stringify(rft.sections, null, 2)}`;
-  const docBuffer = Buffer.from(docContent, "utf-8");
-  const pdfBuffer = Buffer.from(docContent, "utf-8");
+  const businessCase = rft.businessCaseId ? await storage.getBusinessCase(rft.businessCaseId) : null;
+  
+  // Extract business case information for AI generation
+  const businessCaseExtract = {
+    projectName: rft.name,
+    businessObjective: businessCase?.documentContent || `Modernize ${rft.name} for improved efficiency and customer experience`,
+    scope: `Full implementation of ${rft.name} across all airline operations`,
+    keyRequirements: (rft.sections as any)?.sections?.map((s: any) => s.content).filter(Boolean) || [
+      "Cloud-native architecture",
+      "Scalable and secure platform",
+      "Industry compliance",
+      "Vendor support"
+    ],
+    budget: "To be determined based on vendor proposals",
+    timeline: "12-18 months",
+    stakeholders: ["IT Department", "Operations Team", "Executive Leadership"],
+    risks: ["Implementation delays", "Budget overruns", "Integration challenges"],
+    successCriteria: ["On-time delivery", "Budget adherence", "User adoption"]
+  };
 
-  // Generate questionnaires (Excel files)
-  const productExcel = await generateQuestionnaireExcel("Product");
-  const nfrExcel = await generateQuestionnaireExcel("NFR");
-  const securityExcel = await generateQuestionnaireExcel("Security");
-  const agileExcel = await generateQuestionnaireExcel("Agile");
+  console.log(`Generating AI-powered questionnaires for: ${rft.name}`);
 
-  // Create ZIP
-  const zipBuffer = await createZipArchive({
-    [`${rft.name}.docx`]: docBuffer,
-    [`${rft.name}.pdf`]: pdfBuffer,
-    [`Product_Questionnaire.xlsx`]: productExcel,
-    [`NFR_Questionnaire.xlsx`]: nfrExcel,
-    [`Security_Questionnaire.xlsx`]: securityExcel,
-    [`Agile_Questionnaire.xlsx`]: agileExcel,
+  // Generate all 4 questionnaires using AI with proper counts (30, 50, 20, 20)
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+  ]);
+
+  console.log("Generated questionnaires, creating Excel files...");
+
+  // Generate Excel files
+  const questionnairePaths = await generateAllQuestionnaires(project.id, {
+    product: productQuestions,
+    nfr: nfrQuestions,
+    cybersecurity: cybersecurityQuestions,
+    agile: agileQuestions,
   });
 
-  // Upload to Azure Blob Storage under project-specific folder
-  await azureBlobStorageService.uploadDocument(
-    `project-${project.id}/RFT Generated/RFT_Package.zip`,
-    zipBuffer,
-    { rftId: rft.id, projectId: project.id, type: "rft-package" }
-  );
+  console.log("Generating RFT document files...");
+
+  // Generate detailed RFT document content
+  const sections = (rft.sections as any)?.sections || [];
+  const rftSections = sections.map((s: any, index: number) => ({
+    sectionId: s.id || `section-${index + 1}`,
+    title: s.title || `Section ${index + 1}`,
+    content: s.content || ""
+  }));
+
+  // Generate DOCX
+  const docxFileName = `${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.docx`;
+  const docxPath = await generateDocxDocument({
+    projectName: rft.name,
+    sections: rftSections,
+    outputPath: path.join(process.cwd(), 'uploads', docxFileName)
+  });
+  const docxBuffer = fs.readFileSync(docxPath);
+
+  // Generate PDF
+  const pdfFileName = `${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.pdf`;
+  const pdfPath = await generatePdfDocument({
+    projectName: rft.name,
+    sections: rftSections,
+    outputPath: path.join(process.cwd(), 'uploads', pdfFileName)
+  });
+  const pdfBuffer = fs.readFileSync(pdfPath);
+
+  console.log("Uploading individual files to Azure Blob Storage...");
+
+  // Upload all files individually to Azure Blob Storage
+  await Promise.all([
+    // Upload RFT document (DOCX)
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
+      docxBuffer,
+      { rftId: rft.id, projectId: project.id, type: "rft-document-docx" }
+    ),
+    // Upload RFT document (PDF)
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`,
+      pdfBuffer,
+      { rftId: rft.id, projectId: project.id, type: "rft-document-pdf" }
+    ),
+    // Upload Product Questionnaire
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/Product_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.productPath),
+      { rftId: rft.id, projectId: project.id, type: "product-questionnaire" }
+    ),
+    // Upload NFR Questionnaire
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/NFR_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.nfrPath),
+      { rftId: rft.id, projectId: project.id, type: "nfr-questionnaire" }
+    ),
+    // Upload Cybersecurity Questionnaire
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/Cybersecurity_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.cybersecurityPath),
+      { rftId: rft.id, projectId: project.id, type: "cybersecurity-questionnaire" }
+    ),
+    // Upload Agile Questionnaire
+    azureBlobStorageService.uploadDocument(
+      `project-${project.id}/RFT Generated/Agile_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.agilePath),
+      { rftId: rft.id, projectId: project.id, type: "agile-questionnaire" }
+    ),
+  ]);
+
+  // Clean up temporary files
+  try {
+    fs.unlinkSync(docxPath);
+    fs.unlinkSync(pdfPath);
+    fs.unlinkSync(questionnairePaths.productPath);
+    fs.unlinkSync(questionnairePaths.nfrPath);
+    fs.unlinkSync(questionnairePaths.cybersecurityPath);
+    fs.unlinkSync(questionnairePaths.agilePath);
+  } catch (error) {
+    console.error("Error cleaning up temporary files:", error);
+  }
+
+  console.log("RFT Pack generation complete!");
 
   return {
     success: true,
     rftId: rft.id,
     filesCount: 6,
-    folder: `project-${project.id}/RFT Generated`
+    folder: `project-${project.id}/RFT Generated`,
+    files: [
+      `${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
+      `${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`,
+      'Product_Questionnaire.xlsx',
+      'NFR_Questionnaire.xlsx',
+      'Cybersecurity_Questionnaire.xlsx',
+      'Agile_Questionnaire.xlsx'
+    ]
   };
 }
 
@@ -435,43 +543,7 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
   };
 }
 
-// Helper functions
-async function generateQuestionnaireExcel(type: string): Promise<Buffer> {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet(`${type} Questionnaire`);
-
-  // Add headers
-  worksheet.columns = [
-    { header: "Question", key: "question", width: 60 },
-    { header: "Response", key: "response", width: 40 },
-    { header: "Compliance", key: "compliance", width: 15 },
-    { header: "Remarks", key: "remarks", width: 30 },
-  ];
-
-  // Add sample questions
-  const questions = [
-    `${type} Question 1: Please describe your approach`,
-    `${type} Question 2: What are your key capabilities?`,
-    `${type} Question 3: How do you ensure quality?`,
-    `${type} Question 4: What is your implementation timeline?`,
-    `${type} Question 5: What support do you provide?`,
-  ];
-
-  questions.forEach((q) => {
-    worksheet.addRow({ question: q, response: "", compliance: "", remarks: "" });
-  });
-
-  // Style header row
-  worksheet.getRow(1).font = { bold: true };
-  worksheet.getRow(1).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFE0E0E0" },
-  };
-
-  return await workbook.xlsx.writeBuffer() as Buffer;
-}
-
+// Helper functions for vendor responses
 async function generateQuestionnaireResponse(type: string, vendorName: string): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(`${type} Response`);
@@ -531,21 +603,4 @@ async function generateQuestionnaireResponse(type: string, vendorName: string): 
   };
 
   return await workbook.xlsx.writeBuffer() as Buffer;
-}
-
-async function createZipArchive(files: Record<string, Buffer>): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    const archive = archiver("zip", { zlib: { level: 9 } });
-
-    archive.on("data", (chunk) => chunks.push(chunk));
-    archive.on("end", () => resolve(Buffer.concat(chunks)));
-    archive.on("error", reject);
-
-    Object.entries(files).forEach(([filename, content]) => {
-      archive.append(content, { name: filename });
-    });
-
-    archive.finalize();
-  });
 }

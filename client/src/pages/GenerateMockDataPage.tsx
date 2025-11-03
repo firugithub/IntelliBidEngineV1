@@ -218,7 +218,7 @@ export default function GenerateMockDataPage() {
                 <div>
                   <CardTitle className="text-lg">Generate RFT Pack</CardTitle>
                   <CardDescription className="text-sm">
-                    Complete ZIP package with all RFT documents
+                    Generate 6 professional documents (DOCX, PDF, 4 Excel questionnaires)
                   </CardDescription>
                 </div>
               </div>
