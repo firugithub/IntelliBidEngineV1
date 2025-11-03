@@ -1090,6 +1090,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate PDF evaluation report for a project
+  app.get("/api/projects/:id/evaluation-report.pdf", async (req, res) => {
+    try {
+      const projectId = req.params.id;
+      const { generateEvaluationReportPdf } = await import("./services/evaluationReportPdf");
+      
+      const pdfBuffer = await generateEvaluationReportPdf(projectId, storage);
+      
+      const project = await storage.getProject(projectId);
+      const filename = `${project?.name.replace(/[^a-zA-Z0-9]/g, '_')}_Evaluation_Report.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating evaluation report PDF:", error);
+      res.status(500).json({ error: "Failed to generate evaluation report" });
+    }
+  });
+
   // Get evaluations for a project
   app.get("/api/projects/:id/evaluations", async (req, res) => {
     try {

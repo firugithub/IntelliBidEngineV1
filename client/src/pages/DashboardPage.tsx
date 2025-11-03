@@ -143,8 +143,7 @@ export default function DashboardPage() {
   );
 
   const handleDownloadReport = () => {
-    console.log("Downloading shortlisting report...");
-    // todo: Implement actual report download
+    window.location.href = `/api/projects/${projectId}/evaluation-report.pdf`;
   };
 
   const handleNewEvaluation = () => {
