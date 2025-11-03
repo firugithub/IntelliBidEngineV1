@@ -11,8 +11,8 @@ Preferred communication style: Simple, everyday language.
 ### Frontend
 **Technology Stack:** React with TypeScript, Vite, wouter, shadcn/ui (Radix UI), Tailwind CSS, TanStack Query, and Recharts.
 **Design System:** Dark mode-first, enterprise-focused with Inter and JetBrains Mono fonts, "New York" style shadcn/ui components, and information-dense layouts.
-**Key Pages:** Includes HomePage, PortfolioPage, NewProjectPage, UploadPage, and DashboardPage.
-**Navigation Architecture:** Portfolio-centric 4-menu structure. HomePage displays portfolio cards with RFT statistics (Total RFTs Created, Active RFTs, Evaluations in Progress). PortfolioPage features two-tab interface: RFT Creation (list all RFTs with download options) and RFT Evaluation (vendor shortlisting projects).
+**Key Pages:** Includes HomePage, PortfolioPage, NewProjectPage, UploadPage, DashboardPage, and GenerateMockDataPage.
+**Navigation Architecture:** Portfolio-centric 6-menu structure: Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, and Admin Config. HomePage displays portfolio cards with RFT statistics (Total, Active, In Progress) that update automatically via query cache invalidation. PortfolioPage features two-tab interface: RFT Creation (list all RFTs with download options) and RFT Evaluation (vendor shortlisting projects).
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
@@ -50,7 +50,10 @@ IntelliBid includes 5 production-ready AI features accessible via a unified inte
 **Admin Configuration:** Allows configuration of OpenAI API keys, Azure AI Search keys, Azure Blob Storage connection strings, and Azure OpenAI embeddings.
 
 ### Data Management
-**Mock Data Generation:** Features for generating comprehensive mock data (portfolios, projects, requirements, proposals, evaluations, standards, MCP connectors).
+**Generate Mock Data Page:** Dedicated page for creating persistent RFT scenarios with 10 pre-defined airline industry topics. Features 4-step workflow: RFT Generation (creates portfolio, project, business case, and RFT), RFT Pack Generation (DOCX, PDF, 3 Excel questionnaires in ZIP), Vendor Responses Generation (3 vendors with Excel files), and Evaluation Generation (complete evaluation report). Each topic maps to an appropriate portfolio (e.g., crew-management → Flight Operations), ensuring proper data organization and statistics tracking.
+**Portfolio-Topic Mapping:** Intelligent mapping system that associates each RFT topic with the correct portfolio based on business domain.
+**Azure Blob Storage Integration:** All generated documents are organized in structured folders (RFT Generated, RFT Responses, RFT Evaluation) for easy retrieval and management.
+**Query Cache Invalidation:** Automatic homepage statistics updates after mock data generation via React Query cache invalidation.
 **Data Wipe Utilities:** Options to wipe all data (database + Azure resources) or only Azure resources.
 
 ## External Dependencies
