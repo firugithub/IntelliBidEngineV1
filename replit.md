@@ -20,9 +20,10 @@ Preferred communication style: Simple, everyday language.
 **API Structure:** RESTful endpoints for managing core entities, file uploads, sample data seeding, system configuration, and RAG document management.
 
 ### AI Analysis Pipeline
-**Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Security) to evaluate vendor proposals against general best practices and organization-specific compliance standards.
+**Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Cybersecurity & Compliance) to evaluate vendor proposals against general best practices and organization-specific compliance standards.
 **Document Understanding Flow:** Parses RFTs for criteria, extracts vendor capabilities from proposals, performs semantic matching, generates weighted scores across dimensions (Technical Fit, Delivery Risk, Cost, Compliance), and produces role-specific insights.
 **Dynamic Score Recalculation:** Automatically recalculates overall and dimension-specific scores and evaluation status in real-time.
+**Vendor Document Management:** Proposal documents are stored in Azure Blob Storage with URLs tracked in the database. The evaluations API enriches vendor data with project-scoped document lists for secure access control.
 
 ### Smart RFT Builder
 **Dual Business Case Creation:** Offers AI-powered generation from ideas or traditional document upload (PDF, DOC, DOCX, TXT).

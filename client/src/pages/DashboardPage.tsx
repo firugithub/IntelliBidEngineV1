@@ -50,6 +50,14 @@ interface Evaluation {
   }[];
 }
 
+// Helper to ensure role insights are always arrays (handles legacy string data)
+const ensureArray = (value: string[] | string | null | undefined): string[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') return [value]; // Convert legacy string to array
+  return [];
+};
+
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const params = useParams();
@@ -380,23 +388,23 @@ export default function DashboardPage() {
                       <RoleViewTabs
                         deliveryInsights={{
                           title: "Delivery & PMO Assessment",
-                          items: selectedVendor.roleInsights.delivery || [],
+                          items: ensureArray(selectedVendor.roleInsights.delivery),
                         }}
                         productInsights={{
                           title: "Product Requirements Coverage",
-                          items: selectedVendor.roleInsights.product || [],
+                          items: ensureArray(selectedVendor.roleInsights.product),
                         }}
                         architectureInsights={{
                           title: "Architecture & Security Analysis",
-                          items: selectedVendor.roleInsights.architecture || [],
+                          items: ensureArray(selectedVendor.roleInsights.architecture),
                         }}
                         engineeringInsights={{
                           title: "Engineering & Quality Assessment",
-                          items: selectedVendor.roleInsights.engineering || [],
+                          items: ensureArray(selectedVendor.roleInsights.engineering),
                         }}
                         procurementInsights={{
                           title: "Commercial & TCO Analysis",
-                          items: selectedVendor.roleInsights.procurement || [],
+                          items: ensureArray(selectedVendor.roleInsights.procurement),
                         }}
                         evaluationId={selectedVendor.id}
                         vendorName={selectedVendor.vendorName}
