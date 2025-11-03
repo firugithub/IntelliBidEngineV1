@@ -1956,6 +1956,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all generated RFTs
+  app.get("/api/generated-rfts", async (req, res) => {
+    try {
+      const rfts = await storage.getAllGeneratedRfts();
+      res.json(rfts);
+    } catch (error) {
+      console.error("Error fetching all generated RFTs:", error);
+      res.status(500).json({ error: "Failed to fetch generated RFTs" });
+    }
+  });
+
   // Get generated RFTs by project
   app.get("/api/projects/:projectId/generated-rfts", async (req, res) => {
     try {
@@ -2220,6 +2231,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating PDF:", error);
       res.status(500).json({ error: "Failed to generate PDF file" });
+    }
+  });
+
+  // Download all RFT deliverables as ZIP
+  app.get("/api/generated-rfts/:id/download/all", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const rft = await storage.getGeneratedRft(id);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      const archiver = (await import("archiver")).default;
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      const sanitizedName = rft.name.replace(/[^a-zA-Z0-9]/g, "_");
+      res.attachment(`${sanitizedName}_Complete_RFT_Package.zip`);
+      res.setHeader('Content-Type', 'application/zip');
+
+      archive.on('error', (err) => {
+        console.error("Archive error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to create ZIP file" });
+        }
+      });
+
+      archive.pipe(res);
+
+      // Add RFT document (DOC)
+      const sections = (rft.sections as any)?.sections || [];
+      if (sections.length > 0) {
+        const { generateDocxDocument } = await import("./services/documentGenerator");
+        const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
+        
+        await generateDocxDocument({
+          projectName: rft.name,
+          sections,
+          outputPath: docPath,
+        });
+
+        archive.file(docPath, { name: `${sanitizedName}_RFT.docx` });
+      }
+
+      // Add questionnaires
+      const questionnaires = [
+        { path: rft.productQuestionnairePath, name: "Product_Questionnaire.xlsx" },
+        { path: rft.nfrQuestionnairePath, name: "NFR_Questionnaire.xlsx" },
+        { path: rft.cybersecurityQuestionnairePath, name: "Cybersecurity_Questionnaire.xlsx" },
+        { path: rft.agileQuestionnairePath, name: "Agile_Delivery_Questionnaire.xlsx" },
+      ];
+
+      for (const q of questionnaires) {
+        if (q.path && fs.existsSync(q.path)) {
+          archive.file(q.path, { name: q.name });
+        }
+      }
+
+      // Finalize archive
+      await archive.finalize();
+
+      // Clean up temp DOC file after a delay
+      setTimeout(() => {
+        const tempDocPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
+        if (fs.existsSync(tempDocPath)) {
+          fs.unlinkSync(tempDocPath);
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error("Error creating ZIP:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to create ZIP file" });
+      }
     }
   });
 

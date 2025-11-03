@@ -188,6 +188,7 @@ export interface IStorage {
   // Generated RFTs
   createGeneratedRft(rft: InsertGeneratedRft): Promise<GeneratedRft>;
   getGeneratedRft(id: string): Promise<GeneratedRft | undefined>;
+  getAllGeneratedRfts(): Promise<GeneratedRft[]>;
   getGeneratedRftsByProject(projectId: string): Promise<GeneratedRft[]>;
   getGeneratedRftsByBusinessCase(businessCaseId: string): Promise<GeneratedRft[]>;
   updateGeneratedRft(id: string, updates: Partial<InsertGeneratedRft>): Promise<void>;
@@ -1052,6 +1053,12 @@ export class MemStorage implements IStorage {
 
   async getGeneratedRft(id: string): Promise<GeneratedRft | undefined> {
     return this.generatedRfts.get(id);
+  }
+
+  async getAllGeneratedRfts(): Promise<GeneratedRft[]> {
+    return Array.from(this.generatedRfts.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
   }
 
   async getGeneratedRftsByProject(projectId: string): Promise<GeneratedRft[]> {
