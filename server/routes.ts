@@ -947,11 +947,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parsed = await parseDocument(file.buffer, file.originalname);
         const analysis = await analyzeProposal(parsed.text, file.originalname);
 
+        // Upload file to Azure Blob Storage
+        let blobUrl: string | undefined;
+        try {
+          const uploadResult = await azureBlobStorageService.uploadDocument(
+            `project-${projectId}/proposals/${vendorName}/${file.originalname}`,
+            file.buffer,
+            { vendorName, documentType, projectId }
+          );
+          blobUrl = uploadResult.blobUrl;
+        } catch (error) {
+          console.error("Failed to upload to Azure Blob Storage:", error);
+          // Continue without blob URL if upload fails
+        }
+
         const proposal = await storage.createProposal({
           projectId,
           vendorName,
           documentType,
           fileName: file.originalname,
+          blobUrl,
           extractedData: { ...parsed, aiAnalysis: analysis },
           standardId,
           taggedSections,
@@ -1080,12 +1095,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evaluations = await storage.getEvaluationsByProject(projectId);
       const proposals = await storage.getProposalsByProject(projectId);
 
-      // Enrich evaluations with vendor names
+      // Enrich evaluations with vendor names and proposal documents
       const enrichedEvaluations = evaluations.map((evaluation) => {
         const proposal = proposals.find((p) => p.id === evaluation.proposalId);
+        const vendorName = proposal?.vendorName || "Unknown Vendor";
+        
+        // Get all documents for this vendor IN THIS PROJECT ONLY
+        const vendorDocuments = proposals
+          .filter((p) => p.vendorName === vendorName && p.projectId === projectId)
+          .map((p) => ({
+            id: p.id,
+            documentType: p.documentType,
+            fileName: p.fileName,
+            blobUrl: p.blobUrl,
+            createdAt: p.createdAt,
+          }));
+
         return {
           ...evaluation,
-          vendorName: proposal?.vendorName || "Unknown Vendor",
+          vendorName,
+          documents: vendorDocuments,
         };
       });
 

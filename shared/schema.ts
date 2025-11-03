@@ -79,6 +79,7 @@ export const proposals = pgTable("proposals", {
   vendorName: text("vendor_name").notNull(),
   documentType: text("document_type").notNull(),
   fileName: text("file_name").notNull(),
+  blobUrl: text("blob_url"), // Azure Blob Storage URL for the document
   extractedData: jsonb("extracted_data"),
   standardId: varchar("standard_id"),
   taggedSections: jsonb("tagged_sections"),

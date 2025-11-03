@@ -1,6 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { VendorDocumentsDialog } from "./VendorDocumentsDialog";
+import { useState } from "react";
 import {
   Briefcase,
   Package,
@@ -11,7 +14,16 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
+  FileText,
 } from "lucide-react";
+
+interface VendorDocument {
+  id: string;
+  documentType: string;
+  fileName: string;
+  blobUrl?: string | null;
+  createdAt: Date | string;
+}
 
 interface VendorEvaluation {
   vendorName: string;
@@ -21,6 +33,7 @@ interface VendorEvaluation {
   cost: string;
   compliance: number;
   status: "recommended" | "under-review" | "risk-flagged";
+  documents?: VendorDocument[];
   roleInsights?: {
     delivery?: string[];
     product?: string[];
@@ -48,6 +61,14 @@ interface RoleBasedEvaluationReportProps {
 }
 
 export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationReportProps) {
+  const [selectedVendor, setSelectedVendor] = useState<VendorEvaluation | null>(null);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+
+  const handleViewDocuments = (evaluation: VendorEvaluation) => {
+    setSelectedVendor(evaluation);
+    setDocumentsDialogOpen(true);
+  };
+
   // Helper to ensure role insights are always arrays (handles legacy string data)
   const ensureArray = (value: string[] | string | null | undefined): string[] => {
     if (!value) return [];
@@ -120,6 +141,19 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             )}
           </ul>
         </div>
+        {evaluation.documents && evaluation.documents.length > 0 && (
+          <div className="pt-3 border-t">
+            <Button
+              onClick={() => handleViewDocuments(evaluation)}
+              variant="outline"
+              className="w-full gap-2"
+              data-testid={`button-view-documents-${evaluation.vendorName}`}
+            >
+              <FileText className="h-4 w-4" />
+              View Detailed Evaluation ({evaluation.documents.length} documents)
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -153,7 +187,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2" data-testid="tab-security-report">
             <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">Security</span>
+            <span className="hidden sm:inline">Cybersecurity</span>
           </TabsTrigger>
           <TabsTrigger value="procurement" className="flex items-center gap-2" data-testid="tab-procurement-report">
             <DollarSign className="h-4 w-4" />
@@ -275,7 +309,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Security & Compliance Perspective
+                Cybersecurity & Compliance Perspective
               </CardTitle>
               <CardDescription>
                 Security posture, compliance standards, data protection, vulnerability management, and audit readiness
@@ -380,6 +414,16 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Vendor Documents Dialog */}
+      {selectedVendor && (
+        <VendorDocumentsDialog
+          open={documentsDialogOpen}
+          onOpenChange={setDocumentsDialogOpen}
+          vendorName={selectedVendor.vendorName}
+          documents={selectedVendor.documents || []}
+        />
+      )}
     </div>
   );
 }
