@@ -1436,6 +1436,7 @@ storage.createProposal = async function(insertProposal: InsertProposal): Promise
       vendorName: insertProposal.vendorName,
       documentType: insertProposal.documentType || "proposal",
       fileName: insertProposal.fileName,
+      blobUrl: insertProposal.blobUrl || null,
       extractedData: insertProposal.extractedData || null,
       standardId: insertProposal.standardId || null,
       taggedSections: insertProposal.taggedSections || null,
