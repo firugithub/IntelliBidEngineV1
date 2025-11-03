@@ -373,38 +373,69 @@ export async function generateVendorResponses(rftId: string) {
   }
 
   const vendors = project.vendorList.slice(0, 3); // Get first 3 vendors
+  
+  console.log(`Generating vendor responses using actual RFT questionnaires...`);
+  
+  // Download original questionnaires from Azure Blob Storage
+  const questionnairePaths = {
+    product: `project-${project.id}/RFT Generated/Product_Questionnaire.xlsx`,
+    nfr: `project-${project.id}/RFT Generated/NFR_Questionnaire.xlsx`,
+    cybersecurity: `project-${project.id}/RFT Generated/Cybersecurity_Questionnaire.xlsx`,
+    agile: `project-${project.id}/RFT Generated/Agile_Questionnaire.xlsx`,
+  };
+  
+  // Download all questionnaires
+  const [productBuffer, nfrBuffer, cybersecurityBuffer, agileBuffer] = await Promise.all([
+    azureBlobStorageService.downloadDocument(questionnairePaths.product),
+    azureBlobStorageService.downloadDocument(questionnairePaths.nfr),
+    azureBlobStorageService.downloadDocument(questionnairePaths.cybersecurity),
+    azureBlobStorageService.downloadDocument(questionnairePaths.agile),
+  ]);
+  
+  // Create vendor profiles with varied strengths
+  const { createVendorProfiles, fillQuestionnaireWithScores } = await import("./excelQuestionnaireHandler");
+  const vendorProfiles = createVendorProfiles(vendors);
+  
+  // Generate responses for each vendor
+  for (let i = 0; i < vendors.length; i++) {
+    const vendorName = vendors[i];
+    const profile = vendorProfiles[i];
+    
+    console.log(`Generating responses for ${vendorName} with profile: Product ${profile.productStrength}, NFR ${profile.nfrStrength}, Security ${profile.cybersecurityStrength}, Agile ${profile.agileStrength}`);
+    
+    // Fill questionnaires with vendor-specific scores
+    const [productResponse, nfrResponse, securityResponse, agileResponse] = await Promise.all([
+      fillQuestionnaireWithScores(productBuffer, profile, "Product"),
+      fillQuestionnaireWithScores(nfrBuffer, profile, "NFR"),
+      fillQuestionnaireWithScores(cybersecurityBuffer, profile, "Cybersecurity"),
+      fillQuestionnaireWithScores(agileBuffer, profile, "Agile"),
+    ]);
 
-  for (const vendorName of vendors) {
-    // Generate responses for each questionnaire
-    const productResponse = await generateQuestionnaireResponse("Product", vendorName);
-    const nfrResponse = await generateQuestionnaireResponse("NFR", vendorName);
-    const securityResponse = await generateQuestionnaireResponse("Security", vendorName);
-    const agileResponse = await generateQuestionnaireResponse("Agile", vendorName);
-
-    // Upload to Azure Blob Storage under project-specific folder
-    await azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Responses/${vendorName}/Product_Response.xlsx`,
-      productResponse,
-      { rftId: rft.id, vendorName, type: "product-response" }
-    );
-
-    await azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Responses/${vendorName}/NFR_Response.xlsx`,
-      nfrResponse,
-      { rftId: rft.id, vendorName, type: "nfr-response" }
-    );
-
-    await azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Responses/${vendorName}/Security_Response.xlsx`,
-      securityResponse,
-      { rftId: rft.id, vendorName, type: "security-response" }
-    );
-
-    await azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Responses/${vendorName}/Agile_Response.xlsx`,
-      agileResponse,
-      { rftId: rft.id, vendorName, type: "agile-response" }
-    );
+    // Upload filled questionnaires to Azure Blob Storage
+    await Promise.all([
+      azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT Responses/${vendorName}/Product_Response.xlsx`,
+        productResponse,
+        { rftId: rft.id, vendorName, type: "product-response" }
+      ),
+      azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT Responses/${vendorName}/NFR_Response.xlsx`,
+        nfrResponse,
+        { rftId: rft.id, vendorName, type: "nfr-response" }
+      ),
+      azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT Responses/${vendorName}/Cybersecurity_Response.xlsx`,
+        securityResponse,
+        { rftId: rft.id, vendorName, type: "security-response" }
+      ),
+      azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT Responses/${vendorName}/Agile_Response.xlsx`,
+        agileResponse,
+        { rftId: rft.id, vendorName, type: "agile-response" }
+      ),
+    ]);
+    
+    console.log(`✓ Completed responses for ${vendorName}`);
   }
 
   return {
@@ -548,63 +579,5 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
 }
 
 // Helper functions for vendor responses
-async function generateQuestionnaireResponse(type: string, vendorName: string): Promise<Buffer> {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet(`${type} Response`);
-
-  // Add headers
-  worksheet.columns = [
-    { header: "Question", key: "question", width: 60 },
-    { header: "Response", key: "response", width: 40 },
-    { header: "Compliance", key: "compliance", width: 15 },
-    { header: "Remarks", key: "remarks", width: 30 },
-  ];
-
-  // Add sample responses
-  const responses = [
-    {
-      question: `${type} Question 1: Please describe your approach`,
-      response: `${vendorName} approach to ${type}`,
-      compliance: "Compliant",
-      remarks: "Meets requirements"
-    },
-    {
-      question: `${type} Question 2: What are your key capabilities?`,
-      response: `${vendorName} has extensive capabilities in ${type}`,
-      compliance: "Compliant",
-      remarks: "Strong capability"
-    },
-    {
-      question: `${type} Question 3: How do you ensure quality?`,
-      response: `${vendorName} follows ISO standards`,
-      compliance: "Compliant",
-      remarks: "Certified processes"
-    },
-    {
-      question: `${type} Question 4: What is your implementation timeline?`,
-      response: "6-12 months",
-      compliance: "Partial",
-      remarks: "Within acceptable range"
-    },
-    {
-      question: `${type} Question 5: What support do you provide?`,
-      response: "24/7 support with regional hubs",
-      compliance: "Compliant",
-      remarks: "Excellent support model"
-    },
-  ];
-
-  responses.forEach((r) => {
-    worksheet.addRow(r);
-  });
-
-  // Style header row
-  worksheet.getRow(1).font = { bold: true };
-  worksheet.getRow(1).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFE0E0E0" },
-  };
-
-  return await workbook.xlsx.writeBuffer() as Buffer;
-}
+// Note: Vendor response generation now uses actual RFT questionnaires
+// See excelQuestionnaireHandler.ts for the implementation
