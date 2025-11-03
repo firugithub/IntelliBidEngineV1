@@ -1088,6 +1088,48 @@ export class MemStorage implements IStorage {
   async deleteGeneratedRft(id: string): Promise<void> {
     this.generatedRfts.delete(id);
   }
+
+  async getGeneratedRftsByPortfolio(portfolioId: string): Promise<GeneratedRft[]> {
+    // Get all projects in this portfolio
+    const portfolioProjects = Array.from(this.projects.values()).filter(
+      (p) => p.portfolioId === portfolioId
+    );
+    const projectIds = new Set(portfolioProjects.map((p) => p.id));
+    
+    // Get all RFTs for those projects
+    return Array.from(this.generatedRfts.values())
+      .filter((rft) => projectIds.has(rft.projectId))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPortfolioRftStats(portfolioId: string): Promise<{
+    totalRfts: number;
+    active: number;
+    evaluationInProgress: number;
+  }> {
+    // Get all projects in this portfolio
+    const portfolioProjects = Array.from(this.projects.values()).filter(
+      (p) => p.portfolioId === portfolioId
+    );
+    const projectIds = new Set(portfolioProjects.map((p) => p.id));
+    
+    // Get all RFTs for those projects
+    const portfolioRfts = Array.from(this.generatedRfts.values()).filter(
+      (rft) => projectIds.has(rft.projectId)
+    );
+
+    // Count evaluations in progress for these projects
+    const evaluationsInProgress = Array.from(this.evaluations.values()).filter(
+      (evaluation) => projectIds.has(evaluation.projectId) && 
+      (evaluation.status === "under-review" || evaluation.status === "analyzing")
+    ).length;
+
+    return {
+      totalRfts: portfolioRfts.length,
+      active: portfolioRfts.filter((rft) => rft.status === "published").length,
+      evaluationInProgress: evaluationsInProgress,
+    };
+  }
 }
 
 import { db } from "./db";

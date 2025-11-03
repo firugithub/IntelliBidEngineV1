@@ -241,6 +241,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get RFTs by portfolio
+  app.get("/api/portfolios/:id/rfts", async (req, res) => {
+    try {
+      const rfts = await storage.getGeneratedRftsByPortfolio(req.params.id);
+      res.json(rfts);
+    } catch (error) {
+      console.error("Error fetching portfolio RFTs:", error);
+      res.status(500).json({ error: "Failed to fetch portfolio RFTs" });
+    }
+  });
+
+  // Get portfolio RFT statistics
+  app.get("/api/portfolios/:id/rft-stats", async (req, res) => {
+    try {
+      const stats = await storage.getPortfolioRftStats(req.params.id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching portfolio RFT stats:", error);
+      res.status(500).json({ error: "Failed to fetch portfolio RFT stats" });
+    }
+  });
+
   // Standards routes
   app.get("/api/standards", async (req, res) => {
     try {
