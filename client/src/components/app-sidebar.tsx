@@ -1,4 +1,4 @@
-import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot } from "lucide-react";
+import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +43,11 @@ const navigationItems = [
     icon: Bot,
   },
   {
+    title: "Generate Mock Data",
+    url: "/generate-mock-data",
+    icon: SparklesIcon,
+  },
+  {
     title: "Admin Config",
     url: "/admin-config",
     icon: Settings,
@@ -54,20 +59,6 @@ export function AppSidebar() {
   const { toast } = useToast();
   const [isWipeDialogOpen, setIsWipeDialogOpen] = useState(false);
   const { state } = useSidebar();
-
-  const generateMockDataMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("POST", "/api/generate-mock-data");
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries();
-      await queryClient.refetchQueries();
-      toast({ title: "Mock data generated successfully!" });
-    },
-    onError: () => {
-      toast({ title: "Failed to generate mock data", variant: "destructive" });
-    },
-  });
 
   const wipeDataMutation = useMutation({
     mutationFn: async () => {
@@ -123,18 +114,6 @@ export function AppSidebar() {
           <SidebarGroupLabel>Data Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="flex flex-col gap-2 px-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => generateMockDataMutation.mutate()}
-                disabled={generateMockDataMutation.isPending}
-                className="w-full justify-start gap-2"
-                data-testid="button-generate-mock-data"
-              >
-                <Database className="h-4 w-4" />
-                {generateMockDataMutation.isPending ? "Generating..." : "Generate Mock Data"}
-              </Button>
-
               <AlertDialog open={isWipeDialogOpen} onOpenChange={setIsWipeDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button

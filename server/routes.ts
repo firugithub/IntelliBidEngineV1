@@ -6,6 +6,7 @@ import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
 import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/sampleData";
 import { generateRftFromBusinessCase, regenerateRftSection } from "./services/smartRftService";
+import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation } from "./services/rftMockDataGenerator";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { lookup as dnsLookup } from "dns";
@@ -202,6 +203,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error wiping Azure resources:", error);
       res.status(500).json({ error: "Failed to wipe Azure resources" });
+    }
+  });
+
+  // Generate RFT from topic
+  app.post("/api/mock-data/generate-rft", async (req, res) => {
+    try {
+      const { topicId } = req.body;
+      if (!topicId) {
+        return res.status(400).json({ error: "Topic ID is required" });
+      }
+      const result = await generateRft(topicId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating RFT:", error);
+      res.status(500).json({ error: "Failed to generate RFT" });
+    }
+  });
+
+  // Generate RFT Pack
+  app.post("/api/mock-data/generate-pack", async (req, res) => {
+    try {
+      const { rftId } = req.body;
+      if (!rftId) {
+        return res.status(400).json({ error: "RFT ID is required" });
+      }
+      const result = await generateRftPack(rftId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating RFT pack:", error);
+      res.status(500).json({ error: "Failed to generate RFT pack" });
+    }
+  });
+
+  // Generate Vendor Responses
+  app.post("/api/mock-data/generate-responses", async (req, res) => {
+    try {
+      const { rftId } = req.body;
+      if (!rftId) {
+        return res.status(400).json({ error: "RFT ID is required" });
+      }
+      const result = await generateVendorResponses(rftId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating vendor responses:", error);
+      res.status(500).json({ error: "Failed to generate vendor responses" });
+    }
+  });
+
+  // Generate Evaluation
+  app.post("/api/mock-data/generate-evaluation", async (req, res) => {
+    try {
+      const { rftId } = req.body;
+      if (!rftId) {
+        return res.status(400).json({ error: "RFT ID is required" });
+      }
+      const result = await generateEvaluation(rftId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating evaluation:", error);
+      res.status(500).json({ error: "Failed to generate evaluation" });
     }
   });
 
