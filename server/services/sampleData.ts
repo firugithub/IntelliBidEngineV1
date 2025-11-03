@@ -857,12 +857,8 @@ export async function wipeAllData() {
     }
     console.log(`✓ Deleted ${deletionSummary.database.projects} projects`);
     
-    // Delete all portfolios
-    for (const portfolio of portfolios) {
-      await storage.deletePortfolio(portfolio.id);
-      deletionSummary.database.portfolios++;
-    }
-    console.log(`✓ Deleted ${deletionSummary.database.portfolios} portfolios`);
+    // Keep portfolios as default - don't delete them
+    console.log(`✓ Kept ${portfolios.length} portfolios (not deleted)`);
     
     // Deactivate all standards (soft delete)
     for (const standard of standards) {
