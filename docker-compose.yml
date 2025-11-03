@@ -1,0 +1,60 @@
+# Docker Compose for local testing before Azure deployment
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: intellibid-postgres
+    environment:
+      POSTGRES_DB: intellibid
+      POSTGRES_USER: intellibid_user
+      POSTGRES_PASSWORD: intellibid_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intellibid_user -d intellibid"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intellibid-app
+    ports:
+      - "5000:5000"
+    environment:
+      # Database
+      DATABASE_URL: postgresql://intellibid_user:intellibid_dev_password@postgres:5432/intellibid
+      
+      # Session
+      SESSION_SECRET: your-dev-session-secret-change-in-production
+      
+      # OpenAI (use your actual keys)
+      AI_INTEGRATIONS_OPENAI_API_KEY: ${AI_INTEGRATIONS_OPENAI_API_KEY}
+      AI_INTEGRATIONS_OPENAI_BASE_URL: ${AI_INTEGRATIONS_OPENAI_BASE_URL}
+      
+      # Azure Services (use your actual credentials)
+      AZURE_SEARCH_ENDPOINT: ${AZURE_SEARCH_ENDPOINT}
+      AZURE_SEARCH_KEY: ${AZURE_SEARCH_KEY}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT}
+      
+      # Feature flags
+      USE_MULTIAGENT: "true"
+      
+      # Node environment
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
