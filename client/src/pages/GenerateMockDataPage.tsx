@@ -83,9 +83,8 @@ export default function GenerateMockDataPage() {
   });
 
   const generatePackMutation = useMutation({
-    mutationFn: async () => {
-      if (!generatedRftId) throw new Error("No RFT selected");
-      return await apiRequest("POST", "/api/mock-data/generate-pack", { rftId: generatedRftId });
+    mutationFn: async (rftId: string) => {
+      return await apiRequest("POST", "/api/mock-data/generate-pack", { rftId });
     },
     onSuccess: (data: any) => {
       toast({ 
@@ -100,9 +99,8 @@ export default function GenerateMockDataPage() {
   });
 
   const generateResponsesMutation = useMutation({
-    mutationFn: async () => {
-      if (!generatedRftId) throw new Error("No RFT selected");
-      return await apiRequest("POST", "/api/mock-data/generate-responses", { rftId: generatedRftId });
+    mutationFn: async (rftId: string) => {
+      return await apiRequest("POST", "/api/mock-data/generate-responses", { rftId });
     },
     onSuccess: (data: any) => {
       toast({ 
@@ -117,9 +115,8 @@ export default function GenerateMockDataPage() {
   });
 
   const generateEvaluationMutation = useMutation({
-    mutationFn: async () => {
-      if (!generatedRftId) throw new Error("No RFT selected");
-      return await apiRequest("POST", "/api/mock-data/generate-evaluation", { rftId: generatedRftId });
+    mutationFn: async (rftId: string) => {
+      return await apiRequest("POST", "/api/mock-data/generate-evaluation", { rftId });
     },
     onSuccess: (data: any) => {
       toast({ 
@@ -225,7 +222,7 @@ export default function GenerateMockDataPage() {
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => generatePackMutation.mutate()}
+                onClick={() => generatedRftId && generatePackMutation.mutate(generatedRftId)}
                 disabled={!generatedRftId || generatePackMutation.isPending}
                 className="w-full gap-2"
                 data-testid="button-generate-pack"
@@ -265,7 +262,7 @@ export default function GenerateMockDataPage() {
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => generateResponsesMutation.mutate()}
+                onClick={() => generatedRftId && generateResponsesMutation.mutate(generatedRftId)}
                 disabled={!generatedRftId || generateResponsesMutation.isPending}
                 className="w-full gap-2"
                 data-testid="button-generate-responses"
@@ -305,7 +302,7 @@ export default function GenerateMockDataPage() {
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => generateEvaluationMutation.mutate()}
+                onClick={() => generatedRftId && generateEvaluationMutation.mutate(generatedRftId)}
                 disabled={!generatedRftId || generateEvaluationMutation.isPending}
                 className="w-full gap-2"
                 data-testid="button-generate-evaluation"

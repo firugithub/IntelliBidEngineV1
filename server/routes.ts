@@ -1097,10 +1097,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evaluations = await storage.getEvaluationsByProject(projectId);
       const proposals = await storage.getProposalsByProject(projectId);
 
-      // Enrich evaluations with vendor names and proposal documents
-      const enrichedEvaluations = evaluations.map((evaluation) => {
-        const proposal = proposals.find((p) => p.id === evaluation.proposalId);
-        const vendorName = proposal?.vendorName || "Unknown Vendor";
+      // Get unique vendor names from proposals
+      const vendorNames = [...new Set(proposals.map(p => p.vendorName))];
+      
+      // Create enriched results for all vendors (with or without evaluations)
+      const enrichedEvaluations = vendorNames.map((vendorName) => {
+        // Find evaluation for this vendor (may not exist)
+        const evaluation = evaluations.find((e) => {
+          const proposal = proposals.find((p) => p.id === e.proposalId);
+          return proposal?.vendorName === vendorName;
+        });
         
         // Get all documents for this vendor IN THIS PROJECT ONLY
         const vendorDocuments = proposals
@@ -1113,9 +1119,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: p.createdAt,
           }));
 
+        // If evaluation exists, return it enriched with documents
+        if (evaluation) {
+          return {
+            ...evaluation,
+            vendorName,
+            documents: vendorDocuments,
+          };
+        }
+        
+        // Otherwise, create a placeholder evaluation for vendors with proposals but no evaluation yet
         return {
-          ...evaluation,
+          id: `placeholder-${vendorName}`,
+          proposalId: vendorDocuments[0]?.id || `placeholder-proposal-${vendorName}`,
           vendorName,
+          overallScore: 0,
+          technicalFit: 0,
+          deliveryRisk: 0,
+          cost: "Not evaluated",
+          compliance: 0,
+          status: "under-review" as const,
+          aiRationale: "Evaluation pending",
+          roleInsights: {},
+          detailedScores: {},
           documents: vendorDocuments,
         };
       });
