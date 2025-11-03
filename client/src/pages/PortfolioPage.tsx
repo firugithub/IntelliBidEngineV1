@@ -131,7 +131,7 @@ export default function PortfolioPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setLocation("/rft-builder")}
+                onClick={() => setLocation("/smart-rft-builder")}
                 className="gap-2"
                 data-testid="button-create-rft"
               >
@@ -217,7 +217,7 @@ export default function PortfolioPage() {
                       Create your first Request for Technology document for {portfolio.name}
                     </p>
                     <Button
-                      onClick={() => setLocation("/rft-builder")}
+                      onClick={() => setLocation("/smart-rft-builder")}
                       className="gap-2"
                     >
                       <Plus className="h-4 w-4" />
