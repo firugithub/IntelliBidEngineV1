@@ -291,44 +291,40 @@ export async function generateRftPack(rftId: string) {
   console.log("Uploading individual files to Azure Blob Storage...");
 
   // Upload all files individually to Azure Blob Storage
-  await Promise.all([
+  const uploadResults = await Promise.all([
     // Upload RFT document (DOCX)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
-      docxBuffer,
-      { rftId: rft.id, projectId: project.id, type: "rft-document-docx" }
+      `project-${project.id}/RFT_Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
+      docxBuffer
     ),
     // Upload RFT document (PDF)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`,
-      pdfBuffer,
-      { rftId: rft.id, projectId: project.id, type: "rft-document-pdf" }
+      `project-${project.id}/RFT_Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`,
+      pdfBuffer
     ),
     // Upload Product Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/Product_Questionnaire.xlsx`,
-      fs.readFileSync(questionnairePaths.productPath),
-      { rftId: rft.id, projectId: project.id, type: "product-questionnaire" }
+      `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.productPath)
     ),
     // Upload NFR Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/NFR_Questionnaire.xlsx`,
-      fs.readFileSync(questionnairePaths.nfrPath),
-      { rftId: rft.id, projectId: project.id, type: "nfr-questionnaire" }
+      `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.nfrPath)
     ),
     // Upload Cybersecurity Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/Cybersecurity_Questionnaire.xlsx`,
-      fs.readFileSync(questionnairePaths.cybersecurityPath),
-      { rftId: rft.id, projectId: project.id, type: "cybersecurity-questionnaire" }
+      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.cybersecurityPath)
     ),
     // Upload Agile Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT Generated/Agile_Questionnaire.xlsx`,
-      fs.readFileSync(questionnairePaths.agilePath),
-      { rftId: rft.id, projectId: project.id, type: "agile-questionnaire" }
+      `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.agilePath)
     ),
   ]);
+  
+  console.log(`Uploaded ${uploadResults.length} files to Azure Blob Storage successfully`);
 
   // Clean up temporary files
   try {
@@ -377,11 +373,12 @@ export async function generateVendorResponses(rftId: string) {
   console.log(`Generating vendor responses using actual RFT questionnaires...`);
   
   // Download original questionnaires from Azure Blob Storage
+  // IMPORTANT: Use underscores instead of spaces to match upload paths
   const questionnairePaths = {
-    product: `project-${project.id}/RFT Generated/Product_Questionnaire.xlsx`,
-    nfr: `project-${project.id}/RFT Generated/NFR_Questionnaire.xlsx`,
-    cybersecurity: `project-${project.id}/RFT Generated/Cybersecurity_Questionnaire.xlsx`,
-    agile: `project-${project.id}/RFT Generated/Agile_Questionnaire.xlsx`,
+    product: `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
+    nfr: `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
+    cybersecurity: `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
+    agile: `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
   };
   
   // Download all questionnaires
@@ -412,30 +409,65 @@ export async function generateVendorResponses(rftId: string) {
     ]);
 
     // Upload filled questionnaires to Azure Blob Storage
-    await Promise.all([
+    // Use underscores for consistency and avoid encoding issues
+    const vendorPathSafe = vendorName.replace(/[^a-zA-Z0-9]/g, '_');
+    const [productUpload, nfrUpload, securityUpload, agileUpload] = await Promise.all([
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT Responses/${vendorName}/Product_Response.xlsx`,
-        productResponse,
-        { rftId: rft.id, vendorName, type: "product-response" }
+        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Product_Response.xlsx`,
+        productResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT Responses/${vendorName}/NFR_Response.xlsx`,
-        nfrResponse,
-        { rftId: rft.id, vendorName, type: "nfr-response" }
+        `project-${project.id}/RFT_Responses/${vendorPathSafe}/NFR_Response.xlsx`,
+        nfrResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT Responses/${vendorName}/Cybersecurity_Response.xlsx`,
-        securityResponse,
-        { rftId: rft.id, vendorName, type: "security-response" }
+        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Cybersecurity_Response.xlsx`,
+        securityResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT Responses/${vendorName}/Agile_Response.xlsx`,
-        agileResponse,
-        { rftId: rft.id, vendorName, type: "agile-response" }
+        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Agile_Response.xlsx`,
+        agileResponse
       ),
     ]);
     
-    console.log(`✓ Completed responses for ${vendorName}`);
+    // Create proposal database records for each questionnaire response
+    // This allows the UI to display and edit the questionnaires
+    await Promise.all([
+      storage.createProposal({
+        projectId: project.id,
+        vendorName,
+        documentType: "Product Questionnaire",
+        fileName: "Product_Response.xlsx",
+        blobUrl: productUpload.blobUrl,
+        extractedData: { type: "product-questionnaire-response" },
+      }),
+      storage.createProposal({
+        projectId: project.id,
+        vendorName,
+        documentType: "NFR Questionnaire",
+        fileName: "NFR_Response.xlsx",
+        blobUrl: nfrUpload.blobUrl,
+        extractedData: { type: "nfr-questionnaire-response" },
+      }),
+      storage.createProposal({
+        projectId: project.id,
+        vendorName,
+        documentType: "Cybersecurity Questionnaire",
+        fileName: "Cybersecurity_Response.xlsx",
+        blobUrl: securityUpload.blobUrl,
+        extractedData: { type: "cybersecurity-questionnaire-response" },
+      }),
+      storage.createProposal({
+        projectId: project.id,
+        vendorName,
+        documentType: "Agile Questionnaire",
+        fileName: "Agile_Response.xlsx",
+        blobUrl: agileUpload.blobUrl,
+        extractedData: { type: "agile-questionnaire-response" },
+      }),
+    ]);
+    
+    console.log(`✓ Completed responses for ${vendorName} (uploaded + created DB records)`);
   }
 
   return {
