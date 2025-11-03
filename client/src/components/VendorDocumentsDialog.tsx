@@ -250,9 +250,9 @@ export function VendorDocumentsDialog({
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : displayQuestions.length > 0 ? (
-                    <div className="border rounded-md">
+                    <div className="border rounded-md max-h-[500px] overflow-auto">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 bg-card z-10">
                           <TableRow>
                             <TableHead className="w-[150px]">Section</TableHead>
                             <TableHead className="w-[400px]">Question</TableHead>

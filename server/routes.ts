@@ -1285,7 +1285,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No blob URL available" });
       }
       
-      const excelBuffer = await azureBlobStorageService.downloadDocument(proposal.blobUrl);
+      // Extract blob name from full URL
+      // URL format: https://intellibidstorage.blob.core.windows.net/intellibid-documents/project-xxx/RFT_Responses/Aims/Product_Response.xlsx
+      // We need: project-xxx/RFT_Responses/Aims/Product_Response.xlsx
+      const urlParts = proposal.blobUrl.split('/intellibid-documents/');
+      const blobName = urlParts.length > 1 ? urlParts[1] : proposal.blobUrl;
+      
+      const excelBuffer = await azureBlobStorageService.downloadDocument(blobName);
       
       // Parse Excel to JSON
       const questions = await parseExcelQuestionnaire(excelBuffer);
