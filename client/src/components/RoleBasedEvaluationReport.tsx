@@ -63,9 +63,11 @@ interface RoleBasedEvaluationReportProps {
 export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationReportProps) {
   const [selectedVendor, setSelectedVendor] = useState<VendorEvaluation | null>(null);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [currentRole, setCurrentRole] = useState<'delivery' | 'product' | 'architecture' | 'engineering' | 'security' | 'procurement'>('delivery');
 
-  const handleViewDocuments = (evaluation: VendorEvaluation) => {
+  const handleViewDocuments = (evaluation: VendorEvaluation, role: typeof currentRole) => {
     setSelectedVendor(evaluation);
+    setCurrentRole(role);
     setDocumentsDialogOpen(true);
   };
 
@@ -99,7 +101,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
     return "text-red-500";
   };
 
-  const renderVendorCard = (evaluation: VendorEvaluation, relevantInsights: string[], metrics?: { label: string; value: number | string; inverse?: boolean }[]) => (
+  const renderVendorCard = (evaluation: VendorEvaluation, relevantInsights: string[], role: typeof currentRole, metrics?: { label: string; value: number | string; inverse?: boolean }[]) => (
     <Card key={evaluation.vendorName} className="hover-elevate">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
@@ -144,7 +146,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
         {evaluation.documents && evaluation.documents.length > 0 && (
           <div className="pt-3 border-t">
             <Button
-              onClick={() => handleViewDocuments(evaluation)}
+              onClick={() => handleViewDocuments(evaluation, role)}
               variant="outline"
               className="w-full gap-2"
               data-testid={`button-view-documents-${evaluation.vendorName}`}
@@ -213,6 +215,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               renderVendorCard(
                 evaluation,
                 ensureArray(evaluation.roleInsights?.delivery),
+                'delivery',
                 [
                   { label: "Delivery Risk", value: evaluation.deliveryRisk, inverse: true },
                   { label: "Overall Fit", value: evaluation.overallScore },
@@ -240,6 +243,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               renderVendorCard(
                 evaluation,
                 ensureArray(evaluation.roleInsights?.product),
+                'product',
                 [
                   { label: "Technical Fit", value: evaluation.technicalFit },
                   { label: "Scalability", value: evaluation.detailedScores?.scalability || 0 },
@@ -267,6 +271,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               renderVendorCard(
                 evaluation,
                 ensureArray(evaluation.roleInsights?.architecture),
+                'architecture',
                 [
                   { label: "Integration", value: evaluation.detailedScores?.integration || 0 },
                   { label: "Compliance", value: evaluation.compliance },
@@ -294,6 +299,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               renderVendorCard(
                 evaluation,
                 ensureArray(evaluation.roleInsights?.engineering),
+                'engineering',
                 [
                   { label: "Documentation", value: evaluation.detailedScores?.documentation || 0 },
                   { label: "Support Quality", value: evaluation.detailedScores?.support || 0 },
@@ -381,6 +387,19 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                       )}
                     </ul>
                   </div>
+                  {evaluation.documents && evaluation.documents.length > 0 && (
+                    <div className="pt-3 border-t">
+                      <Button
+                        onClick={() => handleViewDocuments(evaluation, 'security')}
+                        variant="outline"
+                        className="w-full gap-2"
+                        data-testid={`button-view-documents-${evaluation.vendorName}`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Detailed Evaluation ({evaluation.documents.length} documents)
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -405,6 +424,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               renderVendorCard(
                 evaluation,
                 ensureArray(evaluation.roleInsights?.procurement),
+                'procurement',
                 [
                   { label: "Cost Estimate", value: evaluation.cost },
                   { label: "Support Model", value: evaluation.detailedScores?.support ? `${evaluation.detailedScores.support}%` : "N/A" },
@@ -422,6 +442,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
           onOpenChange={setDocumentsDialogOpen}
           vendorName={selectedVendor.vendorName}
           documents={selectedVendor.documents || []}
+          roleFilter={currentRole}
         />
       )}
     </div>

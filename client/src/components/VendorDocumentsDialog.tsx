@@ -32,21 +32,47 @@ interface VendorDocumentsDialogProps {
   onOpenChange: (open: boolean) => void;
   vendorName: string;
   documents: VendorDocument[];
+  roleFilter?: 'delivery' | 'product' | 'architecture' | 'engineering' | 'security' | 'procurement';
 }
 
 const COMPLIANCE_SCORES = ["Full", "Partial", "Not Applicable", "None"];
+
+// Role to questionnaire type mapping
+const ROLE_TO_QUESTIONNAIRE_MAP: Record<string, string> = {
+  delivery: 'Agile',
+  product: 'Product',
+  architecture: 'NFR',
+  security: 'Cybersecurity',
+  engineering: 'NFR', // Engineering also uses NFR questionnaires
+  procurement: 'Product', // Procurement uses Product questionnaires
+};
 
 export function VendorDocumentsDialog({
   open,
   onOpenChange,
   vendorName,
   documents,
+  roleFilter,
 }: VendorDocumentsDialogProps) {
   const { toast } = useToast();
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [editedQuestions, setEditedQuestions] = useState<QuestionnaireQuestion[]>([]);
 
-  const excelDocuments = documents.filter(doc => doc.fileName.toLowerCase().endsWith('.xlsx'));
+  // Filter Excel documents based on role
+  const filterDocumentsByRole = (docs: VendorDocument[]) => {
+    if (!roleFilter) return docs;
+    
+    const questionnaireType = ROLE_TO_QUESTIONNAIRE_MAP[roleFilter];
+    if (!questionnaireType) return docs;
+    
+    return docs.filter(doc => {
+      const fileName = doc.fileName.toLowerCase();
+      return fileName.includes(questionnaireType.toLowerCase()) && fileName.endsWith('.xlsx');
+    });
+  };
+
+  const allExcelDocuments = documents.filter(doc => doc.fileName.toLowerCase().endsWith('.xlsx'));
+  const excelDocuments = roleFilter ? filterDocumentsByRole(allExcelDocuments) : allExcelDocuments;
   const otherDocuments = documents.filter(doc => !doc.fileName.toLowerCase().endsWith('.xlsx'));
 
   const selectedDocument = excelDocuments.find(doc => doc.id === selectedDocumentId);
@@ -124,14 +150,29 @@ export function VendorDocumentsDialog({
   const displayQuestions = editedQuestions.length > 0 ? editedQuestions : ((questionnaireData as any)?.questions || []);
   const hasChanges = editedQuestions.length > 0;
 
+  const getRoleLabel = () => {
+    if (!roleFilter) return null;
+    const questionnaireType = ROLE_TO_QUESTIONNAIRE_MAP[roleFilter];
+    return questionnaireType ? `${questionnaireType} Questionnaire` : null;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" data-testid="dialog-vendor-documents">
         <DialogHeader>
-          <DialogTitle className="text-xl">{vendorName} - Detailed Evaluation</DialogTitle>
-          <DialogDescription>
-            View and edit submitted questionnaire responses
-          </DialogDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <DialogTitle className="text-xl">{vendorName} - Detailed Evaluation</DialogTitle>
+              <DialogDescription>
+                View and edit submitted questionnaire responses
+                {roleFilter && getRoleLabel() && (
+                  <span className="ml-2 text-primary font-medium">
+                    ({getRoleLabel()})
+                  </span>
+                )}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="questionnaires" className="mt-4">
