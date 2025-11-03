@@ -12,6 +12,7 @@ Preferred communication style: Simple, everyday language.
 **Technology Stack:** React with TypeScript, Vite, wouter, shadcn/ui (Radix UI), Tailwind CSS, TanStack Query, and Recharts.
 **Design System:** Dark mode-first, enterprise-focused with Inter and JetBrains Mono fonts, "New York" style shadcn/ui components, and information-dense layouts.
 **Key Pages:** Includes HomePage, PortfolioPage, NewProjectPage, UploadPage, and DashboardPage.
+**Navigation Architecture:** Portfolio-centric 4-menu structure. HomePage displays portfolio cards with RFT statistics (Total RFTs Created, Active RFTs, Evaluations in Progress). PortfolioPage features two-tab interface: RFT Creation (list all RFTs with download options) and RFT Evaluation (vendor shortlisting projects).
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
@@ -29,7 +30,6 @@ Preferred communication style: Simple, everyday language.
 **Excel Features:** Questionnaires include dropdown compliance scoring and remarks columns, with professional styling.
 **Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Review & Download Deliverables).
 **RFT Document Edit & Download:** Provides section-by-section editing with real-time updates, Markdown formatting support, and professional DOCX/PDF generation. Single-click ZIP download for all deliverables.
-**My RFTs Dashboard:** Displays recently created RFTs with quick download access.
 
 ### Advanced AI Features
 IntelliBid includes 5 production-ready AI features accessible via a unified interface: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant.
