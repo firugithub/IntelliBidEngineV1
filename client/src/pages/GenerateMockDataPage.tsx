@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Package, FileSpreadsheet, BarChart3, Loader2, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 const RFT_TOPICS = [
@@ -73,6 +73,9 @@ export default function GenerateMockDataPage() {
     onSuccess: (data: any) => {
       setGeneratedRftId(data.rftId);
       toast({ title: "RFT Generated Successfully!", description: `RFT "${data.name}" has been created.` });
+      // Invalidate portfolio queries to update statistics
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
     onError: () => {
       toast({ title: "Failed to generate RFT", variant: "destructive" });
@@ -89,6 +92,7 @@ export default function GenerateMockDataPage() {
         title: "RFT Pack Generated!", 
         description: `Complete package with ${data.filesCount} files uploaded to Azure Blob Storage.` 
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
     onError: () => {
       toast({ title: "Failed to generate RFT pack", variant: "destructive" });
@@ -105,6 +109,7 @@ export default function GenerateMockDataPage() {
         title: "Vendor Responses Generated!", 
         description: `${data.vendorCount} vendors with complete responses uploaded to Azure Blob Storage.` 
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
     onError: () => {
       toast({ title: "Failed to generate vendor responses", variant: "destructive" });
@@ -121,6 +126,7 @@ export default function GenerateMockDataPage() {
         title: "Evaluation Generated!", 
         description: `Complete evaluation report with ${data.proposalsCount} proposals uploaded to Azure Blob Storage.` 
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
     onError: () => {
       toast({ title: "Failed to generate evaluation", variant: "destructive" });

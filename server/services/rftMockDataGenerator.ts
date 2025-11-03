@@ -8,6 +8,7 @@ const RFT_TOPICS = {
   "pss-upgrade": {
     title: "Passenger Service System Upgrade",
     description: "Modern PSS platform with NDC capabilities and mobile experience",
+    portfolioName: "Passenger Services & CX",
     requirements: [
       "Cloud-native architecture with microservices",
       "NDC/ONE Order compliance",
@@ -20,6 +21,7 @@ const RFT_TOPICS = {
   "loyalty-platform": {
     title: "Loyalty Platform Modernization",
     description: "Next-gen frequent flyer program with personalization",
+    portfolioName: "Passenger Services & CX",
     requirements: [
       "Personalized offers engine",
       "Digital wallet integration",
@@ -32,6 +34,7 @@ const RFT_TOPICS = {
   "mobile-app": {
     title: "Mobile App Development",
     description: "iOS/Android app for booking and flight updates",
+    portfolioName: "Digital & Technology",
     requirements: [
       "Native iOS and Android apps",
       "Real-time flight status",
@@ -44,6 +47,7 @@ const RFT_TOPICS = {
   "revenue-management": {
     title: "Revenue Management System",
     description: "AI-powered pricing and yield optimization",
+    portfolioName: "Network Planning & Revenue",
     requirements: [
       "Machine learning price optimization",
       "Demand forecasting",
@@ -56,6 +60,7 @@ const RFT_TOPICS = {
   "crew-management": {
     title: "Crew Management System",
     description: "Integrated crew scheduling and compliance",
+    portfolioName: "Flight Operations",
     requirements: [
       "Automated crew scheduling",
       "Training management",
@@ -68,6 +73,7 @@ const RFT_TOPICS = {
   "maintenance-tracking": {
     title: "Aircraft Maintenance Tracking",
     description: "Predictive maintenance and MRO management",
+    portfolioName: "Aircraft Maintenance & Engineering",
     requirements: [
       "Predictive maintenance analytics",
       "Work order management",
@@ -80,6 +86,7 @@ const RFT_TOPICS = {
   "baggage-handling": {
     title: "Baggage Handling System",
     description: "RFID-enabled baggage tracking",
+    portfolioName: "Ground Services & Cargo",
     requirements: [
       "RFID bag tracking",
       "Automated sorting",
@@ -92,6 +99,7 @@ const RFT_TOPICS = {
   "ancillary-revenue": {
     title: "Ancillary Revenue Platform",
     description: "Dynamic pricing for ancillary services",
+    portfolioName: "Network Planning & Revenue",
     requirements: [
       "Seat selection and upsell",
       "Meal pre-ordering",
@@ -104,6 +112,7 @@ const RFT_TOPICS = {
   "data-analytics": {
     title: "Enterprise Data Analytics Platform",
     description: "Big data analytics for operational insights",
+    portfolioName: "Digital & Technology",
     requirements: [
       "Real-time data processing",
       "Customer intelligence",
@@ -116,6 +125,7 @@ const RFT_TOPICS = {
   "cybersecurity": {
     title: "Cybersecurity Operations Center",
     description: "24/7 SOC with threat intelligence",
+    portfolioName: "Safety & Compliance",
     requirements: [
       "24/7 security monitoring",
       "Threat intelligence feeds",
@@ -133,12 +143,14 @@ export async function generateRft(topicId: string) {
     throw new Error("Invalid topic ID");
   }
 
-  // Get or create portfolio
-  let portfolio = await storage.getPortfolioByName("Digital & Technology");
+  // Get portfolio by name from topic
+  const portfolios = await storage.getAllPortfolios();
+  let portfolio = portfolios.find(p => p.name === topic.portfolioName);
   if (!portfolio) {
+    // Create portfolio if it doesn't exist
     portfolio = await storage.createPortfolio({
-      name: "Digital & Technology",
-      description: "IT infrastructure, digital platforms, and innovation",
+      name: topic.portfolioName,
+      description: `Portfolio for ${topic.portfolioName}`,
     });
   }
 
