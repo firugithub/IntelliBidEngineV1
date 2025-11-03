@@ -235,16 +235,16 @@ export async function generateRftPack(rftId: string) {
 
   // Upload to Azure Blob Storage under project-specific folder
   await azureBlobStorageService.uploadDocument(
-    `project-${rft.projectId}/RFT Generated/RFT_Package.zip`,
+    `project-${project.id}/RFT Generated/RFT_Package.zip`,
     zipBuffer,
-    { rftId: rft.id, projectId: rft.projectId, type: "rft-package" }
+    { rftId: rft.id, projectId: project.id, type: "rft-package" }
   );
 
   return {
     success: true,
     rftId: rft.id,
     filesCount: 6,
-    folder: `project-${rft.projectId}/RFT Generated`
+    folder: `project-${project.id}/RFT Generated`
   };
 }
 
