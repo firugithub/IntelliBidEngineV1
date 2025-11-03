@@ -2,6 +2,23 @@ import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
 import { storage } from "../storage";
 import type { SystemConfig } from "@shared/schema";
 
+// Helper function to sanitize metadata values for Azure Blob Storage
+// Azure metadata only allows ASCII characters
+function sanitizeMetadata(metadata?: Record<string, string>): Record<string, string> | undefined {
+  if (!metadata) return undefined;
+  
+  const sanitized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    // Replace non-ASCII characters with their ASCII equivalents or remove them
+    sanitized[key] = value
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^\x00-\x7F]/g, '') // Remove any remaining non-ASCII characters
+      .trim();
+  }
+  return sanitized;
+}
+
 export class AzureBlobStorageService {
   private client: BlobServiceClient | null = null;
   private containerClient: ContainerClient | null = null;
@@ -43,9 +60,9 @@ export class AzureBlobStorageService {
     const blobName = normalizedFileName.includes('/') ? normalizedFileName : `${Date.now()}-${normalizedFileName}`;
     const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
 
-    // Upload with metadata
+    // Upload with sanitized metadata (Azure only allows ASCII characters in metadata)
     await blockBlobClient.upload(content, content.length, {
-      metadata,
+      metadata: sanitizeMetadata(metadata),
     });
 
     return {
