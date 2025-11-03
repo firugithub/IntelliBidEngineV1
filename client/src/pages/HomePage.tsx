@@ -113,7 +113,7 @@ export default function HomePage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <FileText className="h-3 h-3" />
-                  Total RFTs
+                  Total
                 </div>
                 <div className="text-2xl font-bold" data-testid={`stat-total-${portfolio.id}`}>
                   {stats?.totalRfts ?? 0}
