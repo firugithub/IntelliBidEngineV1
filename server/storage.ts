@@ -41,6 +41,13 @@ import {
   type InsertGeneratedRft,
   systemConfig,
   mcpConnectors,
+  portfolios,
+  projects,
+  businessCases,
+  generatedRfts,
+  requirements,
+  proposals,
+  evaluations,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { encryptApiKey, decryptApiKey } from "./utils/encryption";
@@ -1247,4 +1254,287 @@ storage.updateMcpConnector = async function(id: string, updates: Partial<InsertM
 
 storage.deleteMcpConnector = async function(id: string): Promise<void> {
   await db.delete(mcpConnectors).where(eq(mcpConnectors.id, id));
+};
+
+// Override portfolio methods to use PostgreSQL
+storage.createPortfolio = async function(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
+  const created = await db.insert(portfolios)
+    .values({
+      name: insertPortfolio.name,
+      description: insertPortfolio.description || null,
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getPortfolio = async function(id: string): Promise<Portfolio | undefined> {
+  const results = await db.select().from(portfolios).where(eq(portfolios.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllPortfolios = async function(): Promise<Portfolio[]> {
+  return await db.select().from(portfolios);
+};
+
+storage.getPortfolioByName = async function(name: string): Promise<Portfolio | undefined> {
+  const results = await db.select().from(portfolios).where(eq(portfolios.name, name)).limit(1);
+  return results[0];
+};
+
+storage.deletePortfolio = async function(id: string): Promise<void> {
+  await db.delete(portfolios).where(eq(portfolios.id, id));
+};
+
+// Override project methods to use PostgreSQL
+storage.createProject = async function(insertProject: InsertProject): Promise<Project> {
+  const created = await db.insert(projects)
+    .values({
+      portfolioId: insertProject.portfolioId,
+      name: insertProject.name,
+      initiativeName: insertProject.initiativeName || null,
+      vendorList: insertProject.vendorList || null,
+      businessCaseId: insertProject.businessCaseId || null,
+      generatedRftId: insertProject.generatedRftId || null,
+      status: insertProject.status || "analyzing",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getProject = async function(id: string): Promise<Project | undefined> {
+  const results = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllProjects = async function(): Promise<Project[]> {
+  return await db.select().from(projects);
+};
+
+storage.getProjectsByPortfolio = async function(portfolioId: string): Promise<Project[]> {
+  return await db.select().from(projects).where(eq(projects.portfolioId, portfolioId));
+};
+
+storage.updateProjectStatus = async function(id: string, status: string): Promise<void> {
+  await db.update(projects)
+    .set({ status })
+    .where(eq(projects.id, id));
+};
+
+storage.deleteProject = async function(id: string): Promise<void> {
+  await db.delete(projects).where(eq(projects.id, id));
+};
+
+// Override business case methods to use PostgreSQL
+storage.createBusinessCase = async function(insertBusinessCase: InsertBusinessCase): Promise<BusinessCase> {
+  const created = await db.insert(businessCases)
+    .values({
+      portfolioId: insertBusinessCase.portfolioId,
+      name: insertBusinessCase.name,
+      description: insertBusinessCase.description || null,
+      fileName: insertBusinessCase.fileName || null,
+      extractedData: insertBusinessCase.extractedData || null,
+      status: insertBusinessCase.status || "pending",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getBusinessCase = async function(id: string): Promise<BusinessCase | undefined> {
+  const results = await db.select().from(businessCases).where(eq(businessCases.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllBusinessCases = async function(): Promise<BusinessCase[]> {
+  return await db.select().from(businessCases);
+};
+
+storage.getBusinessCasesByPortfolio = async function(portfolioId: string): Promise<BusinessCase[]> {
+  return await db.select().from(businessCases).where(eq(businessCases.portfolioId, portfolioId));
+};
+
+storage.updateBusinessCase = async function(id: string, updates: Partial<InsertBusinessCase>): Promise<void> {
+  await db.update(businessCases)
+    .set(updates)
+    .where(eq(businessCases.id, id));
+};
+
+storage.deleteBusinessCase = async function(id: string): Promise<void> {
+  await db.delete(businessCases).where(eq(businessCases.id, id));
+};
+
+// Override generated RFT methods to use PostgreSQL
+storage.createGeneratedRft = async function(insertRft: InsertGeneratedRft): Promise<GeneratedRft> {
+  const created = await db.insert(generatedRfts)
+    .values({
+      projectId: insertRft.projectId,
+      businessCaseId: insertRft.businessCaseId,
+      name: insertRft.name,
+      templateId: insertRft.templateId || null,
+      sections: insertRft.sections || null,
+      status: insertRft.status || "draft",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getGeneratedRft = async function(id: string): Promise<GeneratedRft | undefined> {
+  const results = await db.select().from(generatedRfts).where(eq(generatedRfts.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllGeneratedRfts = async function(): Promise<GeneratedRft[]> {
+  return await db.select().from(generatedRfts);
+};
+
+storage.getGeneratedRftsByProject = async function(projectId: string): Promise<GeneratedRft[]> {
+  return await db.select().from(generatedRfts).where(eq(generatedRfts.projectId, projectId));
+};
+
+storage.getGeneratedRftsByBusinessCase = async function(businessCaseId: string): Promise<GeneratedRft[]> {
+  return await db.select().from(generatedRfts).where(eq(generatedRfts.businessCaseId, businessCaseId));
+};
+
+storage.updateGeneratedRft = async function(id: string, updates: Partial<InsertGeneratedRft>): Promise<void> {
+  await db.update(generatedRfts)
+    .set(updates)
+    .where(eq(generatedRfts.id, id));
+};
+
+storage.deleteGeneratedRft = async function(id: string): Promise<void> {
+  await db.delete(generatedRfts).where(eq(generatedRfts.id, id));
+};
+
+// Override requirement methods to use PostgreSQL
+storage.createRequirement = async function(insertRequirement: InsertRequirement): Promise<Requirement> {
+  const created = await db.insert(requirements)
+    .values({
+      projectId: insertRequirement.projectId,
+      documentType: insertRequirement.documentType || "RFT",
+      fileName: insertRequirement.fileName,
+      extractedData: insertRequirement.extractedData || null,
+      evaluationCriteria: insertRequirement.evaluationCriteria || null,
+      standardId: insertRequirement.standardId || null,
+      taggedSections: insertRequirement.taggedSections || null,
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getRequirementsByProject = async function(projectId: string): Promise<Requirement[]> {
+  return await db.select().from(requirements).where(eq(requirements.projectId, projectId));
+};
+
+storage.deleteRequirement = async function(id: string): Promise<void> {
+  await db.delete(requirements).where(eq(requirements.id, id));
+};
+
+// Override proposal methods to use PostgreSQL
+storage.createProposal = async function(insertProposal: InsertProposal): Promise<Proposal> {
+  const created = await db.insert(proposals)
+    .values({
+      projectId: insertProposal.projectId,
+      vendorName: insertProposal.vendorName,
+      documentType: insertProposal.documentType || "proposal",
+      fileName: insertProposal.fileName,
+      extractedData: insertProposal.extractedData || null,
+      standardId: insertProposal.standardId || null,
+      taggedSections: insertProposal.taggedSections || null,
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getProposalsByProject = async function(projectId: string): Promise<Proposal[]> {
+  return await db.select().from(proposals).where(eq(proposals.projectId, projectId));
+};
+
+storage.getProposal = async function(id: string): Promise<Proposal | undefined> {
+  const results = await db.select().from(proposals).where(eq(proposals.id, id)).limit(1);
+  return results[0];
+};
+
+storage.deleteProposal = async function(id: string): Promise<void> {
+  await db.delete(proposals).where(eq(proposals.id, id));
+};
+
+// Override evaluation methods to use PostgreSQL
+storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
+  const created = await db.insert(evaluations)
+    .values({
+      projectId: insertEvaluation.projectId!,
+      proposalId: insertEvaluation.proposalId,
+      overallScore: insertEvaluation.overallScore!,
+      technicalFit: insertEvaluation.technicalFit!,
+      deliveryRisk: insertEvaluation.deliveryRisk!,
+      cost: insertEvaluation.cost!,
+      compliance: insertEvaluation.compliance!,
+      status: insertEvaluation.status || "analyzing",
+      aiRationale: insertEvaluation.aiRationale || null,
+      roleInsights: insertEvaluation.roleInsights || null,
+      detailedScores: insertEvaluation.detailedScores || null,
+      sectionCompliance: insertEvaluation.sectionCompliance || null,
+      agentDiagnostics: insertEvaluation.agentDiagnostics || null,
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getEvaluationsByProject = async function(projectId: string): Promise<Evaluation[]> {
+  return await db.select().from(evaluations).where(eq(evaluations.projectId, projectId));
+};
+
+storage.getEvaluationByProposal = async function(proposalId: string): Promise<Evaluation | undefined> {
+  const results = await db.select().from(evaluations).where(eq(evaluations.proposalId, proposalId)).limit(1);
+  return results[0];
+};
+
+storage.getEvaluation = async function(id: string): Promise<Evaluation | undefined> {
+  const results = await db.select().from(evaluations).where(eq(evaluations.id, id)).limit(1);
+  return results[0];
+};
+
+storage.updateEvaluation = async function(id: string, updates: Partial<InsertEvaluation>): Promise<void> {
+  await db.update(evaluations)
+    .set(updates)
+    .where(eq(evaluations.id, id));
+};
+
+storage.deleteEvaluation = async function(id: string): Promise<void> {
+  await db.delete(evaluations).where(eq(evaluations.id, id));
+};
+
+// Override getPortfolioRftStats to use PostgreSQL
+storage.getPortfolioRftStats = async function(portfolioId: string): Promise<{
+  totalRfts: number;
+  active: number;
+  evaluationInProgress: number;
+}> {
+  // Get all projects in this portfolio
+  const portfolioProjects = await db.select().from(projects).where(eq(projects.portfolioId, portfolioId));
+  const projectIds = portfolioProjects.map(p => p.id);
+  
+  if (projectIds.length === 0) {
+    return {
+      totalRfts: 0,
+      active: 0,
+      evaluationInProgress: 0,
+    };
+  }
+  
+  // Get all RFTs for those projects
+  const portfolioRfts = await db.select().from(generatedRfts);
+  const filteredRfts = portfolioRfts.filter(rft => projectIds.includes(rft.projectId));
+
+  // Count evaluations in progress for these projects
+  const allEvaluations = await db.select().from(evaluations);
+  const evaluationsInProgress = allEvaluations.filter(
+    (evaluation) => evaluation.projectId && projectIds.includes(evaluation.projectId) && 
+    (evaluation.status === "under-review" || evaluation.status === "analyzing")
+  ).length;
+
+  return {
+    totalRfts: filteredRfts.length,
+    active: filteredRfts.filter((rft) => rft.status === "published").length,
+    evaluationInProgress: evaluationsInProgress,
+  };
 };

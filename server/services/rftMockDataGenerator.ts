@@ -360,19 +360,44 @@ export async function generateEvaluation(rftId: string) {
 
     // Create evaluation
     await storage.createEvaluation({
+      projectId: project.id,
       proposalId: proposal.id,
       overallScore: baseScore,
       technicalFit: baseScore - 5,
       deliveryRisk: baseScore,
-      cost: baseScore + 5,
+      cost: `$${(baseScore * 1000).toLocaleString()}`,
       compliance: baseScore,
-      agentInsights: {
-        delivery: `Delivery insights for ${vendorName}`,
-        product: `Product insights for ${vendorName}`,
-        architecture: `Architecture insights for ${vendorName}`,
-        engineering: `Engineering insights for ${vendorName}`,
-        procurement: `Procurement insights for ${vendorName}`,
-        security: `Security insights for ${vendorName}`,
+      roleInsights: {
+        delivery: [
+          `Strong delivery track record with ${vendorName}`,
+          `Timeline feasibility is excellent for ${vendorName}`,
+          `Resource requirements are clearly defined`
+        ],
+        product: [
+          `${vendorName} offers comprehensive product features`,
+          `Roadmap alignment matches requirements`,
+          `User experience design is modern and intuitive`
+        ],
+        architecture: [
+          `${vendorName} provides scalable architecture`,
+          `Integration patterns follow industry standards`,
+          `Technical documentation is comprehensive`
+        ],
+        engineering: [
+          `Code quality and maintainability standards are high`,
+          `${vendorName} SDK and APIs are well-designed`,
+          `Testing and QA processes are mature`
+        ],
+        procurement: [
+          `Pricing model is transparent and competitive`,
+          `${vendorName} contract terms are favorable`,
+          `Total cost of ownership is within budget`
+        ],
+        security: [
+          `${vendorName} meets all security compliance requirements`,
+          `Data encryption and access controls are robust`,
+          `Security audit results are satisfactory`
+        ],
       },
       status: "completed",
     });

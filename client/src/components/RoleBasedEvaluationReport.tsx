@@ -48,6 +48,14 @@ interface RoleBasedEvaluationReportProps {
 }
 
 export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationReportProps) {
+  // Helper to ensure role insights are always arrays (handles legacy string data)
+  const ensureArray = (value: string[] | string | null | undefined): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return [value]; // Convert legacy string to array
+    return [];
+  };
+
   const getStatusBadge = (status: string) => {
     const variants = {
       recommended: "default",
@@ -170,7 +178,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {evaluations.map((evaluation) =>
               renderVendorCard(
                 evaluation,
-                evaluation.roleInsights?.delivery || [],
+                ensureArray(evaluation.roleInsights?.delivery),
                 [
                   { label: "Delivery Risk", value: evaluation.deliveryRisk, inverse: true },
                   { label: "Overall Fit", value: evaluation.overallScore },
@@ -197,7 +205,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {evaluations.map((evaluation) =>
               renderVendorCard(
                 evaluation,
-                evaluation.roleInsights?.product || [],
+                ensureArray(evaluation.roleInsights?.product),
                 [
                   { label: "Technical Fit", value: evaluation.technicalFit },
                   { label: "Scalability", value: evaluation.detailedScores?.scalability || 0 },
@@ -224,7 +232,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {evaluations.map((evaluation) =>
               renderVendorCard(
                 evaluation,
-                evaluation.roleInsights?.architecture || [],
+                ensureArray(evaluation.roleInsights?.architecture),
                 [
                   { label: "Integration", value: evaluation.detailedScores?.integration || 0 },
                   { label: "Compliance", value: evaluation.compliance },
@@ -251,7 +259,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {evaluations.map((evaluation) =>
               renderVendorCard(
                 evaluation,
-                evaluation.roleInsights?.engineering || [],
+                ensureArray(evaluation.roleInsights?.engineering),
                 [
                   { label: "Documentation", value: evaluation.detailedScores?.documentation || 0 },
                   { label: "Support Quality", value: evaluation.detailedScores?.support || 0 },
@@ -327,8 +335,8 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Security Analysis:</p>
                     <ul className="space-y-2">
-                      {(evaluation.roleInsights?.security || []).length > 0 ? (
-                        evaluation.roleInsights!.security!.map((item, index) => (
+                      {ensureArray(evaluation.roleInsights?.security).length > 0 ? (
+                        ensureArray(evaluation.roleInsights?.security).map((item, index) => (
                           <li key={index} className="flex items-start gap-2 text-sm">
                             <span className="text-primary mt-0.5">•</span>
                             <span>{item}</span>
@@ -362,7 +370,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
             {evaluations.map((evaluation) =>
               renderVendorCard(
                 evaluation,
-                evaluation.roleInsights?.procurement || [],
+                ensureArray(evaluation.roleInsights?.procurement),
                 [
                   { label: "Cost Estimate", value: evaluation.cost },
                   { label: "Support Model", value: evaluation.detailedScores?.support ? `${evaluation.detailedScores.support}%` : "N/A" },
