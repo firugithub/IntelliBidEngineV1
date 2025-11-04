@@ -59,15 +59,17 @@ class RESTAdapter implements ConnectorAdapter {
       }
 
       // Build JSON-RPC 2.0 request for MCP
+      // Use tools/call to invoke the specific Confluence search tool
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
-        method: "tools/list",
+        method: "tools/call",
         params: {
-          vendor: context.vendorName || "",
-          project: context.projectName || "",
-          requirements: context.requirements || [],
-          proposalSummary: context.proposalSummary || "",
+          name: "confluence_cloud_search_for_page_or_blog_post",
+          arguments: {
+            query: context.proposalSummary || context.projectName || "",
+            limit: 10,
+          },
         },
       };
 
@@ -174,8 +176,21 @@ class RESTAdapter implements ConnectorAdapter {
         return this.formatGenericData(data.result, connectorName);
       }
       
-      // MCP Protocol: Check for tools array (MCP standard response)
-      if (data.tools && Array.isArray(data.tools)) {
+      // MCP tools/call response: Check for content array (standard MCP response format)
+      if (data.content && Array.isArray(data.content)) {
+        console.log(`📝 [MCP] Found content array with ${data.content.length} item(s)`);
+        formatted += data.content.map((item: any) => {
+          if (item.type === "text" && item.text) {
+            return item.text;
+          } else if (item.type === "resource" && item.resource) {
+            return JSON.stringify(item.resource, null, 2);
+          } else {
+            return JSON.stringify(item, null, 2);
+          }
+        }).join("\n\n");
+      }
+      // MCP Protocol: Check for tools array (tools/list response)
+      else if (data.tools && Array.isArray(data.tools)) {
         console.log(`🔧 [MCP] Found ${data.tools.length} tools in MCP response`);
         formatted += data.tools.map((tool: any, idx: number) => {
           let toolContent = `\n### Tool ${idx + 1}: ${tool.name || 'Unnamed Tool'}\n`;
@@ -196,10 +211,14 @@ class RESTAdapter implements ConnectorAdapter {
           return toolContent;
         }).join("\n---\n");
       }
-      // Confluence-specific: Check for pages array
+      // Confluence-specific: Check for pages/results array
       else if (data.pages && Array.isArray(data.pages)) {
         console.log(`📄 [MCP] Found ${data.pages.length} Confluence pages`);
         formatted += this.formatPages(data.pages);
+      }
+      else if (data.results && Array.isArray(data.results)) {
+        console.log(`📄 [MCP] Found ${data.results.length} search results`);
+        formatted += this.formatPages(data.results);
       }
       // Check for insights array
       else if (data.insights && Array.isArray(data.insights)) {
@@ -214,9 +233,10 @@ class RESTAdapter implements ConnectorAdapter {
       else if (data.documentation) {
         formatted += `Relevant documentation:\n${data.documentation}`;
       }
-      // Check for content field (generic)
-      else if (data.content) {
-        formatted += data.content;
+      // Check for text field (MCP simple text response)
+      else if (data.text) {
+        console.log(`📝 [MCP] Found text field`);
+        formatted += data.text;
       }
       // Generic fallback
       else {

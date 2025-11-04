@@ -1434,8 +1434,14 @@ export default function StandardsPage() {
                             {testResult.data.rawData?.result && (
                               <div>✓ Found `result` wrapper (JSON-RPC format)</div>
                             )}
+                            {testResult.data.rawData?.content && Array.isArray(testResult.data.rawData.content) && (
+                              <div>✓ Found `content` array with {testResult.data.rawData.content.length} item(s) - MCP tools/call response</div>
+                            )}
                             {testResult.data.rawData?.tools && (
                               <div>✓ Found `tools` array with {Array.isArray(testResult.data.rawData.tools) ? testResult.data.rawData.tools.length : 0} tool(s)</div>
+                            )}
+                            {testResult.data.rawData?.results && (
+                              <div>✓ Found `results` array with {Array.isArray(testResult.data.rawData.results) ? testResult.data.rawData.results.length : 0} search result(s)</div>
                             )}
                             {testResult.data.rawData?.pages && (
                               <div>✓ Found `pages` array with {Array.isArray(testResult.data.rawData.pages) ? testResult.data.rawData.pages.length : 0} page(s)</div>
@@ -1443,10 +1449,10 @@ export default function StandardsPage() {
                             {testResult.data.rawData?.insights && (
                               <div>✓ Found `insights` array</div>
                             )}
-                            {testResult.data.rawData?.content && (
-                              <div>✓ Found `content` field</div>
+                            {testResult.data.rawData?.text && (
+                              <div>✓ Found `text` field</div>
                             )}
-                            {!testResult.data.rawData?.result && !testResult.data.rawData?.tools && !testResult.data.rawData?.pages && !testResult.data.rawData?.insights && !testResult.data.rawData?.content && (
+                            {!testResult.data.rawData?.result && !testResult.data.rawData?.content && !testResult.data.rawData?.tools && !testResult.data.rawData?.results && !testResult.data.rawData?.pages && !testResult.data.rawData?.insights && !testResult.data.rawData?.text && (
                               <div className="text-red-600 dark:text-red-400">⚠️ No recognized data structure found</div>
                             )}
                           </div>
