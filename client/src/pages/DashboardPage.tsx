@@ -4,6 +4,7 @@ import { ComparisonTable } from "@/components/ComparisonTable";
 import { RoleViewTabs } from "@/components/RoleViewTabs";
 import { RadarChart } from "@/components/RadarChart";
 import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
+import { StakeholderComparisonTable } from "@/components/StakeholderComparisonTable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -252,6 +253,9 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {/* Stakeholder Comparison - Why each vendor per stakeholder role */}
+          <StakeholderComparisonTable evaluations={evaluations} />
 
           <Card>
             <CardHeader>
