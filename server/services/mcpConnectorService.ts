@@ -58,8 +58,8 @@ class RESTAdapter implements ConnectorAdapter {
         headers["Authorization"] = `Basic ${Buffer.from(connector.apiKey).toString("base64")}`;
       }
 
-      // Build JSON-RPC 2.0 request for MCP
-      // Use tools/call to invoke the specific Confluence search tool
+      // Use OpenAI's native MCP integration instead of direct JSON-RPC calls
+      // This is more reliable as OpenAI handles the MCP protocol complexity
       const searchQuery = context.proposalSummary || context.projectName || "";
       
       // Get Confluence cloudId from connector config
@@ -69,33 +69,41 @@ class RESTAdapter implements ConnectorAdapter {
       console.log(`🔍 [MCP DEBUG] Connector config:`, connector.config);
       console.log(`🔍 [MCP DEBUG] Extracted cloudId: "${cloudId}"`);
       
-      if (!cloudId) {
-        const errorMsg = `Confluence Cloud ID is required. Please edit the connector and add your Confluence Cloud ID (found in your Confluence URL).`;
-        console.warn(`⚠️ [MCP] ${errorMsg}`);
-        throw new Error(errorMsg);
+      // Use OpenAI's MCP integration
+      const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        throw new Error("OpenAI API key not configured");
       }
-      
-      // Try Zapier-specific format - Site might need to be at params level
-      const jsonRpcRequest = {
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method: "tools/call",
-        params: {
-          name: "confluence_cloud_search_for_page_or_blog_post",
-          Site: cloudId,  // Try Site at params level
-          arguments: {
-            query: searchQuery,
-            instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
+
+      const openaiRequest = {
+        model: "gpt-4o",
+        tools: [
+          {
+            type: "mcp",
+            server_label: connector.name,
+            server_url: connector.serverUrl,
+            require_approval: "never",
+            ...(connector.apiKey && {
+              headers: {
+                Authorization: `Bearer ${connector.apiKey}`,
+              },
+            }),
           },
-        },
+        ],
+        input: `Search Confluence for: ${searchQuery}. Use the Confluence Cloud: Search for Page or Blog Post tool${cloudId ? ` with Site ID: ${cloudId}` : ''}. Return the full content of relevant pages.`,
+        tool_choice: "required",
       };
       
-      console.log(`🔍 [MCP DEBUG] Sending request:`, JSON.stringify(jsonRpcRequest, null, 2));
+      console.log(`🔍 [MCP DEBUG] Using OpenAI MCP integration`);
+      console.log(`🔍 [MCP DEBUG] Sending to OpenAI:`, JSON.stringify(openaiRequest, null, 2));
 
-      const response = await fetch(connector.serverUrl, {
+      const response = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
-        headers,
-        body: JSON.stringify(jsonRpcRequest),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify(openaiRequest),
         signal: controller.signal,
       });
 
