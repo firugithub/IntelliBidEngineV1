@@ -174,20 +174,32 @@ class RESTAdapter implements ConnectorAdapter {
         return this.formatGenericData(data.result, connectorName);
       }
       
-      // Confluence-specific: Check for pages array
-      if (data.pages && Array.isArray(data.pages)) {
-        console.log(`📄 [MCP] Found ${data.pages.length} Confluence pages`);
-        formatted += data.pages.map((page: any, idx: number) => {
-          let pageContent = `\n### Page ${idx + 1}: ${page.title || 'Untitled'}\n`;
-          if (page.body) {
-            pageContent += `${page.body}\n`;
-          } else if (page.content) {
-            pageContent += `${page.content}\n`;
-          } else if (page.excerpt) {
-            pageContent += `${page.excerpt}\n`;
+      // MCP Protocol: Check for tools array (MCP standard response)
+      if (data.tools && Array.isArray(data.tools)) {
+        console.log(`🔧 [MCP] Found ${data.tools.length} tools in MCP response`);
+        formatted += data.tools.map((tool: any, idx: number) => {
+          let toolContent = `\n### Tool ${idx + 1}: ${tool.name || 'Unnamed Tool'}\n`;
+          if (tool.description) {
+            toolContent += `Description: ${tool.description}\n`;
           }
-          return pageContent;
+          if (tool.inputSchema) {
+            toolContent += `Input Schema: ${JSON.stringify(tool.inputSchema)}\n`;
+          }
+          // Check if tool has pages/content/results
+          if (tool.pages && Array.isArray(tool.pages)) {
+            toolContent += this.formatPages(tool.pages);
+          } else if (tool.content) {
+            toolContent += `Content: ${tool.content}\n`;
+          } else if (tool.results) {
+            toolContent += `Results: ${JSON.stringify(tool.results, null, 2)}\n`;
+          }
+          return toolContent;
         }).join("\n---\n");
+      }
+      // Confluence-specific: Check for pages array
+      else if (data.pages && Array.isArray(data.pages)) {
+        console.log(`📄 [MCP] Found ${data.pages.length} Confluence pages`);
+        formatted += this.formatPages(data.pages);
       }
       // Check for insights array
       else if (data.insights && Array.isArray(data.insights)) {
@@ -216,6 +228,25 @@ class RESTAdapter implements ConnectorAdapter {
 
     console.log(`📝 [MCP] Formatted data length: ${formatted.length} characters`);
     return formatted;
+  }
+
+  private formatPages(pages: any[]): string {
+    return pages.map((page: any, idx: number) => {
+      let pageContent = `\n### Page ${idx + 1}: ${page.title || 'Untitled'}\n`;
+      if (page.body) {
+        pageContent += `${page.body}\n`;
+      } else if (page.content) {
+        pageContent += `${page.content}\n`;
+      } else if (page.excerpt) {
+        pageContent += `${page.excerpt}\n`;
+      } else if (page.text) {
+        pageContent += `${page.text}\n`;
+      } else {
+        // Show whatever fields are available
+        pageContent += JSON.stringify(page, null, 2);
+      }
+      return pageContent;
+    }).join("\n---\n");
   }
 
   private formatVendorPerformance(perf: any): string {

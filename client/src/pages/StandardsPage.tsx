@@ -1425,9 +1425,36 @@ export default function StandardsPage() {
                           <span className="font-semibold">Connection Successful!</span>
                         </div>
 
+                        {/* Response Structure Analysis */}
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-md">
+                          <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                            📊 Response Structure:
+                          </p>
+                          <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
+                            {testResult.data.rawData?.result && (
+                              <div>✓ Found `result` wrapper (JSON-RPC format)</div>
+                            )}
+                            {testResult.data.rawData?.tools && (
+                              <div>✓ Found `tools` array with {Array.isArray(testResult.data.rawData.tools) ? testResult.data.rawData.tools.length : 0} tool(s)</div>
+                            )}
+                            {testResult.data.rawData?.pages && (
+                              <div>✓ Found `pages` array with {Array.isArray(testResult.data.rawData.pages) ? testResult.data.rawData.pages.length : 0} page(s)</div>
+                            )}
+                            {testResult.data.rawData?.insights && (
+                              <div>✓ Found `insights` array</div>
+                            )}
+                            {testResult.data.rawData?.content && (
+                              <div>✓ Found `content` field</div>
+                            )}
+                            {!testResult.data.rawData?.result && !testResult.data.rawData?.tools && !testResult.data.rawData?.pages && !testResult.data.rawData?.insights && !testResult.data.rawData?.content && (
+                              <div className="text-red-600 dark:text-red-400">⚠️ No recognized data structure found</div>
+                            )}
+                          </div>
+                        </div>
+
                         <div>
                           <Label className="text-sm font-semibold">Raw Response from Confluence:</Label>
-                          <pre className="mt-2 p-4 bg-muted rounded-md text-xs overflow-x-auto">
+                          <pre className="mt-2 p-4 bg-muted rounded-md text-xs overflow-x-auto max-h-96">
                             {JSON.stringify(testResult.data.rawData, null, 2)}
                           </pre>
                         </div>
@@ -1446,10 +1473,11 @@ export default function StandardsPage() {
                             <strong>💡 Debugging Tips:</strong>
                           </p>
                           <ul className="mt-2 text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-                            <li>Check the "Raw Response" to see exactly what Confluence is returning</li>
-                            <li>If empty, your Confluence MCP server isn't searching properly</li>
-                            <li>Expected format: `{"{"}pages: [...]{"}"}, {"{"}insights: [...]{"}"}, or {"{"}content: "..."{"}"}`</li>
-                            <li>Check server logs for detailed MCP debugging output</li>
+                            <li>Check "Response Structure" to see what fields Confluence returned</li>
+                            <li>MCP standard uses `tools` array - each tool can have `pages`, `content`, or `results`</li>
+                            <li>Alternative formats: `pages` array, `insights` array, or `content` string</li>
+                            <li>If structure exists but no content, check page `body`/`content`/`text` fields</li>
+                            <li>Check server logs for detailed parsing: `🔧 [MCP] Found X tools`, `📄 [MCP] Found X pages`</li>
                           </ul>
                         </div>
                       </div>
