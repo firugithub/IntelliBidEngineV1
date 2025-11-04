@@ -66,6 +66,9 @@ class RESTAdapter implements ConnectorAdapter {
       const config = connector.config as any;
       const cloudId = config?.cloudId || "";
       
+      console.log(`🔍 [MCP DEBUG] Connector config:`, connector.config);
+      console.log(`🔍 [MCP DEBUG] Extracted cloudId: "${cloudId}"`);
+      
       if (!cloudId) {
         const errorMsg = `Confluence Cloud ID is required. Please edit the connector and add your Confluence Cloud ID (found in your Confluence URL).`;
         console.warn(`⚠️ [MCP] ${errorMsg}`);
@@ -86,6 +89,8 @@ class RESTAdapter implements ConnectorAdapter {
           },
         },
       };
+      
+      console.log(`🔍 [MCP DEBUG] Sending request:`, JSON.stringify(jsonRpcRequest, null, 2));
 
       const response = await fetch(connector.serverUrl, {
         method: "POST",
