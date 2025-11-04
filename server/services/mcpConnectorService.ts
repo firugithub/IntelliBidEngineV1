@@ -84,7 +84,7 @@ class RESTAdapter implements ConnectorAdapter {
           arguments: {
             query: searchQuery,
             instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
-            cloudId: cloudId,
+            Site: cloudId,  // Zapier expects "Site" (capital S) not "cloudId"
             limit: 10,
           },
         },
