@@ -64,6 +64,11 @@ export default function DashboardPage() {
   const projectId = params.id;
   const [selectedVendor, setSelectedVendor] = useState<Evaluation | null>(null);
 
+  const { data: project } = useQuery<{ portfolioId: string }>({
+    queryKey: ["/api/projects", projectId],
+    enabled: !!projectId,
+  });
+
   const { data: evaluations, isLoading } = useQuery<Evaluation[]>({
     queryKey: ["/api/projects", projectId, "evaluations"],
     enabled: !!projectId,
@@ -147,7 +152,9 @@ export default function DashboardPage() {
   };
 
   const handleNewEvaluation = () => {
-    setLocation("/");
+    if (project?.portfolioId) {
+      setLocation(`/portfolio/${project.portfolioId}/upload`);
+    }
   };
 
   return (
