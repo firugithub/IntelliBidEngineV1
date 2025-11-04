@@ -75,17 +75,17 @@ class RESTAdapter implements ConnectorAdapter {
         throw new Error(errorMsg);
       }
       
+      // Try Zapier-specific format - Site might need to be at params level
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
         method: "tools/call",
         params: {
           name: "confluence_cloud_search_for_page_or_blog_post",
+          Site: cloudId,  // Try Site at params level
           arguments: {
             query: searchQuery,
             instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
-            Site: cloudId,  // Zapier expects "Site" (capital S) not "cloudId"
-            limit: 10,
           },
         },
       };
