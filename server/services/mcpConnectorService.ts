@@ -69,7 +69,7 @@ class RESTAdapter implements ConnectorAdapter {
       console.log(`🔍 [MCP DEBUG] Connector config:`, connector.config);
       console.log(`🔍 [MCP DEBUG] Extracted cloudId: "${cloudId}"`);
       
-      // Complete request with all required fields
+      // Try without Site parameter - Zapier might have it configured in the MCP server
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
@@ -79,7 +79,7 @@ class RESTAdapter implements ConnectorAdapter {
           arguments: {
             query: searchQuery,
             instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
-            Site: cloudId || "",  // Required field, use empty string if not set
+            // Don't send Site - Zapier MCP server should have it configured
           },
         },
       };
