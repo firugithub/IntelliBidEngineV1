@@ -31,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 **Excel Features:** Questionnaires include dropdown compliance scoring and remarks columns, with professional styling.
 **Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Review & Download Deliverables).
 **RFT Document Edit & Download:** Provides section-by-section editing with real-time updates, Markdown formatting support, and professional DOCX/PDF generation. Single-click ZIP download for all deliverables.
+**Azure Blob Storage Publishing:** When RFT is published, all generated files (DOCX, PDF, 4 Excel questionnaires) are automatically uploaded to Azure Blob Storage at structured paths (`project-{id}/RFT_{id}/[filename]`). Download endpoints intelligently serve from Azure for published RFTs or generate on-the-fly for unpublished ones, providing seamless fallback behavior.
 
 ### Advanced AI Features
 IntelliBid includes 5 production-ready AI features accessible via a unified interface: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant.
