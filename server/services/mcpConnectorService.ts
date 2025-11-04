@@ -69,7 +69,7 @@ class RESTAdapter implements ConnectorAdapter {
       console.log(`🔍 [MCP DEBUG] Connector config:`, connector.config);
       console.log(`🔍 [MCP DEBUG] Extracted cloudId: "${cloudId}"`);
       
-      // Simplified request - just query and Site
+      // Complete request with all required fields
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
@@ -78,7 +78,8 @@ class RESTAdapter implements ConnectorAdapter {
           name: "confluence_cloud_search_for_page_or_blog_post",
           arguments: {
             query: searchQuery,
-            ...(cloudId && { Site: cloudId }),  // Only add if exists
+            instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
+            Site: cloudId || "",  // Required field, use empty string if not set
           },
         },
       };
