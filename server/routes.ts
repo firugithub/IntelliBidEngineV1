@@ -2346,7 +2346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish RFT (convert to requirements)
+  // Publish RFT (convert to requirements AND upload files to Azure)
   app.post("/api/generated-rfts/:id/publish", async (req, res) => {
     try {
       const rft = await storage.getGeneratedRft(req.params.id);
@@ -2354,10 +2354,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Generated RFT not found" });
       }
 
-      // Update RFT status to published
+      console.log(`📤 Publishing RFT ${req.params.id} - uploading files to Azure...`);
+
+      // Upload all files to Azure Blob Storage
+      const { publishRftFilesToAzure } = await import("./services/smartRftService");
+      const azureUrls = await publishRftFilesToAzure(req.params.id);
+
+      console.log(`✅ Files uploaded successfully to Azure Blob Storage`);
+
+      // Update RFT status to published and store Azure blob URLs
       await storage.updateGeneratedRft(req.params.id, {
         status: "published",
         publishedAt: new Date(),
+        docxBlobUrl: azureUrls.docxBlobUrl,
+        pdfBlobUrl: azureUrls.pdfBlobUrl,
+        productQuestionnaireBlobUrl: azureUrls.productQuestionnaireBlobUrl,
+        nfrQuestionnaireBlobUrl: azureUrls.nfrQuestionnaireBlobUrl,
+        cybersecurityQuestionnaireBlobUrl: azureUrls.cybersecurityQuestionnaireBlobUrl,
+        agileQuestionnaireBlobUrl: azureUrls.agileQuestionnaireBlobUrl,
       });
 
       // Create requirements from RFT sections
@@ -2386,8 +2400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         success: true,
-        rft,
+        rft: await storage.getGeneratedRft(req.params.id), // Return updated RFT with Azure URLs
         requirementsCreated: allRequirements.length,
+        azureUrls, // Include Azure URLs in response
       });
     } catch (error) {
       console.error("Error publishing RFT:", error);

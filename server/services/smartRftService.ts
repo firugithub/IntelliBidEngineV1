@@ -532,7 +532,7 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
   const fs = await import("fs");
   const path = await import("path");
   const { generateDocxDocument, generatePdfDocument } = await import("./documentGenerator");
-  const azureBlobStorageService = await import("./azureBlobStorage");
+  const { azureBlobStorageService } = await import("./azureBlobStorage");
 
   // Extract sections from RFT
   const sections = (rft.sections as any)?.sections || [];
@@ -603,32 +603,32 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
   // Upload all files to Azure Blob Storage (following mock data pattern)
   const uploadResults = await Promise.all([
     // Upload RFT document (DOCX)
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.docx`,
       docxBuffer
     ),
     // Upload RFT document (PDF)
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.pdf`,
       pdfBuffer
     ),
     // Upload Product Questionnaire
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.productPath)
     ),
     // Upload NFR Questionnaire
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.nfrPath)
     ),
     // Upload Cybersecurity Questionnaire
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.cybersecurityPath)
     ),
     // Upload Agile Questionnaire
-    azureBlobStorageService.default.uploadDocument(
+    azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.agilePath)
     ),
