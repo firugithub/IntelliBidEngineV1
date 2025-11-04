@@ -2447,24 +2447,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "RFT not found" });
       }
 
-      // Get file path based on type
+      // Check if Azure blob URL exists (for published RFTs)
+      let blobUrl: string | null = null;
       let filePath: string | null = null;
       let fileName = "";
       
       switch (type) {
         case "product":
+          blobUrl = rft.productQuestionnaireBlobUrl || null;
           filePath = rft.productQuestionnairePath || null;
           fileName = "Product_Questionnaire.xlsx";
           break;
         case "nfr":
+          blobUrl = rft.nfrQuestionnaireBlobUrl || null;
           filePath = rft.nfrQuestionnairePath || null;
           fileName = "NFR_Questionnaire.xlsx";
           break;
         case "cybersecurity":
+          blobUrl = rft.cybersecurityQuestionnaireBlobUrl || null;
           filePath = rft.cybersecurityQuestionnairePath || null;
           fileName = "Cybersecurity_Questionnaire.xlsx";
           break;
         case "agile":
+          blobUrl = rft.agileQuestionnaireBlobUrl || null;
           filePath = rft.agileQuestionnairePath || null;
           fileName = "Agile_Delivery_Questionnaire.xlsx";
           break;
@@ -2472,9 +2477,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Invalid questionnaire type" });
       }
 
+      // Serve from Azure if published
+      if (blobUrl) {
+        console.log(`📥 Serving ${type} questionnaire from Azure: ${blobUrl}`);
+        return res.redirect(blobUrl);
+      }
+
+      // Otherwise, serve from local filesystem (for unpublished RFTs)
       if (!filePath || !fs.existsSync(filePath)) {
         return res.status(404).json({ error: "Questionnaire file not found" });
       }
+
+      console.log(`⚠️ Serving ${type} questionnaire from local file (RFT not yet published)`);
 
       // Send file
       res.download(filePath, fileName, (err) => {
@@ -2501,10 +2515,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "RFT not found" });
       }
 
+      // If published, serve from Azure Blob Storage
+      if (rft.docxBlobUrl) {
+        console.log(`📥 Serving DOCX from Azure: ${rft.docxBlobUrl}`);
+        return res.redirect(rft.docxBlobUrl);
+      }
+
+      // Otherwise, generate on-the-fly (for unpublished RFTs)
       const sections = (rft.sections as any)?.sections || [];
       if (sections.length === 0) {
         return res.status(400).json({ error: "No sections found in RFT" });
       }
+
+      console.log(`⚠️ Generating DOCX on-the-fly (RFT not yet published)`);
 
       // Generate DOC file
       const { generateDocxDocument } = await import("./services/documentGenerator");
@@ -2547,10 +2570,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "RFT not found" });
       }
 
+      // If published, serve from Azure Blob Storage
+      if (rft.pdfBlobUrl) {
+        console.log(`📥 Serving PDF from Azure: ${rft.pdfBlobUrl}`);
+        return res.redirect(rft.pdfBlobUrl);
+      }
+
+      // Otherwise, generate on-the-fly (for unpublished RFTs)
       const sections = (rft.sections as any)?.sections || [];
       if (sections.length === 0) {
         return res.status(400).json({ error: "No sections found in RFT" });
       }
+
+      console.log(`⚠️ Generating PDF on-the-fly (RFT not yet published)`);
 
       // Generate PDF file
       const { generatePdfDocument } = await import("./services/documentGenerator");
