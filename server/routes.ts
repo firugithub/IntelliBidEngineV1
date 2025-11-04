@@ -715,6 +715,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test MCP connector
+  app.post("/api/mcp-connectors/:id/test", async (req, res) => {
+    try {
+      const { mcpConnectorService } = await import("./services/mcpConnectorService");
+      const { query } = req.body;
+      
+      console.log(`🧪 [MCP TEST] Testing connector ${req.params.id} with query: "${query}"`);
+      
+      const payload = await mcpConnectorService.fetchConnectorData(req.params.id, {
+        projectName: "Test Query",
+        proposalSummary: query || "test",
+      });
+      
+      if (!payload) {
+        return res.json({
+          success: false,
+          message: "No data returned from connector",
+          rawData: null,
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: "Connector test successful",
+        rawData: payload.rawData,
+        roleContext: payload.roleContext,
+        metadata: payload.metadata,
+      });
+    } catch (error: any) {
+      console.error("Error testing MCP connector:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to test MCP connector",
+        details: error.message || String(error),
+      });
+    }
+  });
+
   // System Configuration endpoints
   app.get("/api/system-config", async (req, res) => {
     try {

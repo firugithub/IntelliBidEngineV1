@@ -108,6 +108,9 @@ class RESTAdapter implements ConnectorAdapter {
         data = await response.json();
       }
 
+      // DEBUG: Log what Confluence/MCP is actually returning
+      console.log(`🔍 [MCP DEBUG] Raw response from ${connector.name}:`, JSON.stringify(data, null, 2));
+
       const roleContext = this.formatDataForRoles(data, connector, context);
       const ttl = 300;
 
@@ -153,7 +156,10 @@ class RESTAdapter implements ConnectorAdapter {
   }
 
   private formatGenericData(data: any, connectorName: string): string {
-    if (!data) return "";
+    if (!data) {
+      console.warn(`⚠️ [MCP] No data returned from ${connectorName}`);
+      return "";
+    }
 
     let formatted = `\n**EXTERNAL INTELLIGENCE: ${connectorName}**\n`;
 
@@ -162,18 +168,53 @@ class RESTAdapter implements ConnectorAdapter {
     } else if (Array.isArray(data)) {
       formatted += data.map((item, idx) => `${idx + 1}. ${JSON.stringify(item, null, 2)}`).join("\n");
     } else if (typeof data === "object") {
-      if (data.insights && Array.isArray(data.insights)) {
+      // Check for JSON-RPC result wrapper
+      if (data.result) {
+        console.log(`🔍 [MCP] Found JSON-RPC result wrapper, extracting...`);
+        return this.formatGenericData(data.result, connectorName);
+      }
+      
+      // Confluence-specific: Check for pages array
+      if (data.pages && Array.isArray(data.pages)) {
+        console.log(`📄 [MCP] Found ${data.pages.length} Confluence pages`);
+        formatted += data.pages.map((page: any, idx: number) => {
+          let pageContent = `\n### Page ${idx + 1}: ${page.title || 'Untitled'}\n`;
+          if (page.body) {
+            pageContent += `${page.body}\n`;
+          } else if (page.content) {
+            pageContent += `${page.content}\n`;
+          } else if (page.excerpt) {
+            pageContent += `${page.excerpt}\n`;
+          }
+          return pageContent;
+        }).join("\n---\n");
+      }
+      // Check for insights array
+      else if (data.insights && Array.isArray(data.insights)) {
+        console.log(`💡 [MCP] Found ${data.insights.length} insights`);
         formatted += data.insights.map((insight: string, idx: number) => `- ${insight}`).join("\n");
-      } else if (data.vendor_performance) {
+      }
+      // Check for vendor performance
+      else if (data.vendor_performance) {
         formatted += this.formatVendorPerformance(data.vendor_performance);
-      } else if (data.documentation) {
+      }
+      // Check for documentation field
+      else if (data.documentation) {
         formatted += `Relevant documentation:\n${data.documentation}`;
-      } else {
+      }
+      // Check for content field (generic)
+      else if (data.content) {
+        formatted += data.content;
+      }
+      // Generic fallback
+      else {
+        console.log(`⚠️ [MCP] Using generic formatting for object with keys: ${Object.keys(data).join(', ')}`);
         const entries = Object.entries(data).slice(0, 10);
         formatted += entries.map(([key, value]) => `- ${key}: ${String(value).substring(0, 200)}`).join("\n");
       }
     }
 
+    console.log(`📝 [MCP] Formatted data length: ${formatted.length} characters`);
     return formatted;
   }
 

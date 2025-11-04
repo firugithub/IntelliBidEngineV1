@@ -122,6 +122,9 @@ export default function StandardsPage() {
   // MCP Connectors state
   const [isConnectorDialogOpen, setIsConnectorDialogOpen] = useState(false);
   const [editingConnector, setEditingConnector] = useState<McpConnector | null>(null);
+  const [testResult, setTestResult] = useState<{connectorId: string; data: any} | null>(null);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [testQuery, setTestQuery] = useState("project management");
   const [connectorFormData, setConnectorFormData] = useState({
     name: "",
     description: "",
@@ -249,6 +252,28 @@ export default function StandardsPage() {
     },
     onError: () => {
       toast({ title: "Failed to update connector status", variant: "destructive" });
+    },
+  });
+
+  const testConnectorMutation = useMutation({
+    mutationFn: async ({ id, query }: { id: string; query: string }) => {
+      return await apiRequest("POST", `/api/mcp-connectors/${id}/test`, { query });
+    },
+    onSuccess: (data, variables) => {
+      setTestResult({ connectorId: variables.id, data });
+      setIsTestDialogOpen(true);
+      if (data.success) {
+        toast({ title: "Connector test successful" });
+      } else {
+        toast({ title: "Test completed but no data returned", variant: "destructive" });
+      }
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to test connector", 
+        description: error.message || "Unknown error",
+        variant: "destructive" 
+      });
     },
   });
 
@@ -1346,6 +1371,17 @@ export default function StandardsPage() {
 
                         <div className="flex items-center gap-2 pt-2">
                           <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => testConnectorMutation.mutate({ id: connector.id, query: testQuery })}
+                            disabled={!isActive || testConnectorMutation.isPending}
+                            className="flex-1 gap-2"
+                            data-testid={`button-test-connector-${connector.id}`}
+                          >
+                            <RefreshCw className={`h-3 w-3 ${testConnectorMutation.isPending ? 'animate-spin' : ''}`} />
+                            Test
+                          </Button>
+                          <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditConnector(connector)}
@@ -1373,6 +1409,65 @@ export default function StandardsPage() {
                 })}
               </div>
             )}
+
+            {/* Test Result Dialog */}
+            <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>MCP Connector Test Results</DialogTitle>
+                </DialogHeader>
+                {testResult && (
+                  <div className="space-y-4">
+                    {testResult.data.success ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <Power className="h-5 w-5" />
+                          <span className="font-semibold">Connection Successful!</span>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-semibold">Raw Response from Confluence:</Label>
+                          <pre className="mt-2 p-4 bg-muted rounded-md text-xs overflow-x-auto">
+                            {JSON.stringify(testResult.data.rawData, null, 2)}
+                          </pre>
+                        </div>
+
+                        {testResult.data.roleContext && Object.keys(testResult.data.roleContext).length > 0 && (
+                          <div>
+                            <Label className="text-sm font-semibold">Formatted Content (What AI Sees):</Label>
+                            <div className="mt-2 p-4 bg-muted rounded-md text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">
+                              {String(Object.values(testResult.data.roleContext)[0] || '')}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-md">
+                          <p className="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>💡 Debugging Tips:</strong>
+                          </p>
+                          <ul className="mt-2 text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                            <li>Check the "Raw Response" to see exactly what Confluence is returning</li>
+                            <li>If empty, your Confluence MCP server isn't searching properly</li>
+                            <li>Expected format: `{"{"}pages: [...]{"}"}, {"{"}insights: [...]{"}"}, or {"{"}content: "..."{"}"}`</li>
+                            <li>Check server logs for detailed MCP debugging output</li>
+                          </ul>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-red-600">
+                          <AlertTriangle className="h-5 w-5" />
+                          <span className="font-semibold">No Data Returned</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {testResult.data.message || "The connector is working but didn't return any data. Check your Confluence MCP server configuration."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>
