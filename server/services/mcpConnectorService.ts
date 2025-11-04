@@ -60,6 +60,7 @@ class RESTAdapter implements ConnectorAdapter {
 
       // Build JSON-RPC 2.0 request for MCP
       // Use tools/call to invoke the specific Confluence search tool
+      const searchQuery = context.proposalSummary || context.projectName || "";
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
@@ -67,7 +68,8 @@ class RESTAdapter implements ConnectorAdapter {
         params: {
           name: "confluence_cloud_search_for_page_or_blog_post",
           arguments: {
-            query: context.proposalSummary || context.projectName || "",
+            query: searchQuery,
+            instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
             limit: 10,
           },
         },
