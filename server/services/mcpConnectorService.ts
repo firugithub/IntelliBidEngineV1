@@ -309,7 +309,8 @@ class MCPConnectorService {
 
   async fetchConnectorData(
     connectorId: string,
-    context: EvaluationContext
+    context: EvaluationContext,
+    options?: { bypassCache?: boolean }
   ): Promise<ConnectorPayload | null> {
     try {
       const connector = await storage.getMcpConnector(connectorId);
@@ -324,10 +325,16 @@ class MCPConnectorService {
       }
 
       const cacheKey = this.getCacheKey(connectorId, context);
-      const cached = cacheService.get<ConnectorPayload>(cacheKey);
-      if (cached) {
-        console.log(`✅ Cache hit for connector: ${connector.name}`);
-        return cached;
+      
+      // Skip cache for testing
+      if (!options?.bypassCache) {
+        const cached = cacheService.get<ConnectorPayload>(cacheKey);
+        if (cached) {
+          console.log(`✅ Cache hit for connector: ${connector.name}`);
+          return cached;
+        }
+      } else {
+        console.log(`🔄 Bypassing cache for connector: ${connector.name}`);
       }
 
       const adapter = this.adapters.get(connector.connectorType);

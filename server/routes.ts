@@ -723,10 +723,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🧪 [MCP TEST] Testing connector ${req.params.id} with query: "${query}"`);
       
-      const payload = await mcpConnectorService.fetchConnectorData(req.params.id, {
-        projectName: "Test Query",
-        proposalSummary: query || "test",
-      });
+      // Bypass cache for test calls to always get fresh data
+      const payload = await mcpConnectorService.fetchConnectorData(
+        req.params.id, 
+        {
+          projectName: "Test Query",
+          proposalSummary: query || "test",
+        },
+        { bypassCache: true }
+      );
       
       if (!payload) {
         return res.json({
