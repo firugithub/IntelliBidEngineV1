@@ -252,10 +252,16 @@ export const generatedRfts = pgTable("generated_rfts", {
   templateId: varchar("template_id").notNull(),
   name: text("name").notNull(),
   sections: jsonb("sections").notNull(), // Generated RFT content by section
-  productQuestionnairePath: text("product_questionnaire_path"), // Path to Product Excel (30 questions)
-  nfrQuestionnairePath: text("nfr_questionnaire_path"), // Path to NFR Excel (50 questions)
-  cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Path to Cybersecurity Excel (20 questions)
-  agileQuestionnairePath: text("agile_questionnaire_path"), // Path to Agile Delivery Excel (20 questions)
+  productQuestionnairePath: text("product_questionnaire_path"), // Local path to Product Excel (30 questions)
+  nfrQuestionnairePath: text("nfr_questionnaire_path"), // Local path to NFR Excel (50 questions)
+  cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Local path to Cybersecurity Excel (20 questions)
+  agileQuestionnairePath: text("agile_questionnaire_path"), // Local path to Agile Delivery Excel (20 questions)
+  docxBlobUrl: text("docx_blob_url"), // Azure Blob Storage URL for DOCX file
+  pdfBlobUrl: text("pdf_blob_url"), // Azure Blob Storage URL for PDF file
+  productQuestionnaireBlobUrl: text("product_questionnaire_blob_url"), // Azure URL for Product Excel
+  nfrQuestionnaireBlobUrl: text("nfr_questionnaire_blob_url"), // Azure URL for NFR Excel
+  cybersecurityQuestionnaireBlobUrl: text("cybersecurity_questionnaire_blob_url"), // Azure URL for Cybersecurity Excel
+  agileQuestionnaireBlobUrl: text("agile_questionnaire_blob_url"), // Azure URL for Agile Excel
   status: text("status").notNull().default("draft"), // 'draft', 'review', 'published', 'archived'
   version: integer("version").notNull().default(1),
   publishedAt: timestamp("published_at"),

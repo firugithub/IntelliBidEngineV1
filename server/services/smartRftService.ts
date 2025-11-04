@@ -498,3 +498,163 @@ export async function regenerateRftSection(
 
   return newSection;
 }
+
+/**
+ * Generate all RFT files and upload to Azure Blob Storage
+ * Follows the same pattern as mock data generation
+ */
+export async function publishRftFilesToAzure(rftId: string): Promise<{
+  docxBlobUrl: string;
+  pdfBlobUrl: string;
+  productQuestionnaireBlobUrl: string;
+  nfrQuestionnaireBlobUrl: string;
+  cybersecurityQuestionnaireBlobUrl: string;
+  agileQuestionnaireBlobUrl: string;
+}> {
+  const rft = await storage.getGeneratedRft(rftId);
+  if (!rft) {
+    throw new Error("RFT not found");
+  }
+
+  const project = await storage.getProject(rft.projectId);
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  const businessCase = await storage.getBusinessCase(rft.businessCaseId);
+  if (!businessCase) {
+    throw new Error("Business case not found");
+  }
+
+  console.log(`📤 Publishing RFT files to Azure Blob Storage for: ${rft.name}`);
+
+  // Import required services
+  const fs = await import("fs");
+  const path = await import("path");
+  const { generateDocxDocument, generatePdfDocument } = await import("./documentGenerator");
+  const azureBlobStorageService = await import("./azureBlobStorage");
+
+  // Extract sections from RFT
+  const sections = (rft.sections as any)?.sections || [];
+  if (sections.length === 0) {
+    throw new Error("No sections found in RFT");
+  }
+
+  // Extract business case information for questionnaire generation
+  const businessCaseExtract: BusinessCaseExtract = {
+    projectName: rft.name,
+    businessObjective: businessCase.documentContent || `Modernize ${rft.name}`,
+    scope: `Full implementation of ${rft.name}`,
+    stakeholders: ["IT Department", "Operations Team", "Executive Leadership"],
+    budget: "To be determined based on vendor proposals",
+    timeline: "12-18 months",
+    keyRequirements: sections.map((s: any) => s.title).filter(Boolean) || [
+      "Cloud-native architecture",
+      "Scalable and secure platform",
+    ],
+    risks: ["Implementation delays", "Budget overruns"],
+    successCriteria: ["On-time delivery", "Budget adherence"],
+  };
+
+  // Generate questionnaires with AI (30, 50, 20, 20)
+  console.log("Generating AI-powered questionnaires...");
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+  ]);
+
+  // Generate Excel files
+  console.log("Creating Excel questionnaires...");
+  const questionnairePaths = await generateAllQuestionnaires(project.id, {
+    product: productQuestions,
+    nfr: nfrQuestions,
+    cybersecurity: cybersecurityQuestions,
+    agile: agileQuestions,
+  });
+
+  // Generate DOCX document
+  console.log("Generating DOCX document...");
+  const docxPath = path.join(process.cwd(), "uploads", "documents", `RFT_${rft.id}.docx`);
+  await generateDocxDocument({
+    projectName: rft.name,
+    sections,
+    outputPath: docxPath,
+  });
+
+  // Generate PDF document
+  console.log("Generating PDF document...");
+  const pdfPath = path.join(process.cwd(), "uploads", "documents", `RFT_${rft.id}.pdf`);
+  await generatePdfDocument({
+    projectName: rft.name,
+    sections,
+    outputPath: pdfPath,
+  });
+
+  // Read file contents into buffers
+  const docxBuffer = fs.readFileSync(docxPath);
+  const pdfBuffer = fs.readFileSync(pdfPath);
+
+  console.log("Uploading files to Azure Blob Storage...");
+
+  const sanitizedName = rft.name.replace(/[^a-zA-Z0-9]/g, '_');
+
+  // Upload all files to Azure Blob Storage (following mock data pattern)
+  const uploadResults = await Promise.all([
+    // Upload RFT document (DOCX)
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.docx`,
+      docxBuffer
+    ),
+    // Upload RFT document (PDF)
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.pdf`,
+      pdfBuffer
+    ),
+    // Upload Product Questionnaire
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.productPath)
+    ),
+    // Upload NFR Questionnaire
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.nfrPath)
+    ),
+    // Upload Cybersecurity Questionnaire
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.cybersecurityPath)
+    ),
+    // Upload Agile Questionnaire
+    azureBlobStorageService.default.uploadDocument(
+      `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
+      fs.readFileSync(questionnairePaths.agilePath)
+    ),
+  ]);
+
+  console.log(`✅ Uploaded ${uploadResults.length} files to Azure Blob Storage`);
+
+  // Clean up temporary files
+  try {
+    fs.unlinkSync(docxPath);
+    fs.unlinkSync(pdfPath);
+    fs.unlinkSync(questionnairePaths.productPath);
+    fs.unlinkSync(questionnairePaths.nfrPath);
+    fs.unlinkSync(questionnairePaths.cybersecurityPath);
+    fs.unlinkSync(questionnairePaths.agilePath);
+  } catch (error) {
+    console.error("Error cleaning up temporary files:", error);
+  }
+
+  // Return Azure blob URLs
+  return {
+    docxBlobUrl: uploadResults[0].blobUrl,
+    pdfBlobUrl: uploadResults[1].blobUrl,
+    productQuestionnaireBlobUrl: uploadResults[2].blobUrl,
+    nfrQuestionnaireBlobUrl: uploadResults[3].blobUrl,
+    cybersecurityQuestionnaireBlobUrl: uploadResults[4].blobUrl,
+    agileQuestionnaireBlobUrl: uploadResults[5].blobUrl,
+  };
+}
