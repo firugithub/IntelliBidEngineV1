@@ -61,6 +61,17 @@ class RESTAdapter implements ConnectorAdapter {
       // Build JSON-RPC 2.0 request for MCP
       // Use tools/call to invoke the specific Confluence search tool
       const searchQuery = context.proposalSummary || context.projectName || "";
+      
+      // Get Confluence cloudId from connector config
+      const config = connector.config as any;
+      const cloudId = config?.cloudId || "";
+      
+      if (!cloudId) {
+        const errorMsg = `Confluence Cloud ID is required. Please edit the connector and add your Confluence Cloud ID (found in your Confluence URL).`;
+        console.warn(`⚠️ [MCP] ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+      
       const jsonRpcRequest = {
         jsonrpc: "2.0",
         id: Date.now(),
@@ -70,6 +81,7 @@ class RESTAdapter implements ConnectorAdapter {
           arguments: {
             query: searchQuery,
             instructions: `Search Confluence for pages and blog posts related to: ${searchQuery}. Return the full content of relevant pages.`,
+            cloudId: cloudId,
             limit: 10,
           },
         },

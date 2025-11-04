@@ -133,6 +133,7 @@ export default function StandardsPage() {
     connectorType: "rest" as "rest" | "graphql" | "webhook",
     authType: "bearer" as "bearer" | "basic" | "apikey" | "oauth",
     roleMapping: [] as string[],
+    config: {} as any,
   });
 
   // Standards queries
@@ -459,6 +460,7 @@ export default function StandardsPage() {
       connectorType: "rest" as "rest" | "graphql" | "webhook",
       authType: "bearer" as "bearer" | "basic" | "apikey" | "oauth",
       roleMapping: [] as string[],
+      config: {} as any,
     });
     setEditingConnector(null);
   };
@@ -473,6 +475,7 @@ export default function StandardsPage() {
       connectorType: (connector.connectorType || "rest") as "rest" | "graphql" | "webhook",
       authType: (connector.authType || "bearer") as "bearer" | "basic" | "apikey" | "oauth",
       roleMapping: connector.roleMapping || [],
+      config: connector.config || {},
     });
     setIsConnectorDialogOpen(true);
   };
@@ -499,6 +502,7 @@ export default function StandardsPage() {
         connectorType: connectorFormData.connectorType,
         authType: connectorFormData.authType,
         roleMapping: connectorFormData.roleMapping,
+        config: connectorFormData.config,
         ...(connectorFormData.apiKey && { apiKey: connectorFormData.apiKey }),
       };
       updateConnectorMutation.mutate({
@@ -1167,6 +1171,25 @@ export default function StandardsPage() {
                         onChange={(e) => setConnectorFormData(prev => ({ ...prev, apiKey: e.target.value }))}
                         data-testid="input-connector-apikey"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Confluence Cloud ID (Required for Confluence connectors)
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="e.g., 12345678-abcd-1234-abcd-1234567890ab"
+                        value={(connectorFormData.config as any)?.cloudId || ""}
+                        onChange={(e) => setConnectorFormData(prev => ({ 
+                          ...prev, 
+                          config: { ...(prev.config || {}), cloudId: e.target.value } 
+                        }))}
+                        data-testid="input-connector-cloudid"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Find this in your Confluence URL: https://your-domain.atlassian.net/wiki → Your Cloud ID
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
