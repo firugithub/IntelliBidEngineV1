@@ -65,17 +65,17 @@ export default function DashboardPage() {
   const projectId = params.id;
   const [selectedVendor, setSelectedVendor] = useState<Evaluation | null>(null);
 
-  const { data: project } = useQuery<{ portfolioId: string }>({
+  const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string }>({
     queryKey: ["/api/projects", projectId],
     enabled: !!projectId,
   });
 
-  const { data: evaluations, isLoading } = useQuery<Evaluation[]>({
+  const { data: evaluations, isLoading: evaluationsLoading } = useQuery<Evaluation[]>({
     queryKey: ["/api/projects", projectId, "evaluations"],
     enabled: !!projectId,
   });
 
-  if (isLoading) {
+  if (projectLoading || evaluationsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -91,7 +91,16 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">No evaluations found</p>
-          <Button onClick={() => setLocation("/")}>
+          <Button 
+            onClick={() => {
+              if (project?.portfolioId) {
+                setLocation(`/portfolio/${project.portfolioId}/upload`);
+              } else {
+                setLocation("/");
+              }
+            }}
+            data-testid="button-start-new-evaluation"
+          >
             Start New Evaluation
           </Button>
         </div>
