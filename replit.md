@@ -13,6 +13,7 @@ Preferred communication style: Simple, everyday language.
 **Design System:** Dark mode-first, enterprise-focused with Inter and JetBrains Mono fonts, "New York" style shadcn/ui components, and information-dense layouts.
 **Key Pages:** Includes HomePage, PortfolioPage, NewProjectPage, UploadPage, DashboardPage, and GenerateMockDataPage.
 **Navigation Architecture:** Portfolio-centric 6-menu structure: Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, and Admin Config. HomePage displays portfolio cards with RFT statistics (Total, Active, In Progress) that update automatically via query cache invalidation. PortfolioPage features two-tab interface: RFT Creation (list all RFTs with download options) and RFT Evaluation (vendor shortlisting projects).
+**Stakeholder Comparison Table:** Dashboard page includes comprehensive comparison table showing vendor recommendations and rationale from each stakeholder role's perspective (Delivery Manager, Product Manager, Solution Architect, Engineering Lead, Procurement, Cybersecurity). Table displays role-specific insights for all vendors side-by-side with sticky headers for easy navigation.
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
