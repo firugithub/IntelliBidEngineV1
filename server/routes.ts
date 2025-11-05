@@ -2847,7 +2847,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const proposal of proposals) {
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
         
-        const proposalAnalysis = proposal.extractedData as any;
+        let proposalAnalysis = proposal.extractedData as any;
+        
+        // If extractedData is null, create a minimal proposal analysis from proposal metadata
+        if (!proposalAnalysis) {
+          console.log(`  ⚠️ No extractedData found for ${proposal.vendorName}, creating from metadata...`);
+          proposalAnalysis = {
+            vendorName: proposal.vendorName,
+            technicalApproach: `Vendor response submitted via ${proposal.documentType} questionnaire (${proposal.fileName})`,
+            capabilities: [`Submitted ${proposal.documentType} questionnaire`],
+            costStructure: "To be determined from questionnaire responses",
+            fileName: proposal.fileName,
+            documentType: proposal.documentType,
+          };
+        }
         
         // Determine which standard to use for this proposal
         let proposalStandardData = null;
