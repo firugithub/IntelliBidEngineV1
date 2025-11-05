@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Package, FileSpreadsheet, BarChart3, Loader2, CheckCircle2 } from "lucide-react";
+import { FileText, Package, FileSpreadsheet, BarChart3, Loader2, CheckCircle2, Download } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -127,6 +127,43 @@ export default function GenerateMockDataPage() {
     },
     onError: () => {
       toast({ title: "Failed to generate evaluation", variant: "destructive" });
+    },
+  });
+
+  const downloadAllMutation = useMutation({
+    mutationFn: async (rftId: string) => {
+      const response = await fetch(`/api/mock-data/download-all/${rftId}`);
+      if (!response.ok) {
+        throw new Error("Failed to download files");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `MockData_${new Date().toISOString().split('T')[0]}.zip`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Download Started!", 
+        description: "All mock data files are being downloaded as a ZIP file." 
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to download files", variant: "destructive" });
     },
   });
 
@@ -325,6 +362,51 @@ export default function GenerateMockDataPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Download All Files */}
+        {generatedRftId && (
+          <Card className="mt-6 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Download className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Download All Mock Data</CardTitle>
+                    <CardDescription className="text-sm">
+                      Download all generated files (RFT Pack, Vendor Responses, and Evaluation) as a ZIP file
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => generatedRftId && downloadAllMutation.mutate(generatedRftId)}
+                disabled={downloadAllMutation.isPending}
+                variant="default"
+                className="w-full gap-2"
+                data-testid="button-download-all"
+              >
+                {downloadAllMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Preparing Download...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download All Files as ZIP
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Includes all files from RFT Generated, RFT Responses, and RFT Evaluation folders
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

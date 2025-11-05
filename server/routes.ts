@@ -266,6 +266,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download all mock data files as ZIP
+  app.get("/api/mock-data/download-all/:rftId", async (req, res) => {
+    try {
+      const { rftId } = req.params;
+      
+      // Get RFT and project info
+      const rft = await storage.getGeneratedRft(rftId);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+      
+      const project = await storage.getProject(rft.projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Import required modules
+      const archiver = require('archiver');
+      const { azureBlobStorageService } = require('./services/azureBlobStorage');
+
+      // Create ZIP archive
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      // Set response headers
+      const zipFilename = `MockData_${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Define folders to download
+      const folders = [
+        { prefix: `project-${project.id}/RFT Generated`, name: 'RFT Generated' },
+        { prefix: `project-${project.id}/RFT Responses`, name: 'RFT Responses' },
+        { prefix: `project-${project.id}/RFT Evaluation`, name: 'RFT Evaluation' }
+      ];
+
+      // Add files from each folder
+      for (const folder of folders) {
+        try {
+          const blobNames = await azureBlobStorageService.listDocuments(folder.prefix);
+          
+          for (const blobName of blobNames) {
+            try {
+              const buffer = await azureBlobStorageService.downloadDocument(blobName);
+              
+              // Extract just the filename from the full blob path
+              const fileName = blobName.split('/').pop() || blobName;
+              
+              // Organize files in ZIP by folder structure
+              archive.append(buffer, { name: `${folder.name}/${fileName}` });
+            } catch (err) {
+              console.error(`Error adding file ${blobName}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error(`Error listing folder ${folder.prefix}:`, err);
+        }
+      }
+
+      // Finalize archive
+      await archive.finalize();
+      
+    } catch (error) {
+      console.error("Error downloading mock data:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to download mock data" });
+      }
+    }
+  });
+
   // Get all portfolios
   app.get("/api/portfolios", async (req, res) => {
     try {
