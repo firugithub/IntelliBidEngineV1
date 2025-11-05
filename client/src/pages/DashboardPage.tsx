@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles } from "lucide-react";
 import { useLocation, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Evaluation {
   id: string;
@@ -65,6 +67,7 @@ export default function DashboardPage() {
   const params = useParams();
   const projectId = params.id;
   const [selectedVendor, setSelectedVendor] = useState<Evaluation | null>(null);
+  const { toast } = useToast();
 
   const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string }>({
     queryKey: ["/api/projects", projectId],
@@ -74,6 +77,41 @@ export default function DashboardPage() {
   const { data: evaluations, isLoading: evaluationsLoading } = useQuery<Evaluation[]>({
     queryKey: ["/api/projects", projectId, "evaluations"],
     enabled: !!projectId,
+    refetchInterval: (query) => {
+      // If we have evaluations with functionalFit of 0, re-fetch every 3 seconds
+      const data = query.state.data;
+      if (data && data.some((e: Evaluation) => e.functionalFit === 0)) {
+        return 3000;
+      }
+      return false;
+    },
+  });
+
+  const reEvaluateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/re-evaluate`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Re-evaluation started",
+        description: "The system is analyzing vendor proposals. This page will auto-update when complete.",
+      });
+      // Invalidate queries to trigger refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "evaluations"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Re-evaluation failed",
+        description: error.message || "Failed to start re-evaluation",
+      });
+    },
   });
 
   if (projectLoading || evaluationsLoading) {
@@ -172,6 +210,14 @@ export default function DashboardPage() {
     }
   };
 
+  const hasGenericInsights = evaluations.some(e => {
+    const delivery = ensureArray(e.roleInsights?.delivery);
+    return delivery.some(insight => 
+      insight.includes("offers comprehensive") || 
+      insight.includes("Strong delivery track record with")
+    );
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b">
@@ -182,6 +228,11 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">
                 AI-generated evaluation of {evaluations.length} vendor proposal{evaluations.length > 1 ? 's' : ''}
               </p>
+              {hasGenericInsights && (
+                <p className="text-sm text-orange-500 mt-1">
+                  ⚠️ Generic insights detected. Click "Re-Evaluate" to analyze actual vendor files.
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -193,6 +244,22 @@ export default function DashboardPage() {
                 <Sparkles className="h-4 w-4" />
                 AI Features
               </Button>
+              {hasGenericInsights && (
+                <Button
+                  variant="outline"
+                  onClick={() => reEvaluateMutation.mutate()}
+                  disabled={reEvaluateMutation.isPending}
+                  className="gap-2"
+                  data-testid="button-re-evaluate"
+                >
+                  {reEvaluateMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Re-Evaluate
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleNewEvaluation}

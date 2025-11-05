@@ -3059,6 +3059,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Re-trigger evaluation for a project (useful after fixing bugs or updating evaluation logic)
+  app.post("/api/projects/:id/re-evaluate", async (req, res) => {
+    try {
+      const projectId = req.params.id;
+      
+      // Get project and RFT
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Get RFT for this project
+      const rfts = await storage.getGeneratedRftsByProject(projectId);
+      if (rfts.length === 0) {
+        return res.status(400).json({ error: "No RFT found for this project" });
+      }
+      const rft = rfts[0];
+
+      // Delete existing evaluations
+      const evaluations = await storage.getEvaluationsByProject(projectId);
+      console.log(`🗑️  Deleting ${evaluations.length} existing evaluations...`);
+      
+      for (const evaluation of evaluations) {
+        await storage.deleteEvaluation(evaluation.id);
+      }
+      console.log(`✓ Deleted existing evaluations`);
+
+      // Update project status to eval_in_progress
+      await storage.updateProjectStatus(projectId, "eval_in_progress");
+      console.log(`✓ Project status updated to eval_in_progress`);
+
+      // Trigger evaluation process in background
+      triggerProjectEvaluation(projectId, rft).catch(async (evaluationError) => {
+        console.error("Error during background re-evaluation:", evaluationError);
+        
+        // Revert status back to published on failure
+        try {
+          await storage.updateProjectStatus(projectId, "published");
+          console.log(`✓ Reverted project status to published after evaluation failure`);
+        } catch (revertError) {
+          console.error("Failed to revert project status:", revertError);
+        }
+      });
+
+      console.log(`✓ Background re-evaluation started for project ${projectId}`);
+      
+      res.json({
+        success: true,
+        message: "Re-evaluation started in background. The page will auto-refresh when complete.",
+      });
+
+    } catch (error) {
+      console.error("Error re-triggering evaluation:", error);
+      res.status(500).json({ error: "Failed to re-trigger evaluation" });
+    }
+  });
+
   // Seed sample RFT for demonstration
   app.post("/api/seed-sample-rft", async (req, res) => {
     try {
