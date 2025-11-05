@@ -245,7 +245,7 @@ export function VendorDocumentsDialog({
                       <div>
                         <span className="text-muted-foreground">Uploaded:</span>{" "}
                         <span className="font-medium">
-                          {format(new Date(selectedDocument.createdAt), "MMM d, yyyy h:mm a")}
+                          {format(new Date(selectedDocument.createdAt), "MMM d, yyyy HH:mm")}
                         </span>
                       </div>
                       {questionnaireData && (questionnaireData as any)?.questions && (
@@ -373,7 +373,7 @@ export function VendorDocumentsDialog({
                             {doc.fileName}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Uploaded: {format(new Date(doc.createdAt), "MMM d, yyyy h:mm a")}
+                            Uploaded: {format(new Date(doc.createdAt), "MMM d, yyyy HH:mm")}
                           </p>
                         </div>
                       </div>

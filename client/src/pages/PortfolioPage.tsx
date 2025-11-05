@@ -142,8 +142,25 @@ export default function PortfolioPage() {
         return <Badge className="bg-chart-2 text-white">Completed</Badge>;
       case "analyzing":
         return <Badge className="bg-chart-1 text-white">Analyzing</Badge>;
+      case "eval_in_progress":
+        return <Badge className="bg-chart-3 text-white">Evaluating</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getRftStatusDisplay = (status: string) => {
+    switch (status) {
+      case "published":
+        return "Published";
+      case "eval_in_progress":
+        return "Response Uploaded";
+      case "rft_generated":
+        return "Generated";
+      case "completed":
+        return "Completed";
+      default:
+        return status;
     }
   };
 
@@ -215,13 +232,13 @@ export default function PortfolioPage() {
                           </CardDescription>
                         </div>
                         <Badge variant={rft.status === "published" ? "default" : "secondary"}>
-                          {rft.status}
+                          {getRftStatusDisplay(rft.status)}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="text-xs text-muted-foreground">
-                        Created {format(new Date(rft.createdAt), "MMM d, yyyy")}
+                        Created {format(new Date(rft.createdAt), "MMM d, yyyy HH:mm")}
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2">
@@ -370,7 +387,7 @@ export default function PortfolioPage() {
 
                         <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
                           <Calendar className="h-3 w-3" />
-                          <span>Created {format(new Date(project.createdAt), "MMM d, yyyy")}</span>
+                          <span>Created {format(new Date(project.createdAt), "MMM d, yyyy HH:mm")}</span>
                         </div>
                       </CardContent>
                     </Card>
