@@ -1067,9 +1067,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let blobUrl: string | undefined;
         try {
           const uploadResult = await azureBlobStorageService.uploadDocument(
-            file.buffer,
             file.originalname,
-            'application/octet-stream'
+            file.buffer,
+            { documentType, vendorName }
           );
           blobUrl = uploadResult.blobUrl;
         } catch (error) {
@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const proposals = await storage.getProposalsByProject(projectId);
 
       // Get unique vendor names from proposals
-      const vendorNames = [...new Set(proposals.map(p => p.vendorName))];
+      const vendorNames = Array.from(new Set(proposals.map(p => p.vendorName)));
       
       // Import score calculator
       const { calculateExcelScoresForVendor, calculateHybridScore, mapExcelScoresToEvaluation } = 
@@ -1253,8 +1253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: p.id,
             documentType: p.documentType,
             fileName: p.fileName,
-            blobUrl: p.blobUrl,
-            blobName: p.blobName,
+            blobUrl: p.blobUrl || "",
+            blobName: p.blobUrl ? p.blobUrl.split('/').slice(-1)[0] : p.fileName,
             createdAt: p.createdAt,
           }));
 
@@ -1268,13 +1268,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (evaluation) {
             const excelEvaluationScores = mapExcelScoresToEvaluation(excelScores);
             
+            const detailedScores = evaluation.detailedScores as Record<string, number> | null | undefined;
             hybridScores = {
               overallScore: calculateHybridScore(evaluation.overallScore, excelScores.averageScore),
               technicalFit: calculateHybridScore(evaluation.technicalFit, excelEvaluationScores.technicalFit),
               deliveryRisk: calculateHybridScore(evaluation.deliveryRisk, excelEvaluationScores.deliveryRisk),
               compliance: calculateHybridScore(evaluation.compliance, excelEvaluationScores.compliance),
               integration: calculateHybridScore(
-                evaluation.detailedScores?.integration || 0, 
+                detailedScores?.integration || 0, 
                 excelEvaluationScores.integration
               ),
             };
@@ -1487,9 +1488,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const blobName = proposal.blobUrl.split('/').pop() || proposal.fileName;
       await azureBlobStorageService.deleteDocument(blobName);
       const uploadResult = await azureBlobStorageService.uploadDocument(
-        updatedExcelBuffer,
         proposal.fileName,
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        updatedExcelBuffer,
+        { proposalId, documentType: proposal.documentType }
       );
 
       // Update proposal blob URL (note: we use a simpler storage interface)
@@ -2774,15 +2775,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await storage.createProject({
         portfolioId,
         name: "Sample Cloud Infrastructure Modernization",
-        description: "Migrating legacy systems to cloud-native architecture",
         status: "rft_generated",
       });
 
       // Create a business case
       const businessCase = await storage.createBusinessCase({
-        projectId: project.id,
-        content: `# Executive Summary\n\nThis business case outlines the strategic initiative to modernize our legacy infrastructure by migrating to cloud-native technologies.\n\n## Business Objectives\n\n- Reduce operational costs by 40%\n- Improve system reliability and uptime to 99.99%\n- Enable rapid scaling for seasonal demand`,
+        portfolioId,
+        name: "Cloud Modernization Business Case",
+        fileName: "business_case.txt",
         status: "generated",
+        documentContent: `# Executive Summary\n\nThis business case outlines the strategic initiative to modernize our legacy infrastructure by migrating to cloud-native technologies.\n\n## Business Objectives\n\n- Reduce operational costs by 40%\n- Improve system reliability and uptime to 99.99%\n- Enable rapid scaling for seasonal demand`,
       });
 
       // Create generated RFT with markdown examples
@@ -2790,6 +2792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectId: project.id,
         businessCaseId: businessCase.id,
         name: "Cloud Infrastructure Modernization RFT",
+        templateId: "default-template",
         status: "draft",
         sections: {
           sections: [
