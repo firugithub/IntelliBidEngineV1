@@ -2761,6 +2761,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to trigger project evaluation in the background
+  async function triggerProjectEvaluation(projectId: string, rft: any) {
+    try {
+      console.log(`Starting evaluation for project ${projectId}...`);
+
+      // Check if requirements exist, if not create them from RFT
+      let requirements = await storage.getRequirementsByProject(projectId);
+      
+      if (requirements.length === 0) {
+        console.log(`No requirements found, creating from RFT sections...`);
+        const sections = (rft.sections as any)?.sections || [];
+        const requirement = await storage.createRequirement({
+          projectId,
+          fileName: `${rft.name}_Requirements.pdf`,
+          extractedData: {
+            text: sections.map((s: any) => s.content).join("\n") || "",
+            fileName: `${rft.name}_Requirements.pdf`,
+          },
+          evaluationCriteria: [
+            { name: "Technical Fit", weight: 30, description: "Technical capabilities" },
+            { name: "Delivery Risk", weight: 25, description: "Implementation risk" },
+            { name: "Cost", weight: 20, description: "Total cost of ownership" },
+            { name: "Compliance", weight: 15, description: "Regulatory compliance" },
+            { name: "Support", weight: 10, description: "Vendor support quality" },
+          ],
+        });
+        requirements = [requirement];
+        console.log(`✓ Created requirement from RFT`);
+      }
+
+      // Get proposals
+      const proposals = await storage.getProposalsByProject(projectId);
+      
+      if (proposals.length === 0) {
+        console.log(`No proposals found, skipping evaluation`);
+        return;
+      }
+
+      console.log(`Found ${proposals.length} proposals to evaluate`);
+
+      // Use first requirement for evaluation criteria
+      const requirementAnalysis = requirements[0].extractedData as any;
+
+      // Check if there's a standard associated with requirements
+      let requirementStandardData = null;
+      const requirement = requirements[0];
+      if (requirement.standardId) {
+        const standard = await storage.getStandard(requirement.standardId);
+        if (standard && standard.isActive === "true") {
+          requirementStandardData = {
+            id: standard.id,
+            name: standard.name,
+            sections: (standard.sections || []) as any,
+            taggedSectionIds: (requirement.taggedSections || []) as any,
+          };
+        }
+      }
+
+      // Evaluate each proposal
+      for (const proposal of proposals) {
+        console.log(`Evaluating proposal for ${proposal.vendorName}...`);
+        
+        const proposalAnalysis = proposal.extractedData as any;
+        
+        // Determine which standard to use for this proposal
+        let proposalStandardData = null;
+        
+        if (proposal.standardId) {
+          if (requirementStandardData && proposal.standardId === requirementStandardData.id) {
+            proposalStandardData = {
+              ...requirementStandardData,
+              taggedSectionIds: proposal.taggedSections || requirementStandardData.taggedSectionIds,
+            };
+          } else {
+            const proposalStandard = await storage.getStandard(proposal.standardId);
+            if (proposalStandard && proposalStandard.isActive === "true") {
+              proposalStandardData = {
+                id: proposalStandard.id,
+                name: proposalStandard.name,
+                sections: (proposalStandard.sections || []) as any,
+                taggedSectionIds: (proposal.taggedSections || []) as any,
+              };
+            }
+          }
+        } else if (requirementStandardData) {
+          proposalStandardData = requirementStandardData;
+        }
+        
+        const { evaluation, diagnostics } = await evaluateProposal(
+          requirementAnalysis, 
+          proposalAnalysis,
+          proposalStandardData || undefined
+        );
+
+        await storage.createEvaluation({
+          projectId,
+          proposalId: proposal.id,
+          overallScore: evaluation.overallScore,
+          technicalFit: evaluation.technicalFit,
+          deliveryRisk: evaluation.deliveryRisk,
+          cost: evaluation.cost,
+          compliance: evaluation.compliance,
+          status: evaluation.status,
+          aiRationale: evaluation.rationale,
+          roleInsights: evaluation.roleInsights,
+          detailedScores: evaluation.detailedScores,
+          sectionCompliance: evaluation.sectionCompliance || null,
+          agentDiagnostics: diagnostics || null,
+        });
+
+        console.log(`✓ Completed evaluation for ${proposal.vendorName}`);
+      }
+
+      // Update project status to completed
+      await storage.updateProjectStatus(projectId, "completed");
+      console.log(`✓ Project evaluation completed, status updated to completed`);
+
+    } catch (error) {
+      console.error(`Error in triggerProjectEvaluation:`, error);
+      throw error;
+    }
+  }
+
   // Upload vendor responses (ZIP file with vendor folders)
   app.post("/api/generated-rfts/:id/upload-vendor-responses", upload.single("file"), async (req, res) => {
     try {
@@ -2852,11 +2975,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // After successful upload, update project status and trigger evaluation
+      if (uploadedVendorCount > 0) {
+        try {
+          // Update project status to eval_in_progress
+          await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
+          console.log(`✓ Project status updated to eval_in_progress`);
+
+          // Trigger evaluation process in the background
+          // We don't await this to return response quickly
+          triggerProjectEvaluation(rft.projectId, rft).catch(error => {
+            console.error("Error in background evaluation:", error);
+          });
+
+          console.log(`✓ Evaluation process triggered for project ${rft.projectId}`);
+        } catch (statusError) {
+          console.error("Error updating status or triggering evaluation:", statusError);
+          // Don't fail the upload if status update fails
+        }
+      }
+
       res.json({
         success: true,
         vendorCount: uploadedVendorCount,
         failedUploads,
-        message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s)`,
+        message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation started.`,
       });
 
     } catch (error) {
