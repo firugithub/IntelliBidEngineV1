@@ -55,11 +55,21 @@ export default function PortfolioPage() {
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ["/api/portfolios", portfolioId, "projects"],
     enabled: !!portfolioId,
+    refetchInterval: (query) => {
+      // Auto-refresh every 3 seconds if any project is in progress
+      const hasInProgress = query.state.data?.some((project: Project) => project.status === "eval_in_progress");
+      return hasInProgress ? 3000 : false;
+    },
   });
 
   const { data: rfts, isLoading: rftsLoading } = useQuery<GeneratedRft[]>({
     queryKey: ["/api/portfolios", portfolioId, "rfts"],
     enabled: !!portfolioId,
+    refetchInterval: (query) => {
+      // Auto-refresh every 3 seconds if any RFT is in progress
+      const hasInProgress = query.state.data?.some((rft: GeneratedRft) => rft.status === "eval_in_progress");
+      return hasInProgress ? 3000 : false;
+    },
   });
 
   const uploadVendorResponsesMutation = useMutation({
@@ -140,11 +150,11 @@ export default function PortfolioPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge className="bg-chart-2 text-white">Completed</Badge>;
+        return <Badge className="bg-chart-2 text-white">Response Received</Badge>;
       case "analyzing":
         return <Badge className="bg-chart-1 text-white">Analyzing</Badge>;
       case "eval_in_progress":
-        return <Badge className="bg-chart-3 text-white">Evaluating</Badge>;
+        return <Badge className="bg-chart-3 text-white">Upload in Progress</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -155,11 +165,11 @@ export default function PortfolioPage() {
       case "published":
         return "Published";
       case "eval_in_progress":
-        return "Response Uploaded";
+        return "Upload in Progress";
       case "rft_generated":
         return "Generated";
       case "completed":
-        return "Completed";
+        return "Response Received";
       default:
         return status;
     }

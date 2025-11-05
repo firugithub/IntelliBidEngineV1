@@ -2997,44 +2997,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // After successful upload, update project status and trigger evaluation
       if (uploadedVendorCount > 0) {
-        try {
-          // Update project status to eval_in_progress
-          await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
-          console.log(`✓ Project status updated to eval_in_progress`);
+        // Update project status to eval_in_progress
+        await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
+        console.log(`✓ Project status updated to eval_in_progress`);
 
-          // Trigger evaluation process synchronously
-          // This ensures reliable completion and proper error handling
-          await triggerProjectEvaluation(rft.projectId, rft);
-
-          console.log(`✓ Evaluation completed successfully for project ${rft.projectId}`);
+        // Trigger evaluation process in background (non-blocking)
+        // This allows user to close the dialog while evaluation runs
+        triggerProjectEvaluation(rft.projectId, rft).catch(async (evaluationError) => {
+          console.error("Error during background evaluation:", evaluationError);
           
-          res.json({
-            success: true,
-            vendorCount: uploadedVendorCount,
-            failedUploads,
-            message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation completed.`,
-            evaluationCompleted: true,
-          });
-        } catch (evaluationError) {
-          console.error("Error during evaluation:", evaluationError);
-          
-          // Revert status back to rft_generated on failure
+          // Revert status back to published on failure so user can retry
           try {
-            await storage.updateProjectStatus(rft.projectId, "rft_generated");
-            console.log(`✓ Reverted project status to rft_generated after evaluation failure`);
+            await storage.updateProjectStatus(rft.projectId, "published");
+            console.log(`✓ Reverted project status to published after evaluation failure`);
           } catch (revertError) {
             console.error("Failed to revert project status:", revertError);
           }
-          
-          res.json({
-            success: true,
-            vendorCount: uploadedVendorCount,
-            failedUploads,
-            message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation failed - please try again.`,
-            evaluationCompleted: false,
-            evaluationError: evaluationError instanceof Error ? evaluationError.message : "Unknown error",
-          });
-        }
+        });
+
+        console.log(`✓ Background evaluation started for project ${rft.projectId}`);
+        
+        // Return immediately so user can close dialog
+        res.json({
+          success: true,
+          vendorCount: uploadedVendorCount,
+          failedUploads,
+          message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation started in background.`,
+          evaluationInProgress: true,
+        });
       } else {
         res.json({
           success: true,
