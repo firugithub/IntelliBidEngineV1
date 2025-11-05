@@ -115,20 +115,22 @@ VENDOR: {vendorName}
 
 **Your Analysis Must Include:**
 
-1. **Delivery Methodology Assessment**: Evaluate if Agile/SAFe/Waterfall approach fits airline operational constraints
-2. **Milestone Realism**: Assess if proposed timelines account for airline complexity and integration dependencies
-3. **Dependency Mapping**: Identify critical dependencies on existing systems (PSS, GDS, loyalty, DCS)
-4. **Delivery Scenario Simulation**: Project likely bottlenecks in testing, UAT, training, cutover phases
-5. **Resource Confidence Index**: Score vendor staffing plan adequacy (0-100)
-6. **Contingency Planning**: Evaluate risk mitigation and buffer allocation
+1. **Functional Requirements Alignment**: Score how well vendor's proposed deliverables meet project functional requirements (0-100 functionalFit score)
+2. **Delivery Methodology Assessment**: Evaluate if Agile/SAFe/Waterfall approach fits airline operational constraints
+3. **Milestone Realism**: Assess if proposed timelines account for airline complexity and integration dependencies
+4. **Dependency Mapping**: Identify critical dependencies on existing systems (PSS, GDS, loyalty, DCS)
+5. **Delivery Scenario Simulation**: Project likely bottlenecks in testing, UAT, training, cutover phases
+6. **Resource Confidence Index**: Score vendor staffing plan adequacy (0-100)
+7. **Contingency Planning**: Evaluate risk mitigation and buffer allocation
 
-Provide 4-5 specific, actionable insights focusing on delivery feasibility and risk.
+Provide 4-5 specific, actionable insights focusing on functional coverage, delivery feasibility and risk.
 
 Return JSON:
 {
   "insights": ["insight 1", "insight 2", "insight 3", "insight 4", "insight 5"],
   "scores": {
     "overall": 0-100,
+    "functionalFit": 0-100,
     "deliveryRisk": 0-100 (lower is better risk),
     "integration": 0-100
   },
