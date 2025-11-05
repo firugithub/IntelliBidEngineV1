@@ -1250,14 +1250,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all documents for this vendor IN THIS PROJECT ONLY
         const vendorDocuments = proposals
           .filter((p) => p.vendorName === vendorName && p.projectId === projectId)
-          .map((p) => ({
-            id: p.id,
-            documentType: p.documentType,
-            fileName: p.fileName,
-            blobUrl: p.blobUrl || "",
-            blobName: p.blobUrl ? p.blobUrl.split('/').slice(-1)[0] : p.fileName,
-            createdAt: p.createdAt,
-          }));
+          .map((p) => {
+            // Extract blob name from URL (everything after container name)
+            let blobName = p.fileName;
+            if (p.blobUrl) {
+              try {
+                const url = new URL(p.blobUrl);
+                const pathParts = url.pathname.split('/').filter(part => part.length > 0);
+                // Skip container name (first part) and join the rest
+                blobName = pathParts.slice(1).join('/');
+              } catch (error) {
+                console.error(`Failed to parse blobUrl for ${p.fileName}:`, error);
+              }
+            }
+            
+            return {
+              id: p.id,
+              documentType: p.documentType,
+              fileName: p.fileName,
+              blobUrl: p.blobUrl || "",
+              blobName,
+              createdAt: p.createdAt,
+            };
+          });
 
         // Calculate Excel-based scores
         let excelScores = null;
