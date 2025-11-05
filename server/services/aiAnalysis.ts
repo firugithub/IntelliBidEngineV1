@@ -313,18 +313,20 @@ ${JSON.stringify(proposalAnalysis, null, 2)}${standardSection}
 
 Provide a comprehensive evaluation with:
 1. Overall fit score (0-100)
-2. Technical fit score (0-100) - how well capabilities match requirements
-3. Delivery risk score (0-100) - higher means more risk
-4. Cost estimate range
-5. Compliance score (0-100) - security, standards adherence${standardData ? ' (factor in section compliance)' : ''}
-6. Status: "recommended" (score >80), "under-review" (60-80), or "risk-flagged" (<60)
-7. AI rationale explaining the scores
-8. Role-specific insights for: delivery, product, architecture, engineering, procurement, security/QA teams
-9. Detailed scores for: integration complexity, support quality, scalability, documentation${standardInstructions}
+2. Functional fit score (0-100) - how well product features meet business needs
+3. Technical fit score (0-100) - how well technical capabilities match requirements
+4. Delivery risk score (0-100) - higher means more risk
+5. Cost estimate range
+6. Compliance score (0-100) - security, standards adherence${standardData ? ' (factor in section compliance)' : ''}
+7. Status: "recommended" (score >80), "under-review" (60-80), or "risk-flagged" (<60)
+8. AI rationale explaining the scores
+9. Role-specific insights for: delivery, product, architecture, engineering, procurement, security/QA teams
+10. Detailed scores for: integration complexity, support quality, scalability, documentation${standardInstructions}
 
 Return JSON with this structure:
 {
   "overallScore": 85,
+  "functionalFit": 88,
   "technicalFit": 90,
   "deliveryRisk": 25,
   "cost": "$150K - $180K",
