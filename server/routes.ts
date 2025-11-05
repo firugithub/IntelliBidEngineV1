@@ -9,10 +9,12 @@ import { generateRftFromBusinessCase, regenerateRftSection } from "./services/sm
 import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation } from "./services/rftMockDataGenerator";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
+import { azureBlobStorageService } from "./services/azureBlobStorage";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
+import archiver from "archiver";
 
 const lookupAsync = promisify(dnsLookup);
 
@@ -281,10 +283,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
-
-      // Import required modules
-      const archiver = require('archiver');
-      const { azureBlobStorageService } = require('./services/azureBlobStorage');
 
       // Create ZIP archive
       const archive = archiver('zip', { zlib: { level: 9 } });
