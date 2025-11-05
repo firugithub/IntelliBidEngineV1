@@ -2982,25 +2982,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
           console.log(`✓ Project status updated to eval_in_progress`);
 
-          // Trigger evaluation process in the background
-          // We don't await this to return response quickly
-          triggerProjectEvaluation(rft.projectId, rft).catch(error => {
-            console.error("Error in background evaluation:", error);
+          // Trigger evaluation process synchronously
+          // This ensures reliable completion and proper error handling
+          await triggerProjectEvaluation(rft.projectId, rft);
+
+          console.log(`✓ Evaluation completed successfully for project ${rft.projectId}`);
+          
+          res.json({
+            success: true,
+            vendorCount: uploadedVendorCount,
+            failedUploads,
+            message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation completed.`,
+            evaluationCompleted: true,
           });
-
-          console.log(`✓ Evaluation process triggered for project ${rft.projectId}`);
-        } catch (statusError) {
-          console.error("Error updating status or triggering evaluation:", statusError);
-          // Don't fail the upload if status update fails
+        } catch (evaluationError) {
+          console.error("Error during evaluation:", evaluationError);
+          
+          // Revert status back to rft_generated on failure
+          try {
+            await storage.updateProjectStatus(rft.projectId, "rft_generated");
+            console.log(`✓ Reverted project status to rft_generated after evaluation failure`);
+          } catch (revertError) {
+            console.error("Failed to revert project status:", revertError);
+          }
+          
+          res.json({
+            success: true,
+            vendorCount: uploadedVendorCount,
+            failedUploads,
+            message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation failed - please try again.`,
+            evaluationCompleted: false,
+            evaluationError: evaluationError instanceof Error ? evaluationError.message : "Unknown error",
+          });
         }
+      } else {
+        res.json({
+          success: true,
+          vendorCount: uploadedVendorCount,
+          failedUploads,
+          message: `Upload completed with ${failedUploads.length} failures.`,
+        });
       }
-
-      res.json({
-        success: true,
-        vendorCount: uploadedVendorCount,
-        failedUploads,
-        message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s). Evaluation started.`,
-      });
 
     } catch (error) {
       console.error("Error uploading vendor responses:", error);
