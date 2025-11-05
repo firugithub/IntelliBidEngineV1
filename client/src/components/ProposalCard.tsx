@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Building2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, AlertTriangle, Trophy } from "lucide-react";
 
 interface ProposalCardProps {
   vendorName: string;
@@ -13,6 +13,7 @@ interface ProposalCardProps {
   cost: string;
   compliance: number;
   status: "recommended" | "under-review" | "risk-flagged";
+  rank?: number;
   onViewDetails?: () => void;
 }
 
@@ -25,8 +26,28 @@ export function ProposalCard({
   cost,
   compliance,
   status,
+  rank,
   onViewDetails,
 }: ProposalCardProps) {
+  const getRankBadge = () => {
+    if (!rank) return null;
+    
+    const rankColors = {
+      1: "bg-amber-500 text-white",
+      2: "bg-slate-400 text-white",
+      3: "bg-orange-600 text-white",
+    };
+    
+    const color = rankColors[rank as keyof typeof rankColors] || "bg-muted text-muted-foreground";
+    
+    return (
+      <Badge className={`${color} font-semibold`} data-testid={`badge-rank-${rank}`}>
+        {rank === 1 && <Trophy className="h-3 w-3 mr-1" />}
+        Rank #{rank}
+      </Badge>
+    );
+  };
+
   const getStatusBadge = () => {
     switch (status) {
       case "recommended":
@@ -70,9 +91,12 @@ export function ProposalCard({
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg" data-testid="text-vendor-name">
-                {vendorName}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg" data-testid="text-vendor-name">
+                  {vendorName}
+                </h3>
+                {getRankBadge()}
+              </div>
               <p className="text-sm text-muted-foreground">{cost}</p>
             </div>
           </div>

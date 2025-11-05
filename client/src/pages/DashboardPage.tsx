@@ -407,7 +407,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-2xl font-semibold mb-6">Shortlisted Proposals</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {evaluations.map((evaluation) => (
+              {evaluations.map((evaluation, index) => (
                 <ProposalCard
                   key={evaluation.id}
                   vendorName={evaluation.vendorName}
@@ -418,6 +418,7 @@ export default function DashboardPage() {
                   cost={evaluation.cost}
                   compliance={evaluation.compliance}
                   status={evaluation.status}
+                  rank={index + 1}
                   onViewDetails={() => setSelectedVendor(evaluation)}
                 />
               ))}
