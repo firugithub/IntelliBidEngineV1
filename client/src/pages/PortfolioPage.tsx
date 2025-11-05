@@ -2,11 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, ArrowLeft, FileText, Calendar, Download, FileDown, Upload } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 interface Portfolio {
   id: string;
@@ -38,6 +42,10 @@ export default function PortfolioPage() {
   const params = useParams();
   const portfolioId = params.id;
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedRftId, setSelectedRftId] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const { data: portfolio, isLoading: portfolioLoading } = useQuery<Portfolio>({
     queryKey: ["/api/portfolios", portfolioId],
@@ -53,6 +61,47 @@ export default function PortfolioPage() {
     queryKey: ["/api/portfolios", portfolioId, "rfts"],
     enabled: !!portfolioId,
   });
+
+  const uploadVendorResponsesMutation = useMutation({
+    mutationFn: async ({ rftId, file }: { rftId: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const response = await fetch(`/api/generated-rfts/${rftId}/upload-vendor-responses`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload vendor responses");
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Vendor Responses Uploaded!",
+        description: `Successfully uploaded responses for ${data.vendorCount} vendors.`,
+      });
+      setUploadDialogOpen(false);
+      setUploadFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: () => {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload vendor responses. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUploadSubmit = () => {
+    if (!selectedRftId || !uploadFile) return;
+    uploadVendorResponsesMutation.mutate({ rftId: selectedRftId, file: uploadFile });
+  };
 
   if (portfolioLoading || projectsLoading || rftsLoading) {
     return (
@@ -201,6 +250,22 @@ export default function PortfolioPage() {
                         <Download className="w-3 h-3 mr-1" />
                         Download All (ZIP)
                       </Button>
+                      
+                      {rft.status === "published" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRftId(rft.id);
+                            setUploadDialogOpen(true);
+                          }}
+                          data-testid={`button-upload-responses-${rft.id}`}
+                          className="w-full"
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          Upload Vendor Responses
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -326,6 +391,69 @@ export default function PortfolioPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Upload Vendor Responses Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Vendor Responses</DialogTitle>
+            <DialogDescription>
+              Upload a ZIP file containing vendor response documents (Excel questionnaires).
+              The ZIP should contain vendor folders with their response files.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">ZIP File</label>
+              <input
+                type="file"
+                accept=".zip"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setUploadFile(e.target.files[0]);
+                  }
+                }}
+                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                data-testid="input-upload-zip"
+              />
+              {uploadFile && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {uploadFile.name}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadDialogOpen(false);
+                  setUploadFile(null);
+                }}
+                data-testid="button-cancel-upload"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUploadSubmit}
+                disabled={!uploadFile || uploadVendorResponsesMutation.isPending}
+                data-testid="button-submit-upload"
+              >
+                {uploadVendorResponsesMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3 h-3 mr-1" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
