@@ -1404,6 +1404,23 @@ storage.deleteGeneratedRft = async function(id: string): Promise<void> {
   await db.delete(generatedRfts).where(eq(generatedRfts.id, id));
 };
 
+storage.getGeneratedRftsByPortfolio = async function(portfolioId: string): Promise<GeneratedRft[]> {
+  // Get all projects in this portfolio
+  const portfolioProjects = await db.select().from(projects).where(eq(projects.portfolioId, portfolioId));
+  const projectIds = portfolioProjects.map((p) => p.id);
+  
+  if (projectIds.length === 0) {
+    return [];
+  }
+  
+  // Get all RFTs for those projects
+  const allRfts = await db.select().from(generatedRfts);
+  const filteredRfts = allRfts.filter((rft) => projectIds.includes(rft.projectId));
+  
+  // Sort by created date (newest first)
+  return filteredRfts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+};
+
 // Override requirement methods to use PostgreSQL
 storage.createRequirement = async function(insertRequirement: InsertRequirement): Promise<Requirement> {
   const created = await db.insert(requirements)
