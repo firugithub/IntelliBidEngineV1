@@ -194,6 +194,10 @@ export default function SmartRftBuilderPage() {
         description: `Generated ${(data.sections?.sections || []).length} sections using AI.`,
       });
       setCurrentStep(4);
+      
+      // Invalidate all RFT-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
     onError: () => {
       toast({
@@ -214,7 +218,10 @@ export default function SmartRftBuilderPage() {
         title: "RFT Published!",
         description: `Created ${data.requirementsCreated} requirements. Ready for vendor submissions.`,
       });
+      
+      // Invalidate all RFT-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
     },
   });
 
