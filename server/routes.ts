@@ -2761,6 +2761,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload vendor responses (ZIP file with vendor folders)
+  app.post("/api/generated-rfts/:id/upload-vendor-responses", upload.single("file"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const rft = await storage.getGeneratedRft(id);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Import adm-zip for extraction
+      const AdmZip = (await import("adm-zip")).default;
+      const zip = new AdmZip(req.file.buffer);
+      const zipEntries = zip.getEntries();
+
+      // Extract vendor structure from ZIP
+      // Expected structure: VendorName/questionnaire.xlsx
+      const vendorFiles: Map<string, { files: any[] }> = new Map();
+
+      for (const entry of zipEntries) {
+        if (entry.isDirectory || entry.entryName.startsWith("__MACOSX")) continue;
+        
+        const parts = entry.entryName.split("/");
+        if (parts.length < 2) continue; // Skip root files
+        
+        const vendorName = parts[0];
+        
+        if (!vendorFiles.has(vendorName)) {
+          vendorFiles.set(vendorName, { files: [] });
+        }
+        
+        vendorFiles.get(vendorName)!.files.push({
+          name: parts[parts.length - 1],
+          data: entry.getData(),
+          path: entry.entryName,
+        });
+      }
+
+      if (vendorFiles.size === 0) {
+        return res.status(400).json({ error: "No vendor folders found in ZIP" });
+      }
+
+      // Upload files to Azure Blob Storage and create proposals
+      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      let uploadedVendorCount = 0;
+      const failedUploads: string[] = [];
+
+      for (const [vendorName, { files }] of Array.from(vendorFiles.entries())) {
+        let vendorHasSuccessfulUpload = false;
+        
+        for (const file of files) {
+          try {
+            // Upload to Azure Blob Storage with project-scoped path
+            const blobPath = `project-${rft.projectId}/RFT_Responses/${vendorName}/${file.name}`;
+            const uploadResult = await azureBlobStorageService.uploadDocument(
+              blobPath,
+              file.data
+            );
+
+            // Determine document type from file extension
+            const documentType = file.name.toLowerCase().includes('product') ? 'product' :
+                                 file.name.toLowerCase().includes('nfr') ? 'nfr' :
+                                 file.name.toLowerCase().includes('cyber') ? 'cybersecurity' :
+                                 file.name.toLowerCase().includes('agile') ? 'agile' : 'other';
+
+            // Create a proposal record for this vendor file
+            await storage.createProposal({
+              projectId: rft.projectId,
+              vendorName,
+              documentType,
+              fileName: file.name,
+              blobUrl: uploadResult.blobUrl,
+            });
+            
+            vendorHasSuccessfulUpload = true;
+          } catch (uploadError) {
+            console.error(`Failed to upload ${file.name} for ${vendorName}:`, uploadError);
+            failedUploads.push(`${vendorName}/${file.name}`);
+            // Continue with other files even if one fails
+          }
+        }
+        
+        if (vendorHasSuccessfulUpload) {
+          uploadedVendorCount++;
+        }
+      }
+
+      res.json({
+        success: true,
+        vendorCount: uploadedVendorCount,
+        failedUploads,
+        message: `Successfully uploaded responses for ${uploadedVendorCount} vendor(s)`,
+      });
+
+    } catch (error) {
+      console.error("Error uploading vendor responses:", error);
+      res.status(500).json({ error: "Failed to upload vendor responses" });
+    }
+  });
+
   // Seed sample RFT for demonstration
   app.post("/api/seed-sample-rft", async (req, res) => {
     try {

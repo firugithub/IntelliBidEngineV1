@@ -80,14 +80,25 @@ export default function PortfolioPage() {
       return await response.json();
     },
     onSuccess: (data) => {
+      const hasFailures = data.failedUploads && data.failedUploads.length > 0;
       toast({
-        title: "Vendor Responses Uploaded!",
-        description: `Successfully uploaded responses for ${data.vendorCount} vendors.`,
+        title: hasFailures ? "Upload Partially Completed" : "Vendor Responses Uploaded!",
+        description: hasFailures 
+          ? `Uploaded ${data.vendorCount} vendors with ${data.failedUploads.length} failed files. Check console for details.`
+          : `Successfully uploaded responses for ${data.vendorCount} vendors.`,
+        variant: hasFailures ? "default" : "default",
       });
+      
+      if (hasFailures) {
+        console.warn("Failed uploads:", data.failedUploads);
+      }
+      
       setUploadDialogOpen(false);
       setUploadFile(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      // Invalidate the exact query keys used on this page
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "rfts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId] });
     },
     onError: () => {
       toast({
