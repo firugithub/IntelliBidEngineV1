@@ -33,6 +33,7 @@ Preferred communication style: Simple, everyday language.
 **Workflow:** 4-step process (Create Business Case → Select Template → Generate with AI → Review & Download Deliverables).
 **RFT Document Edit & Download:** Provides section-by-section editing with real-time updates, Markdown formatting support, and professional DOCX/PDF generation. Single-click ZIP download for all deliverables.
 **Azure Blob Storage Publishing:** When RFT is published, all generated files (DOCX, PDF, 4 Excel questionnaires) are automatically uploaded to Azure Blob Storage at structured paths (`project-{id}/RFT_{id}/[filename]`). Download endpoints intelligently serve from Azure for published RFTs or generate on-the-fly for unpublished ones, providing seamless fallback behavior.
+**Standardized RFT Format:** All RFT documents follow a consistent 10-section structure: (1) Cover Page & Summary, (2) Introduction & Background, (3) Scope of Work (SOW), (4) Objectives & Business Outcomes, (5) Instructions to Tenderers, (6) Evaluation Criteria, (7) Vendor Response Templates, (8) Contractual & Legal Terms, (9) Governance & Delivery Model, (10) Appendices. This format aligns with enterprise procurement and IT/technical project standards.
 
 ### Advanced AI Features
 IntelliBid includes 5 production-ready AI features accessible via a unified interface: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant.

@@ -1,0 +1,71 @@
+Here’s a standard breakdown of **RFT (Request for Tender) sections**, aligned with both enterprise procurement and IT/technical project contexts:
+
+---
+
+### **📘 RFT Document Structure**
+
+1. **Cover Page & Summary**
+
+   * Project Title
+   * Tender Reference Number
+   * Issuing Organization
+   * Submission Deadline and Contact Details
+
+2. **Introduction & Background**
+
+   * Overview of the organization
+   * Purpose of the tender
+   * High-level project background and context
+
+3. **Scope of Work (SOW)**
+
+   * Detailed description of deliverables
+   * Functional and technical requirements
+   * Expected service levels and performance criteria
+
+4. **Objectives & Business Outcomes**
+
+   * Key goals to be achieved
+   * Measurable KPIs and success indicators
+
+5. **Instructions to Tenderers**
+
+   * Submission format (digital, email, portal)
+   * Tender timeline and milestones
+   * Clarification process and contact details
+
+6. **Evaluation Criteria**
+
+   * Technical capability and approach
+   * Commercial offer and cost structure
+   * Compliance, risk, and quality metrics
+   * Scoring methodology and weightage
+
+7. **Vendor Response Templates**
+
+   * Technical response table
+   * Pricing and commercial proposal format
+   * Non-functional requirements questionnaire
+   * Cybersecurity and compliance checklist
+
+8. **Contractual & Legal Terms**
+
+   * Draft contract or master agreement
+   * Confidentiality and data protection clauses
+   * Intellectual property, liability, and termination terms
+
+9. **Governance & Delivery Model**
+
+   * Project governance and reporting
+   * Roles and responsibilities
+   * Escalation and issue resolution procedures
+
+10. **Appendices**
+
+    * Acronyms and definitions
+    * Reference documents (policies, standards)
+    * Supporting diagrams or data models
+
+---
+
+Would you like me to generate a **sample RFT document structure (table of contents + sample text)** that fits your **IntelliBid AI RFT Builder** format (so it can generate each section automatically)?
