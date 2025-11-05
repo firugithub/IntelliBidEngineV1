@@ -2925,7 +2925,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue; // Skip root files
         }
         
-        const vendorName = parts[0];
+        // Support nested structures: use the second-to-last part as vendor name
+        // This handles both "VendorName/file.xlsx" and "RFT Responses/VendorName/file.xlsx"
+        const vendorName = parts[parts.length - 2];
         const fileName = parts[parts.length - 1];
         
         console.log(`  ✓ Vendor: ${vendorName}, File: ${fileName}`);
