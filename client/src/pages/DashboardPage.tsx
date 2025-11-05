@@ -74,16 +74,43 @@ export default function DashboardPage() {
     enabled: !!projectId,
   });
 
+  const [pollCount, setPollCount] = useState(0);
+  const [lastDataHash, setLastDataHash] = useState<string>("");
+  const FAST_POLL_LIMIT = 10; // Fast polling for first 30 seconds (10 * 3s)
+
   const { data: evaluations, isLoading: evaluationsLoading } = useQuery<Evaluation[]>({
     queryKey: ["/api/projects", projectId, "evaluations"],
     enabled: !!projectId,
     refetchInterval: (query) => {
-      // If we have evaluations with functionalFit of 0, re-fetch every 3 seconds
       const data = query.state.data;
-      if (data && data.some((e: Evaluation) => e.functionalFit === 0)) {
-        return 3000;
+      
+      // Check if we have incomplete evaluations
+      const hasIncomplete = data && data.some((e: Evaluation) => 
+        e.status === "under-review" && !e.aiRationale
+      );
+      
+      if (!hasIncomplete) {
+        // No incomplete evaluations, stop polling and reset count
+        setPollCount(0);
+        return false;
       }
-      return false;
+      
+      // Create hash of current data to detect changes
+      const currentHash = data ? JSON.stringify(data.map(e => ({ id: e.id, status: e.status }))) : "";
+      if (currentHash !== lastDataHash) {
+        // Data changed (e.g., new re-evaluation started), reset poll count
+        setLastDataHash(currentHash);
+        setPollCount(0);
+      }
+      
+      // Use fast polling for first 30 seconds, then slow polling
+      if (pollCount < FAST_POLL_LIMIT) {
+        setPollCount(prev => prev + 1);
+        return 3000; // Fast: every 3 seconds
+      } else {
+        // Slow heartbeat after 30 seconds to eventually catch completion
+        return 15000; // Slow: every 15 seconds
+      }
     },
   });
 
@@ -98,6 +125,9 @@ export default function DashboardPage() {
       return response.json();
     },
     onSuccess: () => {
+      // Reset poll count to allow polling for new evaluation
+      setPollCount(0);
+      
       toast({
         title: "Re-evaluation started",
         description: "The system is analyzing vendor proposals. This page will auto-update when complete.",
@@ -211,10 +241,55 @@ export default function DashboardPage() {
   };
 
   const hasGenericInsights = evaluations.some(e => {
-    const delivery = ensureArray(e.roleInsights?.delivery);
-    return delivery.some(insight => 
-      insight.includes("offers comprehensive") || 
-      insight.includes("Strong delivery track record with")
+    // All fallback patterns from getFallbackInsights() in multiAgentEvaluator.ts
+    const fallbackPatterns = [
+      // Delivery fallbacks
+      "Timeline and resource assessment requires manual review",
+      "Risk analysis pending - recommend scheduling follow-up evaluation",
+      "Dependencies and milestones need stakeholder validation",
+      "Delivery approach should be verified against similar past projects",
+      // Product fallbacks
+      "Product requirements coverage needs detailed mapping",
+      "Feature parity analysis requires domain expert review",
+      "User experience impact should be validated with stakeholders",
+      "Product roadmap alignment requires business owner input",
+      // Architecture fallbacks
+      "Architecture patterns require technical deep-dive review",
+      "Integration approach needs enterprise architect validation",
+      "Scalability and security posture require dedicated assessment",
+      "Technical debt and migration path need detailed planning",
+      // Engineering fallbacks
+      "API and SDK quality require hands-on technical evaluation",
+      "Documentation completeness needs engineering team review",
+      "Developer experience should be validated through POC",
+      "Technical support model requires further investigation",
+      // Procurement fallbacks
+      "TCO analysis requires detailed cost breakdown and validation",
+      "Contract terms and SLAs need legal and procurement review",
+      "Pricing model should be compared against market benchmarks",
+      "Commercial risk assessment requires stakeholder input",
+      // Security fallbacks
+      "Security and compliance posture requires detailed audit",
+      "Data protection mechanisms need security team validation",
+      "Certification and standards compliance requires verification",
+      "Risk assessment and remediation plan need expert review",
+      // Old single-agent templated patterns
+      "offers comprehensive",
+      "Strong delivery track record with",
+    ];
+    
+    // Check all role insights for any fallback pattern
+    const allInsights = [
+      ...ensureArray(e.roleInsights?.delivery),
+      ...ensureArray(e.roleInsights?.product),
+      ...ensureArray(e.roleInsights?.architecture),
+      ...ensureArray(e.roleInsights?.engineering),
+      ...ensureArray(e.roleInsights?.procurement),
+      ...ensureArray(e.roleInsights?.security),
+    ];
+    
+    return allInsights.some(insight => 
+      fallbackPatterns.some(pattern => insight.includes(pattern))
     );
   });
 
@@ -230,7 +305,7 @@ export default function DashboardPage() {
               </p>
               {hasGenericInsights && (
                 <p className="text-sm text-orange-500 mt-1">
-                  ⚠️ Generic insights detected. Click "Re-Evaluate" to analyze actual vendor files.
+                  ⚠️ Generic insights detected (agent evaluation incomplete). Click "Re-Evaluate" to retry.
                 </p>
               )}
             </div>

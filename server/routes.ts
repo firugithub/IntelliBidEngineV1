@@ -2788,23 +2788,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (requirements.length === 0) {
         console.log(`No requirements found, creating from RFT sections...`);
         const sections = (rft.sections as any)?.sections || [];
+        const documentText = sections.map((s: any) => s.content).join("\n") || "";
+        
+        // Analyze the RFT document to extract proper requirement structure
+        const requirementAnalysis = await analyzeRequirements(documentText);
+        
         const requirement = await storage.createRequirement({
           projectId,
           fileName: `${rft.name}_Requirements.pdf`,
           extractedData: {
-            text: sections.map((s: any) => s.content).join("\n") || "",
+            ...requirementAnalysis,
+            text: documentText,
             fileName: `${rft.name}_Requirements.pdf`,
           },
-          evaluationCriteria: [
-            { name: "Technical Fit", weight: 30, description: "Technical capabilities" },
-            { name: "Delivery Risk", weight: 25, description: "Implementation risk" },
-            { name: "Cost", weight: 20, description: "Total cost of ownership" },
-            { name: "Compliance", weight: 15, description: "Regulatory compliance" },
-            { name: "Support", weight: 10, description: "Vendor support quality" },
-          ],
+          evaluationCriteria: requirementAnalysis.evaluationCriteria.length > 0 
+            ? requirementAnalysis.evaluationCriteria 
+            : [
+                { name: "Technical Fit", weight: 30, description: "Technical capabilities" },
+                { name: "Delivery Risk", weight: 25, description: "Implementation risk" },
+                { name: "Cost", weight: 20, description: "Total cost of ownership" },
+                { name: "Compliance", weight: 15, description: "Regulatory compliance" },
+                { name: "Support", weight: 10, description: "Vendor support quality" },
+              ],
         });
         requirements = [requirement];
-        console.log(`✓ Created requirement from RFT`);
+        console.log(`✓ Created requirement from RFT with ${requirementAnalysis.technicalRequirements.length} technical requirements`);
       }
 
       // Get proposals

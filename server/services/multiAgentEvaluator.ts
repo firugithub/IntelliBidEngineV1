@@ -629,15 +629,20 @@ export async function evaluateProposalMultiAgent(
     if (isRAGConfigured) {
       console.log(`   🔍 Retrieving relevant compliance documents from RAG system...`);
       
-      // Build retrieval query from requirements
-      const retrievalQueries = requirements.technicalRequirements.slice(0, 5);
-      const ragContextData = await ragRetrievalService.retrieveComplianceStandards(
-        retrievalQueries,
-        { topKPerRequirement: 2 }
-      );
-      
-      ragContext = ragRetrievalService.formatForAIContext(ragContextData);
-      console.log(`   ✅ Retrieved ${ragContextData.chunks.length} relevant document sections`);
+      // Build retrieval query from requirements (with defensive check)
+      const techReqs = requirements.technicalRequirements || [];
+      if (techReqs.length === 0) {
+        console.log(`   ⚠️  No technical requirements found, skipping RAG retrieval`);
+      } else {
+        const retrievalQueries = techReqs.slice(0, 5);
+        const ragContextData = await ragRetrievalService.retrieveComplianceStandards(
+          retrievalQueries,
+          { topKPerRequirement: 2 }
+        );
+        
+        ragContext = ragRetrievalService.formatForAIContext(ragContextData);
+        console.log(`   ✅ Retrieved ${ragContextData.chunks.length} relevant document sections`);
+      }
     } else {
       console.log(`   ⚠️  RAG system not configured, proceeding without document retrieval`);
     }
