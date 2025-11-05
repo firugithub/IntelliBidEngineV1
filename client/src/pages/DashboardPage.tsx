@@ -70,9 +70,17 @@ export default function DashboardPage() {
   const [selectedVendor, setSelectedVendor] = useState<Evaluation | null>(null);
   const { toast } = useToast();
 
-  const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string }>({
+  const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string; status: string }>({
     queryKey: ["/api/projects", projectId],
     enabled: !!projectId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      // Poll project status during re-evaluation
+      if (data?.status === "eval_in_progress") {
+        return 3000; // Poll every 3 seconds during re-evaluation
+      }
+      return false;
+    },
   });
 
   const [pollCount, setPollCount] = useState(0);
@@ -85,21 +93,22 @@ export default function DashboardPage() {
     refetchInterval: (query) => {
       const data = query.state.data;
       
-      // Check if we have incomplete evaluations
+      // Check if project is in re-evaluation or has incomplete evaluations
+      const isProjectReEvaluating = project?.status === "eval_in_progress";
       const hasIncomplete = data && data.some((e: Evaluation) => 
         e.status === "under-review" && !e.aiRationale
       );
       
-      if (!hasIncomplete) {
-        // No incomplete evaluations, stop polling and reset count
+      if (!isProjectReEvaluating && !hasIncomplete) {
+        // No re-evaluation in progress, stop polling and reset count
         setPollCount(0);
         return false;
       }
       
       // Create hash of current data to detect changes
-      const currentHash = data ? JSON.stringify(data.map(e => ({ id: e.id, status: e.status }))) : "";
+      const currentHash = data ? JSON.stringify(data.map(e => ({ id: e.id, status: e.status, overallScore: e.overallScore }))) : "";
       if (currentHash !== lastDataHash) {
-        // Data changed (e.g., new re-evaluation started), reset poll count
+        // Data changed (e.g., new evaluations came in), reset poll count
         setLastDataHash(currentHash);
         setPollCount(0);
       }
@@ -135,6 +144,7 @@ export default function DashboardPage() {
       });
       // Invalidate queries to trigger refresh
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "evaluations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
     },
     onError: (error: Error) => {
       toast({
@@ -177,6 +187,9 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // Sort evaluations by ranking (overall score descending)
+  const sortedEvaluations = [...evaluations].sort((a, b) => b.overallScore - a.overallScore);
 
   // Calculate aggregated metrics
   const avgFunctionalFit = Math.round(
@@ -243,6 +256,7 @@ export default function DashboardPage() {
 
   // Check if re-evaluation is in progress
   const isReEvaluating = reEvaluateMutation.isPending || 
+    project?.status === "eval_in_progress" ||
     evaluations.some(e => e.status === "under-review" && !e.aiRationale);
 
   const hasGenericInsights = evaluations.some(e => {
@@ -407,7 +421,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-2xl font-semibold mb-6">Shortlisted Proposals</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {evaluations.map((evaluation, index) => (
+              {sortedEvaluations.map((evaluation, index) => (
                 <ProposalCard
                   key={evaluation.id}
                   vendorName={evaluation.vendorName}
