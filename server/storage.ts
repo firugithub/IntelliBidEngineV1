@@ -1126,16 +1126,20 @@ export class MemStorage implements IStorage {
       (rft) => projectIds.has(rft.projectId)
     );
 
-    // Count evaluations in progress for these projects
-    const evaluationsInProgress = Array.from(this.evaluations.values()).filter(
-      (evaluation) => projectIds.has(evaluation.projectId) && 
-      (evaluation.status === "under-review" || evaluation.status === "analyzing")
-    ).length;
+    // Count unique PROJECTS with evaluations in progress (not total evaluations)
+    const projectsWithEvaluationsInProgress = new Set(
+      Array.from(this.evaluations.values())
+        .filter((evaluation) => 
+          projectIds.has(evaluation.projectId) && 
+          (evaluation.status === "under-review" || evaluation.status === "analyzing")
+        )
+        .map((evaluation) => evaluation.projectId)
+    ).size;
 
     return {
       totalRfts: portfolioRfts.length,
       active: portfolioRfts.filter((rft) => rft.status === "published").length,
-      evaluationInProgress: evaluationsInProgress,
+      evaluationInProgress: projectsWithEvaluationsInProgress,
     };
   }
 }
@@ -1545,16 +1549,21 @@ storage.getPortfolioRftStats = async function(portfolioId: string): Promise<{
   const portfolioRfts = await db.select().from(generatedRfts);
   const filteredRfts = portfolioRfts.filter(rft => projectIds.includes(rft.projectId));
 
-  // Count evaluations in progress for these projects
+  // Count unique PROJECTS with evaluations in progress (not total evaluations)
   const allEvaluations = await db.select().from(evaluations);
-  const evaluationsInProgress = allEvaluations.filter(
-    (evaluation) => evaluation.projectId && projectIds.includes(evaluation.projectId) && 
-    (evaluation.status === "under-review" || evaluation.status === "analyzing")
-  ).length;
+  const projectsWithEvaluationsInProgress = new Set(
+    allEvaluations
+      .filter((evaluation) => 
+        evaluation.projectId && 
+        projectIds.includes(evaluation.projectId) && 
+        (evaluation.status === "under-review" || evaluation.status === "analyzing")
+      )
+      .map((evaluation) => evaluation.projectId)
+  ).size;
 
   return {
     totalRfts: filteredRfts.length,
     active: filteredRfts.filter((rft) => rft.status === "published").length,
-    evaluationInProgress: evaluationsInProgress,
+    evaluationInProgress: projectsWithEvaluationsInProgress,
   };
 };
