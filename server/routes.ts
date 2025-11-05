@@ -2907,27 +2907,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Expected structure: VendorName/questionnaire.xlsx
       const vendorFiles: Map<string, { files: any[] }> = new Map();
 
+      console.log(`📦 Extracting ZIP with ${zipEntries.length} entries`);
+
       for (const entry of zipEntries) {
-        if (entry.isDirectory || entry.entryName.startsWith("__MACOSX")) continue;
+        console.log(`  Entry: ${entry.entryName} (isDirectory: ${entry.isDirectory})`);
         
-        const parts = entry.entryName.split("/");
-        if (parts.length < 2) continue; // Skip root files
+        if (entry.isDirectory || entry.entryName.startsWith("__MACOSX") || entry.entryName.startsWith(".")) {
+          console.log(`  Skipping: ${entry.entryName}`);
+          continue;
+        }
+        
+        const parts = entry.entryName.split("/").filter(p => p.length > 0);
+        console.log(`  Parts after split: ${JSON.stringify(parts)}`);
+        
+        if (parts.length < 2) {
+          console.log(`  Skipping root file: ${entry.entryName}`);
+          continue; // Skip root files
+        }
         
         const vendorName = parts[0];
+        const fileName = parts[parts.length - 1];
+        
+        console.log(`  ✓ Vendor: ${vendorName}, File: ${fileName}`);
         
         if (!vendorFiles.has(vendorName)) {
           vendorFiles.set(vendorName, { files: [] });
         }
         
         vendorFiles.get(vendorName)!.files.push({
-          name: parts[parts.length - 1],
+          name: fileName,
           data: entry.getData(),
           path: entry.entryName,
         });
       }
 
+      console.log(`📊 Found ${vendorFiles.size} vendors:`);
+      for (const [vendorName, { files }] of Array.from(vendorFiles.entries())) {
+        console.log(`  - ${vendorName}: ${files.length} files`);
+      }
+
       if (vendorFiles.size === 0) {
-        return res.status(400).json({ error: "No vendor folders found in ZIP" });
+        return res.status(400).json({ error: "No vendor folders found in ZIP. Expected structure: VendorName/file.xlsx" });
       }
 
       // Upload files to Azure Blob Storage and create proposals

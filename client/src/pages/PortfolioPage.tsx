@@ -95,7 +95,8 @@ export default function PortfolioPage() {
       
       setUploadDialogOpen(false);
       setUploadFile(null);
-      // Invalidate the exact query keys used on this page
+      setSelectedRftId(null);
+      // Invalidate all queries to refresh both tabs
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "rfts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId] });
