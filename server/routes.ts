@@ -296,9 +296,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       archive.pipe(res);
 
       // Define folders to download
+      // IMPORTANT: Use underscores to match Azure Blob Storage paths
       const folders = [
-        { prefix: `project-${project.id}/RFT Generated`, name: 'RFT Generated' },
-        { prefix: `project-${project.id}/RFT Responses`, name: 'RFT Responses' },
+        { prefix: `project-${project.id}/RFT_Generated`, name: 'RFT Generated' },
+        { prefix: `project-${project.id}/RFT_Responses`, name: 'RFT Responses' },
         { prefix: `project-${project.id}/RFT Evaluation`, name: 'RFT Evaluation' }
       ];
 
