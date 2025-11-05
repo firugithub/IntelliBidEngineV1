@@ -498,6 +498,9 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
 
     const result = JSON.parse(content);
     const executionTime = Date.now() - startTime;
+    
+    // Debug: Log what scores each agent is returning
+    console.log(`   📊 ${role} agent scores:`, JSON.stringify(result.scores || {}));
 
     return {
       role,
