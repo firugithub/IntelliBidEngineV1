@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -240,6 +241,10 @@ export default function DashboardPage() {
     }
   };
 
+  // Check if re-evaluation is in progress
+  const isReEvaluating = reEvaluateMutation.isPending || 
+    evaluations.some(e => e.status === "under-review" && !e.aiRationale);
+
   const hasGenericInsights = evaluations.some(e => {
     // All fallback patterns from getFallbackInsights() in multiAgentEvaluator.ts
     const fallbackPatterns = [
@@ -297,13 +302,21 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background">
       <div className="border-b">
         <div className="container mx-auto px-4 py-6">
+          {isReEvaluating && (
+            <Alert variant="destructive" className="mb-4" data-testid="alert-re-evaluating">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-medium">
+                Re-evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Shortlisting Report</h1>
               <p className="text-muted-foreground">
                 AI-generated evaluation of {evaluations.length} vendor proposal{evaluations.length > 1 ? 's' : ''}
               </p>
-              {hasGenericInsights && (
+              {hasGenericInsights && !isReEvaluating && (
                 <p className="text-sm text-orange-500 mt-1">
                   ⚠️ Generic insights detected (agent evaluation incomplete). Click "Re-Evaluate" to retry.
                 </p>
