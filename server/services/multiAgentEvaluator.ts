@@ -502,12 +502,33 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
     // Debug: Log what scores each agent is returning
     console.log(`   📊 ${role} agent scores:`, JSON.stringify(result.scores || {}));
 
+    // Calculate status based on scores if not provided by AI
+    let calculatedStatus: "recommended" | "under-review" | "risk-flagged" = "under-review";
+    if (!result.status && result.scores) {
+      const overall = result.scores.overall || 0;
+      const deliveryRisk = result.scores.deliveryRisk || 0;
+      const compliance = result.scores.compliance || 0;
+      
+      // Risk flagged: Low overall score OR high delivery risk OR low compliance
+      if (overall < 45 || deliveryRisk > 75 || compliance < 35) {
+        calculatedStatus = "risk-flagged";
+      }
+      // Recommended: High overall score AND acceptable delivery risk
+      else if (overall >= 65 && deliveryRisk <= 50) {
+        calculatedStatus = "recommended";
+      }
+      // Otherwise: under-review
+      else {
+        calculatedStatus = "under-review";
+      }
+    }
+
     return {
       role,
       insights: result.insights || [],
       scores: result.scores || { overall: 0 },
       rationale: result.rationale || "",
-      status: result.status || "under-review",
+      status: result.status || calculatedStatus,
       executionTime,
       tokenUsage: response.usage?.total_tokens || 0,
       succeeded: true,
