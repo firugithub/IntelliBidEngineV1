@@ -533,22 +533,19 @@ function aggregateResults(
   // Only include successful agents in scoring calculations
   const successfulAgents = agentResults.filter(r => r.succeeded);
   
-  // Calculate average scores
-  const avgOverall = Math.round(
-    successfulAgents.reduce((sum, r) => sum + (r.scores.overall || 0), 0) / Math.max(successfulAgents.length, 1)
-  );
+  // Helper function to calculate average only from agents that provided the score
+  const calculateAverage = (scoreKey: keyof AgentResult['scores']): number => {
+    const agentsWithScore = successfulAgents.filter(r => r.scores[scoreKey] !== undefined && r.scores[scoreKey] !== null);
+    if (agentsWithScore.length === 0) return 0;
+    const sum = agentsWithScore.reduce((acc, r) => acc + (r.scores[scoreKey] || 0), 0);
+    return Math.round(sum / agentsWithScore.length);
+  };
   
-  const avgTechnicalFit = Math.round(
-    successfulAgents.reduce((sum, r) => sum + (r.scores.technicalFit || 0), 0) / Math.max(successfulAgents.length, 1)
-  );
-  
-  const avgDeliveryRisk = Math.round(
-    successfulAgents.reduce((sum, r) => sum + (r.scores.deliveryRisk || 0), 0) / Math.max(successfulAgents.length, 1)
-  );
-  
-  const avgCompliance = Math.round(
-    successfulAgents.reduce((sum, r) => sum + (r.scores.compliance || 0), 0) / Math.max(successfulAgents.length, 1)
-  );
+  // Calculate average scores (only from agents that provide each specific score)
+  const avgOverall = calculateAverage('overall');
+  const avgTechnicalFit = calculateAverage('technicalFit');
+  const avgDeliveryRisk = calculateAverage('deliveryRisk');
+  const avgCompliance = calculateAverage('compliance');
 
   // Build role insights object
   const roleInsights: VendorEvaluation["roleInsights"] = {
@@ -560,20 +557,12 @@ function aggregateResults(
     security: agentResults.find(r => r.role === "security")?.insights || [],
   };
 
-  // Aggregate detailed scores
+  // Aggregate detailed scores (using same approach - only count agents that provide each score)
   const detailedScores = {
-    integration: Math.round(
-      successfulAgents.reduce((sum, r) => sum + (r.scores.integration || 0), 0) / Math.max(successfulAgents.length, 1)
-    ),
-    support: Math.round(
-      successfulAgents.reduce((sum, r) => sum + (r.scores.support || 0), 0) / Math.max(successfulAgents.length, 1)
-    ),
-    scalability: Math.round(
-      successfulAgents.reduce((sum, r) => sum + (r.scores.scalability || 0), 0) / Math.max(successfulAgents.length, 1)
-    ),
-    documentation: Math.round(
-      successfulAgents.reduce((sum, r) => sum + (r.scores.documentation || 0), 0) / Math.max(successfulAgents.length, 1)
-    ),
+    integration: calculateAverage('integration'),
+    support: calculateAverage('support'),
+    scalability: calculateAverage('scalability'),
+    documentation: calculateAverage('documentation'),
   };
 
   // Determine overall status based on consensus
