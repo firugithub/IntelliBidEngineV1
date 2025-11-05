@@ -241,6 +241,12 @@ export default function PortfolioPage() {
                         Created {format(new Date(rft.createdAt), "MMM d, yyyy HH:mm")}
                       </div>
                       
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-mono">
+                          project-{rft.projectId}
+                        </Badge>
+                      </div>
+                      
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
@@ -385,9 +391,16 @@ export default function PortfolioPage() {
                           </div>
                         )}
 
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                          <Calendar className="h-3 w-3" />
-                          <span>Created {format(new Date(project.createdAt), "MMM d, yyyy HH:mm")}</span>
+                        <div className="pt-2 border-t space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs font-mono">
+                              project-{project.id}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>Created {format(new Date(project.createdAt), "MMM d, yyyy HH:mm")}</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
