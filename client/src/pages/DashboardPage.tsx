@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles } from "lucide-react";
+import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -319,22 +319,20 @@ export default function DashboardPage() {
                 <Sparkles className="h-4 w-4" />
                 AI Features
               </Button>
-              {hasGenericInsights && (
-                <Button
-                  variant="outline"
-                  onClick={() => reEvaluateMutation.mutate()}
-                  disabled={reEvaluateMutation.isPending}
-                  className="gap-2"
-                  data-testid="button-re-evaluate"
-                >
-                  {reEvaluateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4" />
-                  )}
-                  Re-Evaluate
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => reEvaluateMutation.mutate()}
+                disabled={reEvaluateMutation.isPending}
+                className="gap-2"
+                data-testid="button-re-evaluate"
+              >
+                {reEvaluateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Re-Evaluate
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleNewEvaluation}
