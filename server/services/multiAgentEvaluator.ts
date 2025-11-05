@@ -56,6 +56,7 @@ interface AgentResult {
   insights: string[];
   scores: {
     overall: number;
+    functionalFit?: number;
     technicalFit?: number;
     deliveryRisk?: number;
     compliance?: number;
@@ -182,7 +183,7 @@ Return JSON:
   "insights": ["insight 1", "insight 2", "insight 3", "insight 4", "insight 5"],
   "scores": {
     "overall": 0-100,
-    "technicalFit": 0-100,
+    "functionalFit": 0-100,
     "scalability": 0-100,
     "documentation": 0-100
   },
@@ -543,6 +544,7 @@ function aggregateResults(
   
   // Calculate average scores (only from agents that provide each specific score)
   const avgOverall = calculateAverage('overall');
+  const avgFunctionalFit = calculateAverage('functionalFit');
   const avgTechnicalFit = calculateAverage('technicalFit');
   const avgDeliveryRisk = calculateAverage('deliveryRisk');
   const avgCompliance = calculateAverage('compliance');
@@ -589,6 +591,7 @@ function aggregateResults(
 
   return {
     overallScore: avgOverall,
+    functionalFit: avgFunctionalFit,
     technicalFit: avgTechnicalFit,
     deliveryRisk: avgDeliveryRisk,
     cost: proposal.costStructure || "Not specified",

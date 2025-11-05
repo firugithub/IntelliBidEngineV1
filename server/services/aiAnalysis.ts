@@ -71,6 +71,7 @@ export interface ProposalAnalysis {
 
 export interface VendorEvaluation {
   overallScore: number;
+  functionalFit: number;
   technicalFit: number;
   deliveryRisk: number;
   cost: string;

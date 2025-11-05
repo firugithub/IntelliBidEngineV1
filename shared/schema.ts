@@ -91,6 +91,7 @@ export const evaluations = pgTable("evaluations", {
   projectId: varchar("project_id").notNull(),
   proposalId: varchar("proposal_id").notNull(),
   overallScore: integer("overall_score").notNull(),
+  functionalFit: integer("functional_fit").notNull().default(0),
   technicalFit: integer("technical_fit").notNull(),
   deliveryRisk: integer("delivery_risk").notNull(),
   cost: text("cost").notNull(),

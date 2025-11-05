@@ -23,6 +23,7 @@ interface Evaluation {
   id: string;
   vendorName: string;
   overallScore: number;
+  functionalFit: number;
   technicalFit: number;
   deliveryRisk: number;
   cost: string;
@@ -109,6 +110,10 @@ export default function DashboardPage() {
   }
 
   // Calculate aggregated metrics
+  const avgFunctionalFit = Math.round(
+    evaluations.reduce((sum, e) => sum + e.functionalFit, 0) / evaluations.length
+  );
+  
   const avgTechnicalFit = Math.round(
     evaluations.reduce((sum, e) => sum + e.technicalFit, 0) / evaluations.length
   );
@@ -214,9 +219,17 @@ export default function DashboardPage() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScoreCard
+              title="Average Functional Fit"
+              value={`${avgFunctionalFit}%`}
+              subtitle="Product agent"
+              icon={CheckCircle2}
+              trend={avgFunctionalFit > 75 ? "up" : "neutral"}
+              trendValue={avgFunctionalFit > 75 ? "+12% above threshold" : "Meeting baseline"}
+            />
+            <ScoreCard
               title="Average Technical Fit"
               value={`${avgTechnicalFit}%`}
-              subtitle="Across all proposals"
+              subtitle="Architecture, Engineering"
               icon={CheckCircle2}
               trend={avgTechnicalFit > 75 ? "up" : "neutral"}
               trendValue={avgTechnicalFit > 75 ? "+12% above threshold" : "Meeting baseline"}
@@ -224,21 +237,15 @@ export default function DashboardPage() {
             <ScoreCard
               title="Lowest Delivery Risk"
               value={`${lowestRisk}%`}
-              subtitle={lowestRiskVendor?.vendorName || ""}
+              subtitle={`${lowestRiskVendor?.vendorName || ""} (Delivery agent)`}
               icon={TrendingUp}
               trend="down"
               trendValue="Low risk profile"
             />
             <ScoreCard
-              title="Best Value"
-              value={bestValueEval.cost.split(" - ")[0]}
-              subtitle={bestValueEval.vendorName}
-              icon={DollarSign}
-            />
-            <ScoreCard
               title="Highest Compliance"
               value={`${highestCompliance}%`}
-              subtitle={highestComplianceVendor?.vendorName || ""}
+              subtitle={`${highestComplianceVendor?.vendorName || ""} (Architecture, Security)`}
               icon={Shield}
               trend="up"
             />
@@ -252,6 +259,7 @@ export default function DashboardPage() {
                   key={evaluation.id}
                   vendorName={evaluation.vendorName}
                   overallScore={evaluation.overallScore}
+                  functionalFit={evaluation.functionalFit}
                   technicalFit={evaluation.technicalFit}
                   deliveryRisk={evaluation.deliveryRisk}
                   cost={evaluation.cost}

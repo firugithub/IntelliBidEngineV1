@@ -7,6 +7,7 @@ import { Building2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react
 interface ProposalCardProps {
   vendorName: string;
   overallScore: number;
+  functionalFit: number;
   technicalFit: number;
   deliveryRisk: number;
   cost: string;
@@ -18,6 +19,7 @@ interface ProposalCardProps {
 export function ProposalCard({
   vendorName,
   overallScore,
+  functionalFit,
   technicalFit,
   deliveryRisk,
   cost,
@@ -94,11 +96,21 @@ export function ProposalCard({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Functional Fit</span>
+              <span className="text-sm font-mono font-semibold">{functionalFit}%</span>
+            </div>
+            <Progress value={functionalFit} className="h-1" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Technical Fit</span>
               <span className="text-sm font-mono font-semibold">{technicalFit}%</span>
             </div>
             <Progress value={technicalFit} className="h-1" />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Compliance</span>
