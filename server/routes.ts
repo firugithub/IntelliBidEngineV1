@@ -279,10 +279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "RFT not found" });
       }
       
-      const project = await storage.getProject(rft.projectId);
-      if (!project) {
-        return res.status(404).json({ error: "Project not found" });
-      }
+      // Note: Project might not exist for RFTs created through Smart RFT Builder
+      // We'll use the projectId from the RFT regardless
+      const projectId = rft.projectId;
 
       // Create ZIP archive
       const archive = archiver('zip', { zlib: { level: 9 } });
@@ -298,9 +297,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Define folders to download
       // IMPORTANT: Use underscores to match Azure Blob Storage paths
       const folders = [
-        { prefix: `project-${project.id}/RFT_Generated`, name: 'RFT Generated' },
-        { prefix: `project-${project.id}/RFT_Responses`, name: 'RFT Responses' },
-        { prefix: `project-${project.id}/RFT Evaluation`, name: 'RFT Evaluation' }
+        { prefix: `project-${projectId}/RFT_Generated`, name: 'RFT Generated' },
+        { prefix: `project-${projectId}/RFT_Responses`, name: 'RFT Responses' },
+        { prefix: `project-${projectId}/RFT Evaluation`, name: 'RFT Evaluation' }
       ];
 
       // Add files from each folder
@@ -312,11 +311,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             try {
               const buffer = await azureBlobStorageService.downloadDocument(blobName);
               
-              // Extract just the filename from the full blob path
-              const fileName = blobName.split('/').pop() || blobName;
+              // Extract the path relative to the folder prefix to preserve vendor folder structure
+              // For example: "project-123/RFT_Responses/VendorA/file.xlsx" -> "VendorA/file.xlsx"
+              const relativePath = blobName.replace(folder.prefix + '/', '');
               
-              // Organize files in ZIP by folder structure
-              archive.append(buffer, { name: `${folder.name}/${fileName}` });
+              // Organize files in ZIP preserving the full folder structure
+              archive.append(buffer, { name: `${folder.name}/${relativePath}` });
             } catch (err) {
               console.error(`Error adding file ${blobName}:`, err);
             }
