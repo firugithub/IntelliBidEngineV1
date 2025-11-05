@@ -553,6 +553,12 @@ function aggregateResults(
   const avgTechnicalFit = calculateAverage('technicalFit');
   const avgDeliveryRisk = calculateAverage('deliveryRisk');
   const avgCompliance = calculateAverage('compliance');
+  
+  // Debug: Log functionalFit aggregation details
+  const functionalFitAgents = successfulAgents.filter(r => r.scores.functionalFit !== undefined && r.scores.functionalFit !== null);
+  console.log(`   🔢 FunctionalFit aggregation: ${functionalFitAgents.length} agents provided scores:`, 
+    functionalFitAgents.map(a => `${a.role}=${a.scores.functionalFit}`).join(', '));
+  console.log(`   📈 Average FunctionalFit: ${avgFunctionalFit}`);
 
   // Build role insights object
   const roleInsights: VendorEvaluation["roleInsights"] = {
@@ -579,8 +585,9 @@ function aggregateResults(
     "risk-flagged": agentResults.filter(r => r.status === "risk-flagged").length,
   };
   
-  const status = statusCounts["risk-flagged"] > 2 ? "risk-flagged" :
-                 statusCounts.recommended > 3 ? "recommended" : "under-review";
+  const status: "recommended" | "under-review" | "risk-flagged" = 
+    statusCounts["risk-flagged"] > 2 ? "risk-flagged" :
+    statusCounts.recommended > 3 ? "recommended" : "under-review";
 
   // Aggregate rationales (only from successful agents)
   const rationale = successfulAgents
@@ -594,7 +601,7 @@ function aggregateResults(
     ? ` (Note: ${failedCount} of 6 agent evaluations incomplete - review role-specific insights for details)`
     : "";
 
-  return {
+  const evaluationResult = {
     overallScore: avgOverall,
     functionalFit: avgFunctionalFit,
     technicalFit: avgTechnicalFit,
@@ -606,6 +613,18 @@ function aggregateResults(
     roleInsights,
     detailedScores,
   };
+  
+  // Debug: Log the final evaluation result
+  console.log(`   ✅ Evaluation result:`, JSON.stringify({
+    overallScore: evaluationResult.overallScore,
+    functionalFit: evaluationResult.functionalFit,
+    technicalFit: evaluationResult.technicalFit,
+    deliveryRisk: evaluationResult.deliveryRisk,
+    compliance: evaluationResult.compliance,
+    status: evaluationResult.status
+  }));
+  
+  return evaluationResult;
 }
 
 // Standard data interface
