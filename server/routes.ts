@@ -2439,14 +2439,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Step 1: Extract business case information
       console.log("📋 Extracting business case information...");
+      console.log("📄 Business case document content length:", (businessCase.documentContent || "").length);
+      console.log("📄 Business case content preview:", (businessCase.documentContent || "").substring(0, 300));
       const businessCaseExtract = await extractBusinessCaseInfo(
         businessCase.documentContent || ""
       );
 
       // Step 2: Generate comprehensive 10-section RFT document
       console.log("✍️  Generating comprehensive RFT sections (10 sections with 3-5 paragraphs each)...");
+      console.log("📋 Business case extract:", {
+        projectName: businessCaseExtract.projectName,
+        industry: businessCaseExtract.industry,
+        hasRequirements: !!businessCaseExtract.requirements,
+        hasObjectives: !!businessCaseExtract.objectives,
+      });
       const sections = await generateProfessionalRftSections(businessCaseExtract);
       console.log(`✅ Generated ${sections.length} comprehensive RFT sections`);
+      
+      // Log first section preview to verify content
+      if (sections.length > 0) {
+        const firstSection = sections[0];
+        const content = Array.isArray(firstSection.content) ? firstSection.content : [];
+        const firstParagraph = content.find((c: any) => c.type === 'paragraph')?.text || '';
+        if (firstParagraph) {
+          console.log(`📝 First section preview (${firstSection.title}):`, firstParagraph.substring(0, 200) + "...");
+        }
+      }
 
       // Step 3: Generate all 4 questionnaires with proper question counts
       console.log("📊 Generating questionnaires...");
