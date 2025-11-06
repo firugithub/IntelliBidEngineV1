@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Seed sample data endpoint (development only)
+  // Seed sample data endpoint (development only - legacy support)
   app.post("/api/seed-sample", requireDevelopment, async (req, res) => {
     try {
       const projectId = await seedSampleData();
@@ -190,8 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate all mock data endpoint (development only)
-  app.post("/api/generate-mock-data", requireDevelopment, async (req, res) => {
+  // Generate all mock data endpoint
+  app.post("/api/generate-mock-data", async (req, res) => {
     try {
       const result = await seedAllMockData();
       res.json(result);
@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wipe all data endpoint (development only)
+  // Wipe all data endpoint (development only - DESTRUCTIVE)
   app.post("/api/wipe-data", requireDevelopment, async (req, res) => {
     try {
       const result = await wipeAllData();
@@ -212,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wipe Azure resources endpoint (development only)
+  // Wipe Azure resources endpoint (development only - DESTRUCTIVE)
   app.post("/api/wipe-azure", requireDevelopment, async (req, res) => {
     try {
       const result = await wipeAzureOnly();
@@ -223,8 +223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate RFT from topic (development only)
-  app.post("/api/mock-data/generate-rft", requireDevelopment, async (req, res) => {
+  // Generate RFT from topic
+  app.post("/api/mock-data/generate-rft", async (req, res) => {
     try {
       const { topicId } = req.body;
       if (!topicId) {
@@ -238,8 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate RFT Pack (development only)
-  app.post("/api/mock-data/generate-pack", requireDevelopment, async (req, res) => {
+  // Generate RFT Pack
+  app.post("/api/mock-data/generate-pack", async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {
@@ -253,8 +253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate Vendor Responses (development only)
-  app.post("/api/mock-data/generate-responses", requireDevelopment, async (req, res) => {
+  // Generate Vendor Responses
+  app.post("/api/mock-data/generate-responses", async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {
@@ -268,8 +268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate Evaluation (development only)
-  app.post("/api/mock-data/generate-evaluation", requireDevelopment, async (req, res) => {
+  // Generate Evaluation
+  app.post("/api/mock-data/generate-evaluation", async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {
