@@ -225,6 +225,32 @@ export default function SmartRftBuilderPage() {
     },
   });
 
+  // Generate vendor responses (for quick testing)
+  const generateVendorResponsesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/mock-data/generate-responses", {
+        rftId: generatedRftId,
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Vendor Responses Generated!",
+        description: `Generated responses for ${data.vendorsCreated || 3} vendors. Check the project dashboard.`,
+      });
+      
+      // Invalidate all RFT-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Failed to generate vendor responses. Please try again.",
+      });
+    },
+  });
+
   // Update RFT Document
   const updateRftMutation = useMutation({
     mutationFn: async () => {
@@ -1057,6 +1083,37 @@ export default function SmartRftBuilderPage() {
                 <p className="text-sm text-muted-foreground">
                   Publishing will make the RFT document available to vendors and create evaluation criteria in the system.
                 </p>
+              </div>
+
+              {/* Quick Test: Generate Vendor Responses */}
+              <div className="p-3 border border-dashed rounded-lg bg-muted/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h6 className="font-medium text-sm mb-1">Quick Test</h6>
+                    <p className="text-xs text-muted-foreground">
+                      Generate sample vendor responses for testing the evaluation workflow
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateVendorResponsesMutation.mutate()}
+                    disabled={generateVendorResponsesMutation.isPending}
+                    data-testid="button-generate-vendor-responses"
+                  >
+                    {generateVendorResponsesMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3 h-3 mr-2" />
+                        Generate Responses
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <Button
