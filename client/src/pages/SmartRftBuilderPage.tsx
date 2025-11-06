@@ -1098,7 +1098,7 @@ export default function SmartRftBuilderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => generateVendorResponsesMutation.mutate()}
-                    disabled={generateVendorResponsesMutation.isPending}
+                    disabled={!generatedRftId || generateVendorResponsesMutation.isPending}
                     data-testid="button-generate-vendor-responses"
                   >
                     {generateVendorResponsesMutation.isPending ? (
