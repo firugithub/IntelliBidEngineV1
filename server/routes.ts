@@ -363,22 +363,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get projects by portfolio
+  // Get projects by portfolio (only projects WITH vendor responses - for RFT Evaluation tab)
   app.get("/api/portfolios/:id/projects", async (req, res) => {
     try {
-      const projects = await storage.getProjectsByPortfolio(req.params.id);
-      res.json(projects);
+      const allProjects = await storage.getProjectsByPortfolio(req.params.id);
+      
+      // Filter to show ONLY projects that have at least one vendor proposal (for Evaluation tab)
+      const projectsForEvaluationTab = [];
+      
+      for (const project of allProjects) {
+        // Check if this project has any vendor proposals
+        const proposals = await storage.getProposalsByProject(project.id);
+        
+        // Only show projects with vendor responses uploaded
+        if (proposals.length > 0) {
+          projectsForEvaluationTab.push(project);
+        }
+      }
+      
+      res.json(projectsForEvaluationTab);
     } catch (error) {
       console.error("Error fetching portfolio projects:", error);
       res.status(500).json({ error: "Failed to fetch portfolio projects" });
     }
   });
 
-  // Get RFTs by portfolio
+  // Get RFTs by portfolio (only published RFTs WITHOUT vendor responses - for RFT Creation tab)
   app.get("/api/portfolios/:id/rfts", async (req, res) => {
     try {
-      const rfts = await storage.getGeneratedRftsByPortfolio(req.params.id);
-      res.json(rfts);
+      const allRfts = await storage.getGeneratedRftsByPortfolio(req.params.id);
+      
+      // Filter to show ONLY published RFTs that don't have any vendor responses yet
+      const rftsForCreationTab = [];
+      
+      for (const rft of allRfts) {
+        // Only show published RFTs
+        if (rft.status !== "published") {
+          continue;
+        }
+        
+        // Check if this RFT's project has any vendor proposals
+        const proposals = await storage.getProposalsByProject(rft.projectId);
+        
+        // If no proposals exist, show in RFT Creation tab (waiting for vendor responses)
+        if (proposals.length === 0) {
+          rftsForCreationTab.push(rft);
+        }
+      }
+      
+      res.json(rftsForCreationTab);
     } catch (error) {
       console.error("Error fetching portfolio RFTs:", error);
       res.status(500).json({ error: "Failed to fetch portfolio RFTs" });
