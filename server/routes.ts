@@ -2703,7 +2703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update project status
-      await storage.updateProjectStatus(rft.projectId, "rft_published");
+      await storage.updateProjectStatus(rft.projectId, "published");
 
       res.json({
         success: true,
@@ -3296,19 +3296,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // After successful upload, update project status and trigger evaluation
       if (uploadedVendorCount > 0) {
-        // Update project status to eval_in_progress
-        await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
-        console.log(`✓ Project status updated to eval_in_progress`);
+        // Update project status to responses_received
+        await storage.updateProjectStatus(rft.projectId, "responses_received");
+        console.log(`✓ Project status updated to responses_received`);
 
         // Trigger evaluation process in background (non-blocking)
         // This allows user to close the dialog while evaluation runs
         triggerProjectEvaluation(rft.projectId, rft).catch(async (evaluationError) => {
           console.error("Error during background evaluation:", evaluationError);
           
-          // Revert status back to published on failure so user can retry
+          // Revert status back to responses_received on failure so user can retry
           try {
-            await storage.updateProjectStatus(rft.projectId, "published");
-            console.log(`✓ Reverted project status to published after evaluation failure`);
+            await storage.updateProjectStatus(rft.projectId, "responses_received");
+            console.log(`✓ Reverted project status to responses_received after evaluation failure`);
           } catch (revertError) {
             console.error("Failed to revert project status:", revertError);
           }
@@ -3366,18 +3366,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`✓ Deleted existing evaluations`);
 
-      // Update project status to eval_in_progress
-      await storage.updateProjectStatus(projectId, "eval_in_progress");
-      console.log(`✓ Project status updated to eval_in_progress`);
+      // Update project status to responses_received
+      await storage.updateProjectStatus(projectId, "responses_received");
+      console.log(`✓ Project status updated to responses_received`);
 
       // Trigger evaluation process in background
       triggerProjectEvaluation(projectId, rft).catch(async (evaluationError) => {
         console.error("Error during background re-evaluation:", evaluationError);
         
-        // Revert status back to published on failure
+        // Revert status back to responses_received on failure
         try {
-          await storage.updateProjectStatus(projectId, "published");
-          console.log(`✓ Reverted project status to published after evaluation failure`);
+          await storage.updateProjectStatus(projectId, "responses_received");
+          console.log(`✓ Reverted project status to responses_received after evaluation failure`);
         } catch (revertError) {
           console.error("Failed to revert project status:", revertError);
         }
