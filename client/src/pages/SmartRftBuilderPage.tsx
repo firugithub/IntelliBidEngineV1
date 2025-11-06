@@ -256,17 +256,96 @@ export default function SmartRftBuilderPage() {
   };
 
   const handleFillSampleData = () => {
-    setBusinessCaseName("Next-Generation Passenger Experience Platform");
-    setProjectObjective("Transform the end-to-end passenger journey through an integrated digital ecosystem that delivers personalized, seamless travel experiences while reducing operational costs and increasing ancillary revenue opportunities.");
-    setProjectScope("Comprehensive mobile-first platform including iOS/Android native applications, responsive web portal, airport kiosk integration, and backend microservices architecture supporting 10M+ annual passengers across 50+ destinations.");
-    setTimeline("18 months - Phased rollout with MVP in 6 months, full deployment in 18 months");
-    setBudget("$4.2M (Development: $2.5M, Infrastructure: $800K, Licenses: $400K, Contingency: $500K)");
-    setKeyRequirements("Native mobile apps with offline capabilities, real-time flight status updates, digital boarding passes, biometric authentication, baggage tracking, seat selection, meal preferences, loyalty program integration, push notifications, multi-language support (English, Arabic, French), accessibility compliance (WCAG 2.1), payment gateway integration with 3D Secure");
-    setSuccessCriteria("300K active users within 12 months, 4.7+ app store rating, 85% digital check-in adoption rate, 40% reduction in counter queue times, 25% increase in ancillary revenue per passenger, 95% uptime SLA, <2 second response time for critical operations");
+    // Array of diverse aviation use case samples
+    const sampleUseCases = [
+      {
+        name: "Crew Management & Rostering System",
+        objective: "Modernize crew scheduling and fatigue management with AI-powered optimization that ensures regulatory compliance while maximizing crew satisfaction and operational efficiency.",
+        scope: "Cloud-based crew management platform with mobile apps for pilots and cabin crew, automated rostering engine, duty time tracking, fatigue risk management, qualifications management, and integration with existing HR and payroll systems.",
+        timeline: "14 months - Requirements & design (3 months), development & testing (8 months), deployment & training (3 months)",
+        budget: "$3.8M (Development: $2.2M, Cloud infrastructure: $600K, Integration: $500K, Training & change management: $300K, Contingency: $200K)",
+        requirements: "Automated crew pairing and rostering with AI optimization, real-time duty time monitoring, fatigue risk assessment algorithms, mobile apps with offline sync, qualification expiry alerts, bid management for crew preferences, regulatory compliance (CAA, EASA, FAA), integration with flight operations system",
+        criteria: "95% crew satisfaction score, 30% reduction in rostering time, zero regulatory violations, 99.5% system availability, <3 second response time for crew lookups, full deployment across 2,500+ crew members within 6 months"
+      },
+      {
+        name: "Aircraft Maintenance & MRO Platform",
+        objective: "Transform maintenance operations through predictive analytics and digital workflow automation, reducing aircraft downtime while ensuring airworthiness compliance and extending component life.",
+        scope: "Comprehensive CAMO/CAME platform with mobile technician apps, predictive maintenance engine, parts inventory management, work order tracking, and integration with OEM maintenance programs and regulatory authorities.",
+        timeline: "20 months - Platform development (12 months), data migration & integration (4 months), pilot deployment (2 months), full rollout (2 months)",
+        budget: "$5.5M (Platform development: $3.2M, IoT sensors & hardware: $800K, Data migration: $600K, Integration: $500K, Contingency: $400K)",
+        requirements: "Predictive maintenance analytics using machine learning, mobile technician apps with AR-guided repairs, real-time parts tracking with RFID, work order management with digital sign-offs, automated regulatory reporting (EASA Part-M, FAA Part 121), integration with flight data monitoring, document management for AMM/CMM/IPC",
+        criteria: "20% reduction in unscheduled maintenance, 15% improvement in aircraft availability, 25% reduction in parts carrying costs, 100% on-time regulatory submissions, 99.9% system uptime, ROI achieved within 18 months"
+      },
+      {
+        name: "Ancillary Revenue Optimization Engine",
+        objective: "Maximize ancillary revenue through intelligent seat selection, meal pre-ordering, baggage upsells, and lounge access offerings powered by personalized recommendations and dynamic pricing.",
+        scope: "Revenue management platform with web and mobile booking flows, recommendation engine, payment processing, inventory management, and analytics dashboard for revenue tracking across all touchpoints.",
+        timeline: "12 months - MVP (5 months), A/B testing & optimization (3 months), full deployment (2 months), post-launch optimization (2 months)",
+        budget: "$2.8M (Development: $1.6M, Payment gateway & PCI compliance: $400K, ML models & personalization: $350K, Integration: $300K, Contingency: $150K)",
+        requirements: "Personalized seat recommendations using passenger profiles, dynamic pricing engine for ancillaries, meal pre-ordering with dietary preferences, baggage upsell during booking and check-in, lounge access sales, multi-currency support, PCI-DSS Level 1 compliance, integration with PSS and revenue accounting",
+        criteria: "$12M incremental ancillary revenue in year 1, 35% conversion rate on seat selection, 28% take-rate on meal pre-orders, 4.5+ customer satisfaction score, <500ms recommendation response time, 99.95% payment processing uptime"
+      },
+      {
+        name: "Cargo Operations & Tracking System",
+        objective: "Digitize end-to-end cargo operations with real-time shipment tracking, automated documentation, and capacity optimization to increase cargo revenue and improve customer experience.",
+        scope: "Cloud cargo management system with customer portal, mobile apps for warehouse staff, automated AWB generation, capacity planning tools, and integration with customs systems and cargo partners.",
+        timeline: "16 months - Core platform (8 months), integrations & customs (4 months), pilot operations (2 months), full rollout (2 months)",
+        budget: "$4.1M (Platform development: $2.3M, Hardware & sensors: $700K, Integration: $600K, Regulatory compliance: $300K, Contingency: $200K)",
+        requirements: "Real-time shipment tracking with GPS/RFID, automated air waybill generation, dangerous goods compliance checks, capacity planning and load optimization, customer self-service portal, mobile warehouse management, e-freight/e-AWB support, customs integration (IATA Cargo-XML), temperature monitoring for pharma cargo",
+        criteria: "25% increase in cargo revenue, 40% reduction in documentation processing time, 99% on-time shipment tracking accuracy, 95% e-freight adoption rate, <30 minute turnaround for dangerous goods approval, zero customs compliance violations"
+      },
+      {
+        name: "Digital Passenger Services Hub",
+        objective: "Create unified digital platform for all passenger touchpoints from booking to post-flight, delivering seamless omnichannel experience that drives loyalty and reduces operational costs.",
+        scope: "Integrated platform with responsive web, native mobile apps (iOS/Android), airport kiosks, chatbot, and backend services covering booking, check-in, boarding, in-flight services, and disruption management.",
+        timeline: "18 months - Platform foundation (6 months), passenger services modules (8 months), testing & optimization (2 months), deployment (2 months)",
+        budget: "$5.2M (Development: $3.1M, Infrastructure & APIs: $900K, Kiosk hardware: $500K, AI/ML for chatbot: $400K, Contingency: $300K)",
+        requirements: "Responsive web booking with real-time availability, native mobile apps with Apple Wallet/Google Pay integration, self-service check-in kiosks, AI-powered chatbot for customer service, digital boarding passes with offline mode, real-time flight status push notifications, disruption management & rebooking, baggage tracking, in-flight entertainment booking, special assistance requests, multi-language support (10+ languages)",
+        criteria: "70% digital check-in adoption, 4.6+ app store rating, 50% reduction in call center volume, 90% self-service kiosk usage, 35% reduction in passenger processing costs, 200K monthly active app users, <2 second page load time"
+      },
+      {
+        name: "Network Planning & Revenue Management Suite",
+        objective: "Optimize route profitability through advanced analytics, demand forecasting, and dynamic pricing while improving load factors and overall network performance.",
+        scope: "Integrated platform with route profitability analysis, demand forecasting models, fare optimization engine, competitive intelligence, and scenario planning tools for network expansion decisions.",
+        timeline: "15 months - Analytics foundation (5 months), forecasting models (4 months), pricing optimization (4 months), deployment & training (2 months)",
+        budget: "$4.6M (Platform development: $2.7M, Data warehouse & ML infrastructure: $800K, External data feeds: $400K, Training & change management: $400K, Contingency: $300K)",
+        requirements: "Route profitability analysis with contribution margin tracking, machine learning demand forecasting (12-month horizon), dynamic pricing and fare optimization, competitive fare tracking and analysis, capacity allocation by cabin class, overbooking optimization, scenario planning for new routes, integration with PSS and revenue accounting, IATA market data integration",
+        criteria: "5% improvement in network RASK, 3-point load factor improvement, 8% reduction in spoilage costs, 90% forecast accuracy (MAPE), revenue optimization deployed on 100% of routes, <5 minute pricing decision response time, ROI within 12 months"
+      },
+      {
+        name: "Flight Operations & Safety Management",
+        objective: "Enhance flight safety and operational efficiency through real-time flight monitoring, safety reporting, risk assessment, and compliance management with regulatory authorities.",
+        scope: "Safety management system (SMS) with flight data monitoring, incident reporting portal, risk assessment workflows, audit management, and regulatory compliance tracking for IOSA, IS-BAO standards.",
+        timeline: "14 months - Core SMS platform (6 months), flight data monitoring (4 months), compliance modules (2 months), training & rollout (2 months)",
+        budget: "$3.5M (Development: $2.0M, Flight data hardware: $600K, Integration: $450K, Training & certification: $300K, Contingency: $150K)",
+        requirements: "Automated flight data monitoring (FDM) with threshold exceedance alerts, voluntary safety reporting system, risk assessment matrix and workflows, audit and inspection management, regulatory compliance tracking (IOSA, IS-BAO, FAA/EASA), incident investigation case management, safety performance indicators dashboard, crew fatigue monitoring, integration with QAR/ACARS data",
+        criteria: "Zero major safety incidents, 100% safety report follow-up within SLA, 40% increase in voluntary safety reports, IOSA compliance maintained, 95% crew participation in safety culture survey, <24 hour turnaround for critical FDM events, full deployment across fleet within 6 months"
+      },
+      {
+        name: "Ground Services & Turnaround Optimization",
+        objective: "Reduce aircraft turnaround time and improve on-time performance through real-time coordination of ground handling, catering, cleaning, fueling, and ramp operations.",
+        scope: "Mobile-first platform for ground handlers, dispatchers, and operations with real-time task assignment, progress tracking, delay prediction, and resource optimization across all ground service providers.",
+        timeline: "12 months - Platform development (6 months), hardware integration (2 months), pilot airports (2 months), network rollout (2 months)",
+        budget: "$2.9M (Development: $1.7M, Mobile devices & wearables: $400K, IoT sensors: $350K, Integration: $300K, Contingency: $150K)",
+        requirements: "Real-time task management for turnaround operations, automated push-back coordination, fueling progress tracking with API integration, catering and cleaning status updates, delay prediction using machine learning, resource allocation optimization, geo-fenced mobile apps for ramp staff, integration with flight operations and aircraft tracking, messaging between ground crews and operations center",
+        criteria: "5 minute average turnaround time reduction, 12-point on-time performance improvement, 30% reduction in ground delay minutes, 99% task completion tracking accuracy, <30 second delay alert notification, deployment at 15+ airports, positive ROI within 9 months"
+      }
+    ];
+    
+    // Randomly select a use case
+    const randomCase = sampleUseCases[Math.floor(Math.random() * sampleUseCases.length)];
+    
+    setBusinessCaseName(randomCase.name);
+    setProjectObjective(randomCase.objective);
+    setProjectScope(randomCase.scope);
+    setTimeline(randomCase.timeline);
+    setBudget(randomCase.budget);
+    setKeyRequirements(randomCase.requirements);
+    setSuccessCriteria(randomCase.criteria);
     
     toast({
       title: "Sample Data Loaded",
-      description: "All fields have been filled with sample aviation project data.",
+      description: `Loaded: ${randomCase.name}`,
     });
   };
 
