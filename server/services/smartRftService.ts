@@ -424,7 +424,11 @@ export async function generateRftFromBusinessCase(
     businessCase.documentContent || ""
   );
 
-  console.log(`Extracted business case info for: ${businessCaseExtract.projectName}`);
+  console.log(`✅ Extracted business case info for: ${businessCaseExtract.projectName}`);
+  console.log(`📋 Business Objective: ${businessCaseExtract.businessObjective.substring(0, 100)}...`);
+  console.log(`📊 Key Requirements: ${businessCaseExtract.keyRequirements.length} items`);
+  console.log(`⚠️  Risks: ${businessCaseExtract.risks.length} items`);
+  console.log(`🎯 Success Criteria: ${businessCaseExtract.successCriteria.length} items`);
 
   // Generate all sections from template
   const sections: RftSection[] = [];
