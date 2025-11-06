@@ -37,33 +37,39 @@ export async function generateProfessionalRftSections(
 
 Context: ${businessCaseExtract.businessObjective} | Scope: ${businessCaseExtract.scope} | Timeline: ${businessCaseExtract.timeline} | Budget: ${businessCaseExtract.budget}
 
-MANDATORY: Generate EXACTLY 10 sections. Each section MUST be 500+ words (3-5 paragraphs, each 4-6 sentences). Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR).
+MANDATORY: Generate EXACTLY 10 sections. Each section MUST be 500+ words with realistic professional formatting including bullet points, numbered lists, and tables (where appropriate). Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR).
 
 Required Sections:
 1. Introduction & Overview - Organizational context, strategic alignment, project background, objectives, tendering process, stakeholders
-2. Scope of Work / Requirements - Detailed requirements, features, integrations, deliverables, milestones, timelines  
-3. Instructions to Tenderers - Eligibility, submission process, deadlines, compliance checklist
-4. Evaluation Criteria - Scoring methodology with weights, mandatory/desirable criteria
-5. Commercial Terms & Conditions - Pricing models, payment terms, SLAs, warranties
-6. Contractual Requirements - Contract terms, IP rights, GDPR compliance, liability, insurance
-7. Non-Functional Requirements - Performance (99.9% uptime), security, scalability, certifications
-8. Governance & Risk Management - Steering committee, reporting, change control, risk mitigation
-9. Response Templates / Schedules - Required vendor submission formats and documentation
-10. Appendices - Glossary, IATA/ICAO/ISO standards, regulations, architecture diagrams
+2. Scope of Work / Requirements - Detailed requirements (use bullet lists), features, integrations, deliverables, milestones (use tables)
+3. Instructions to Tenderers - Eligibility, submission process (numbered list), deadlines (table), compliance checklist (bullet list)
+4. Evaluation Criteria - Scoring methodology table with weights, mandatory/desirable criteria (bullet lists)
+5. Commercial Terms & Conditions - Pricing models, payment terms (table), SLAs (table with metrics), warranties
+6. Contractual Requirements - Contract terms (bullet lists), IP rights, GDPR compliance, liability, insurance requirements
+7. Non-Functional Requirements - Performance metrics table (99.9% uptime, response times), security requirements (bullet list), scalability, certifications
+8. Governance & Risk Management - Steering committee structure (table), reporting frequency (table), change control process (numbered list), risk mitigation
+9. Response Templates / Schedules - Required vendor submission formats table, documentation checklist (bullet list)
+10. Appendices - Glossary table, IATA/ICAO/ISO standards references (bullet list), regulations, architecture diagrams description
 
-Format Requirements:
+CRITICAL Formatting Rules (use markdown):
+- Use bullet lists with "- " for unordered items (requirements, features, criteria)
+- Use numbered lists with "1. ", "2. ", etc. for sequential steps or processes
+- Use markdown tables with "| Header 1 | Header 2 |" format for structured data (timelines, scoring, metrics, deadlines)
 - Separate paragraphs with "\n\n"
-- Include specific airline terms: PSS, DCS, revenue management, crew scheduling, etc.
-- Reference industry standards in multiple sections
+- Include specific airline terms: PSS, DCS, revenue management, crew scheduling, ARINC, SITA, etc.
+- Reference industry standards throughout (IATA, ICAO, ISO 27001, PCI-DSS, GDPR)
 - Use formal procurement language
 - Make content specific to ${businessCaseExtract.projectName}
+
+Example formatting:
+"## Introduction\n\nNujum Air seeks to modernize...\n\n### Key Objectives\n\n- Objective 1: Detailed description\n- Objective 2: Another point\n\n### Timeline\n\n| Phase | Duration | Deliverables |\n|-------|----------|-------------|\n| Phase 1 | 3 months | Requirements |\n| Phase 2 | 6 months | Development |\n\nFurther context..."
 
 Return JSON array (MUST include all 10 sections):
 [
   {
     "sectionId": "section-1",
     "title": "Introduction & Overview",
-    "content": "Paragraph 1 text here...\n\nParagraph 2 text...\n\nParagraph 3 text..."
+    "content": "Professional formatted content with bullets, lists, and tables in markdown..."
   },
   ...all 10 sections...
 ]`;
@@ -316,10 +322,16 @@ ${prompt_template || ''}
 
 Requirements:
 - Be specific and measurable
-- Use aviation industry standards (IATA, ICAO, etc.) where applicable
+- Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR, ARINC, SITA) where applicable
 - Include acceptance criteria
-- Format in clear markdown with bullet points and tables where appropriate
-- Be comprehensive but concise
+- CRITICAL: Format professionally in markdown with:
+  * Bullet lists (- ) for requirements, features, criteria
+  * Numbered lists (1., 2., etc.) for sequential steps or processes
+  * Tables (| Header | Header |) for structured data (metrics, timelines, scoring)
+- Be comprehensive and realistic (400+ words)
+
+Example format:
+"## ${title}\n\nIntroduction paragraph...\n\n### Key Requirements\n\n- Requirement 1: Details here\n- Requirement 2: More details\n\n### Deliverables Timeline\n\n| Phase | Duration | Deliverables |\n|-------|----------|-------------|\n| Phase 1 | 2 months | Analysis |\n| Phase 2 | 4 months | Development |\n\nFurther details..."
 
 Generate ONLY the content for this section, well-formatted in markdown.`;
 
@@ -610,37 +622,38 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
   console.log("Uploading files to Azure Blob Storage...");
 
   const sanitizedName = rft.name.replace(/[^a-zA-Z0-9]/g, '_');
+  const timestamp = Date.now();
 
-  // Upload all files to Azure Blob Storage (following mock data pattern)
+  // Upload all files to Azure Blob Storage with unique timestamps
   const uploadResults = await Promise.all([
     // Upload RFT document (DOCX)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.docx`,
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT_${timestamp}.docx`,
       docxBuffer
     ),
     // Upload RFT document (PDF)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.pdf`,
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT_${timestamp}.pdf`,
       pdfBuffer
     ),
     // Upload Product Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
+      `project-${project.id}/RFT_Generated/Product_Questionnaire_${timestamp}.xlsx`,
       fs.readFileSync(questionnairePaths.productPath)
     ),
     // Upload NFR Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
+      `project-${project.id}/RFT_Generated/NFR_Questionnaire_${timestamp}.xlsx`,
       fs.readFileSync(questionnairePaths.nfrPath)
     ),
     // Upload Cybersecurity Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
+      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire_${timestamp}.xlsx`,
       fs.readFileSync(questionnairePaths.cybersecurityPath)
     ),
     // Upload Agile Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
+      `project-${project.id}/RFT_Generated/Agile_Questionnaire_${timestamp}.xlsx`,
       fs.readFileSync(questionnairePaths.agilePath)
     ),
   ]);
