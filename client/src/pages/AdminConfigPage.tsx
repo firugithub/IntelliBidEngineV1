@@ -61,8 +61,7 @@ export default function AdminConfigPage() {
 
   const testConnectivityMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/test-azure-connectivity", {});
-      return response.json();
+      return await apiRequest("POST", "/api/test-azure-connectivity", {});
     },
     onSuccess: (data: any) => {
       console.log("Azure connectivity test results:", data);
@@ -97,8 +96,7 @@ export default function AdminConfigPage() {
 
   const wipeDataMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/wipe-data", {});
-      return response.json();
+      return await apiRequest("POST", "/api/wipe-data", {});
     },
     onSuccess: (data: any) => {
       console.log("Wipe data results:", data);
