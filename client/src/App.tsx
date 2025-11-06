@@ -39,8 +39,8 @@ function Router() {
       <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route path="/smart-rft-builder" component={SmartRftBuilderPage} />
       <Route path="/kb-chatbot" component={KnowledgeBaseChatbotPage} />
-      {/* Development-only routes */}
-      {isDevelopment && <Route path="/generate-mock-data" component={GenerateMockDataPage} />}
+      <Route path="/generate-mock-data" component={GenerateMockDataPage} />
+      {/* Development-only routes - none currently */}
       <Route component={NotFound} />
     </Switch>
   );

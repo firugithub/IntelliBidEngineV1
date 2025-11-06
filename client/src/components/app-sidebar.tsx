@@ -54,7 +54,6 @@ const allNavigationItems: NavigationItem[] = [
     title: "Generate Mock Data",
     url: "/generate-mock-data",
     icon: SparklesIcon,
-    devOnly: true, // Hide in production
   },
   {
     title: "Admin Config",
