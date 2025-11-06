@@ -896,6 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString(),
       azureOpenAI: { configured: false, working: false, error: null, details: null },
       azureSearch: { configured: false, working: false, error: null, details: null },
+      azureStorage: { configured: false, working: false, error: null, details: null },
     };
 
     // Test Azure OpenAI Embeddings
@@ -940,9 +941,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       results.azureSearch.error = error.message || String(error);
     }
 
+    // Test Azure Blob Storage
+    try {
+      console.log("[Test] Initializing Azure Blob Storage service...");
+      await azureBlobStorageService.initialize();
+      results.azureStorage.configured = true;
+
+      console.log("[Test] Listing documents in storage...");
+      const documents = await azureBlobStorageService.listDocuments();
+      
+      results.azureStorage.working = true;
+      results.azureStorage.details = {
+        containerName: "intellibid-documents",
+        documentCount: documents.length,
+        sampleDocuments: documents.slice(0, 3),
+      };
+      console.log("[Test] Azure Blob Storage test successful!");
+    } catch (error: any) {
+      console.error("[Test] Azure Blob Storage test failed:", error);
+      results.azureStorage.error = error.message || String(error);
+    }
+
     // Determine overall status
-    const allWorking = results.azureOpenAI.working && results.azureSearch.working;
-    const someWorking = results.azureOpenAI.working || results.azureSearch.working;
+    const allWorking = results.azureOpenAI.working && results.azureSearch.working && results.azureStorage.working;
+    const someWorking = results.azureOpenAI.working || results.azureSearch.working || results.azureStorage.working;
 
     res.json({
       success: allWorking,
