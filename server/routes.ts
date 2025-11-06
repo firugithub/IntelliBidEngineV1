@@ -2863,19 +2863,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       archive.pipe(res);
 
-      // Add RFT document (DOC)
+      // Add RFT documents (DOCX and PDF)
       const sections = (rft.sections as any)?.sections || [];
+      const tempFiles: string[] = [];
+      
       if (sections.length > 0) {
-        const { generateDocxDocument } = await import("./services/documentGenerator");
-        const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
+        const { generateDocxDocument, generatePdfDocument } = await import("./services/documentGenerator");
         
+        // Generate DOCX
+        const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
+        console.log(`Generating DOCX at: ${docPath}`);
         await generateDocxDocument({
           projectName: rft.name,
           sections,
           outputPath: docPath,
         });
+        
+        // Verify file exists and has content before adding to archive
+        if (fs.existsSync(docPath)) {
+          const stats = fs.statSync(docPath);
+          console.log(`DOCX file size: ${stats.size} bytes`);
+          if (stats.size > 0) {
+            archive.file(docPath, { name: `${sanitizedName}_RFT.docx` });
+            tempFiles.push(docPath);
+          } else {
+            console.warn("DOCX file is empty!");
+          }
+        } else {
+          console.warn("DOCX file was not created!");
+        }
 
-        archive.file(docPath, { name: `${sanitizedName}_RFT.docx` });
+        // Generate PDF
+        const pdfPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.pdf`);
+        console.log(`Generating PDF at: ${pdfPath}`);
+        await generatePdfDocument({
+          projectName: rft.name,
+          sections,
+          outputPath: pdfPath,
+        });
+        
+        // Verify file exists and has content before adding to archive
+        if (fs.existsSync(pdfPath)) {
+          const stats = fs.statSync(pdfPath);
+          console.log(`PDF file size: ${stats.size} bytes`);
+          if (stats.size > 0) {
+            archive.file(pdfPath, { name: `${sanitizedName}_RFT.pdf` });
+            tempFiles.push(pdfPath);
+          } else {
+            console.warn("PDF file is empty!");
+          }
+        } else {
+          console.warn("PDF file was not created!");
+        }
       }
 
       // Add questionnaires
@@ -2895,11 +2934,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Finalize archive
       await archive.finalize();
 
-      // Clean up temp DOC file after a delay
+      // Clean up temp files after a delay
       setTimeout(() => {
-        const tempDocPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
-        if (fs.existsSync(tempDocPath)) {
-          fs.unlinkSync(tempDocPath);
+        for (const tempFile of tempFiles) {
+          if (fs.existsSync(tempFile)) {
+            fs.unlinkSync(tempFile);
+          }
         }
       }, 2000);
 
