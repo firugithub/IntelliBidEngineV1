@@ -280,7 +280,20 @@ Return ONLY valid JSON, no additional text.`;
       throw new Error("No response from AI");
     }
 
-    return JSON.parse(content) as BusinessCaseExtract;
+    const extracted = JSON.parse(content) as BusinessCaseExtract;
+    
+    // Log what was actually extracted for debugging
+    console.log("📊 Extracted from business case:", {
+      projectName: extracted.projectName,
+      hasObjective: !!extracted.businessObjective,
+      hasScope: !!extracted.scope,
+      stakeholderCount: extracted.stakeholders?.length || 0,
+      requirementsCount: extracted.keyRequirements?.length || 0,
+      risksCount: extracted.risks?.length || 0,
+      criteriaCount: extracted.successCriteria?.length || 0,
+    });
+
+    return extracted;
   } catch (error) {
     console.error("Error extracting business case info:", error);
     throw new Error("Failed to extract business case information");
@@ -739,38 +752,38 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
   console.log("Uploading files to Azure Blob Storage...");
 
   const sanitizedName = rft.name.replace(/[^a-zA-Z0-9]/g, '_');
-  const timestamp = Date.now();
 
-  // Upload all files to Azure Blob Storage with unique timestamps
+  // Upload all files to Azure Blob Storage
+  // Use consistent naming WITHOUT timestamps so vendor response generation can find them
   const uploadResults = await Promise.all([
     // Upload RFT document (DOCX)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT_${timestamp}.docx`,
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.docx`,
       docxBuffer
     ),
     // Upload RFT document (PDF)
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT_${timestamp}.pdf`,
+      `project-${project.id}/RFT_Generated/${sanitizedName}_RFT.pdf`,
       pdfBuffer
     ),
     // Upload Product Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Product_Questionnaire_${timestamp}.xlsx`,
+      `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.productPath)
     ),
     // Upload NFR Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/NFR_Questionnaire_${timestamp}.xlsx`,
+      `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.nfrPath)
     ),
     // Upload Cybersecurity Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire_${timestamp}.xlsx`,
+      `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.cybersecurityPath)
     ),
     // Upload Agile Questionnaire
     azureBlobStorageService.uploadDocument(
-      `project-${project.id}/RFT_Generated/Agile_Questionnaire_${timestamp}.xlsx`,
+      `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.agilePath)
     ),
   ]);
