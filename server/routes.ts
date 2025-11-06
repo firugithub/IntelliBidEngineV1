@@ -283,6 +283,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download vendor responses as ZIP
+  app.get("/api/mock-data/download-responses/:rftId", async (req, res) => {
+    try {
+      const { rftId } = req.params;
+      
+      // Get RFT and project info
+      const rft = await storage.getGeneratedRft(rftId);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+      
+      const projectId = rft.projectId;
+
+      // Create ZIP archive
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      // Set response headers
+      const zipFilename = `VendorResponses_${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Download only vendor responses folder
+      const folder = { prefix: `project-${projectId}/RFT_Responses`, name: 'Vendor Responses' };
+
+      try {
+        const blobNames = await azureBlobStorageService.listDocuments(folder.prefix);
+        
+        console.log(`📦 Packaging ${blobNames.length} vendor response files into ZIP...`);
+        
+        for (const blobName of blobNames) {
+          try {
+            const buffer = await azureBlobStorageService.downloadDocument(blobName);
+            
+            // Extract the path relative to the folder prefix to preserve vendor folder structure
+            // For example: "project-123/RFT_Responses/VendorA/file.xlsx" -> "VendorA/file.xlsx"
+            const relativePath = blobName.replace(folder.prefix + '/', '');
+            
+            // Organize files in ZIP preserving vendor folder structure
+            archive.append(buffer, { name: relativePath });
+          } catch (err) {
+            console.error(`Error adding file ${blobName}:`, err);
+          }
+        }
+      } catch (err) {
+        console.error(`Error listing vendor responses folder:`, err);
+        throw new Error('No vendor responses found');
+      }
+
+      // Finalize archive
+      await archive.finalize();
+      
+      console.log(`✅ Vendor responses ZIP download initiated: ${zipFilename}`);
+      
+    } catch (error) {
+      console.error("Error downloading vendor responses:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to download vendor responses" });
+      }
+    }
+  });
+
   // Download all mock data files as ZIP
   app.get("/api/mock-data/download-all/:rftId", async (req, res) => {
     try {
@@ -2452,9 +2516,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("✍️  Generating comprehensive RFT sections (10 sections with 3-5 paragraphs each)...");
       console.log("📋 Business case extract:", {
         projectName: businessCaseExtract.projectName,
-        industry: businessCaseExtract.industry,
-        hasRequirements: !!businessCaseExtract.requirements,
-        hasObjectives: !!businessCaseExtract.objectives,
+        hasRequirements: !!businessCaseExtract.keyRequirements && businessCaseExtract.keyRequirements.length > 0,
+        hasObjectives: !!businessCaseExtract.businessObjective,
+        requirementsCount: businessCaseExtract.keyRequirements?.length || 0,
       });
       const sections = await generateProfessionalRftSections(businessCaseExtract);
       console.log(`✅ Generated ${sections.length} comprehensive RFT sections`);

@@ -232,11 +232,48 @@ export default function SmartRftBuilderPage() {
         rftId: generatedRftId,
       });
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       toast({
         title: "Vendor Responses Generated!",
-        description: `Generated responses for ${data.vendorsCreated || 3} vendors. Check the project dashboard.`,
+        description: `Generated responses for ${data.vendorsCreated || 3} vendors. Downloading ZIP file...`,
       });
+      
+      // Automatically download vendor responses as ZIP
+      try {
+        const response = await fetch(`/api/mock-data/download-responses/${generatedRftId}`);
+        if (!response.ok) {
+          throw new Error("Failed to download vendor responses");
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Extract filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filename = contentDisposition
+          ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+          : `VendorResponses_${new Date().toISOString().split('T')[0]}.zip`;
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Download Complete!",
+          description: `Vendor responses downloaded as ${filename}`,
+        });
+      } catch (error) {
+        console.error("Download error:", error);
+        toast({
+          variant: "destructive",
+          title: "Download Failed",
+          description: "Vendor responses were generated but download failed. Please try the Download All button.",
+        });
+      }
       
       // Invalidate all RFT-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
