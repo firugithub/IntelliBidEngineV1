@@ -1369,15 +1369,10 @@ storage.deleteBusinessCase = async function(id: string): Promise<void> {
 
 // Override generated RFT methods to use PostgreSQL
 storage.createGeneratedRft = async function(insertRft: InsertGeneratedRft): Promise<GeneratedRft> {
+  // Insert ALL fields from insertRft - this was causing data loss!
+  // Previously only saved 6 fields, missing questionnaire paths, version, and metadata
   const created = await db.insert(generatedRfts)
-    .values({
-      projectId: insertRft.projectId,
-      businessCaseId: insertRft.businessCaseId,
-      name: insertRft.name,
-      templateId: insertRft.templateId || null,
-      sections: insertRft.sections || null,
-      status: insertRft.status || "draft",
-    })
+    .values(insertRft)
     .returning();
   return created[0]!;
 };

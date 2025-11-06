@@ -5,7 +5,8 @@ import multer from "multer";
 import { parseDocument } from "./services/documentParser";
 import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
 import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/sampleData";
-import { generateRftFromBusinessCase, regenerateRftSection } from "./services/smartRftService";
+import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/smartRftService";
+import { generateAllQuestionnaires } from "./services/excelGenerator";
 import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation } from "./services/rftMockDataGenerator";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
@@ -2364,7 +2365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate RFT from business case
+  // Generate RFT from business case using comprehensive approach
   app.post("/api/generate-rft", async (req, res) => {
     try {
       const { businessCaseId, templateId, projectId } = req.body;
@@ -2375,24 +2376,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log(`Generating RFT for project ${projectId} using template ${templateId}`);
+      console.log(`🚀 Generating comprehensive RFT for project ${projectId}`);
 
-      // Generate RFT
-      const generatedRftData = await generateRftFromBusinessCase(
+      // Get business case
+      const businessCase = await storage.getBusinessCase(businessCaseId);
+      if (!businessCase) {
+        return res.status(400).json({ error: "Business case not found" });
+      }
+
+      // Get template for metadata
+      const template = await storage.getRftTemplate(templateId);
+      if (!template) {
+        return res.status(400).json({ error: "RFT template not found" });
+      }
+
+      // Step 1: Extract business case information
+      console.log("📋 Extracting business case information...");
+      const businessCaseExtract = await extractBusinessCaseInfo(
+        businessCase.documentContent || ""
+      );
+
+      // Step 2: Generate comprehensive 10-section RFT document
+      console.log("✍️  Generating comprehensive RFT sections (10 sections with 3-5 paragraphs each)...");
+      const sections = await generateProfessionalRftSections(businessCaseExtract);
+      console.log(`✅ Generated ${sections.length} comprehensive RFT sections`);
+
+      // Step 3: Generate all 4 questionnaires with proper question counts
+      console.log("📊 Generating questionnaires...");
+      const { generateQuestionnaireQuestions } = await import("./services/smartRftService");
+      
+      const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+        generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
+        generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
+        generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
+        generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+      ]);
+
+      console.log("📝 Creating Excel questionnaire files...");
+      const questionnairePaths = await generateAllQuestionnaires(projectId, {
+        product: productQuestions,
+        nfr: nfrQuestions,
+        cybersecurity: cybersecurityQuestions,
+        agile: agileQuestions,
+      });
+
+      console.log("✅ Excel questionnaires created successfully");
+
+      // Create generated RFT record with comprehensive sections
+      const generatedRftData: typeof import("@shared/schema").insertGeneratedRftSchema._type = {
+        projectId,
         businessCaseId,
         templateId,
-        projectId
-      );
+        name: `${businessCaseExtract.projectName} - RFT`,
+        sections: { sections },
+        productQuestionnairePath: questionnairePaths.productPath,
+        nfrQuestionnairePath: questionnairePaths.nfrPath,
+        cybersecurityQuestionnairePath: questionnairePaths.cybersecurityPath,
+        agileQuestionnairePath: questionnairePaths.agilePath,
+        status: "draft",
+        version: 1,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          model: "gpt-4o",
+          templateName: template.name,
+          businessCaseName: businessCase.name,
+          sectionCount: sections.length,
+          generationApproach: "comprehensive-professional",
+          questionnaireStats: {
+            productQuestions: productQuestions.length,
+            nfrQuestions: nfrQuestions.length,
+            cybersecurityQuestions: cybersecurityQuestions.length,
+            agileQuestions: agileQuestions.length,
+          },
+        },
+      };
 
       // Save to database
       const generatedRft = await storage.createGeneratedRft(generatedRftData);
 
-      // Update project with generated RFT ID
-      const project = await storage.getProject(projectId);
-      if (project) {
-        await storage.updateProjectStatus(projectId, "rft_generated");
-      }
+      // Update project status
+      await storage.updateProjectStatus(projectId, "rft_generated");
 
+      console.log(`✅ RFT generation complete! Generated ${sections.length} sections with comprehensive content`);
       res.json(generatedRft);
     } catch (error) {
       console.error("Error generating RFT:", error);

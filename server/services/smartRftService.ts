@@ -33,47 +33,40 @@ interface BusinessCaseExtract {
 export async function generateProfessionalRftSections(
   businessCaseExtract: BusinessCaseExtract
 ): Promise<RftSection[]> {
-  const prompt = `You are creating a professional Request for Tender (RFT) document for ${businessCaseExtract.projectName}.
+  const prompt = `Create a comprehensive professional RFT document for ${businessCaseExtract.projectName}.
 
-Business Context:
-- Project: ${businessCaseExtract.projectName}
-- Objective: ${businessCaseExtract.businessObjective}
-- Scope: ${businessCaseExtract.scope}
-- Timeline: ${businessCaseExtract.timeline}
-- Budget: ${businessCaseExtract.budget}
-- Key Requirements: ${businessCaseExtract.keyRequirements.join(', ')}
+Context: ${businessCaseExtract.businessObjective} | Scope: ${businessCaseExtract.scope} | Timeline: ${businessCaseExtract.timeline} | Budget: ${businessCaseExtract.budget}
 
-Generate a comprehensive RFT document with the following 10 sections. Each section should be detailed, professional, and specific to this aviation/airline project:
+MANDATORY: Generate EXACTLY 10 sections. Each section MUST be 500+ words (3-5 paragraphs, each 4-6 sentences). Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR).
 
-1. **Introduction & Overview** - Purpose, background, objectives, tendering process summary
-2. **Scope of Work / Requirements** - Detailed requirements, functional/technical specs, deliverables, milestones, timelines
-3. **Instructions to Tenderers** - Eligibility criteria, submission process, deadlines, clarification protocol
-4. **Evaluation Criteria** - Evaluation methodology, weightings, scoring, mandatory vs desirable criteria
-5. **Commercial Terms & Conditions** - Pricing structure, payment terms, taxes, warranty, maintenance
-6. **Contractual Requirements** - Contract terms, IP rights, confidentiality, liability, insurance, dispute resolution
-7. **Non-Functional Requirements (NFRs)** - Security, compliance, availability, scalability, performance, SLAs
-8. **Governance & Risk Management** - Project governance, reporting, risk mitigation, change control
-9. **Response Templates / Schedules** - Vendor response templates, mandatory documentation, declarations
-10. **Appendices** - Glossary, standards, reference documents, regulatory attachments
+Required Sections:
+1. Introduction & Overview - Organizational context, strategic alignment, project background, objectives, tendering process, stakeholders
+2. Scope of Work / Requirements - Detailed requirements, features, integrations, deliverables, milestones, timelines  
+3. Instructions to Tenderers - Eligibility, submission process, deadlines, compliance checklist
+4. Evaluation Criteria - Scoring methodology with weights, mandatory/desirable criteria
+5. Commercial Terms & Conditions - Pricing models, payment terms, SLAs, warranties
+6. Contractual Requirements - Contract terms, IP rights, GDPR compliance, liability, insurance
+7. Non-Functional Requirements - Performance (99.9% uptime), security, scalability, certifications
+8. Governance & Risk Management - Steering committee, reporting, change control, risk mitigation
+9. Response Templates / Schedules - Required vendor submission formats and documentation
+10. Appendices - Glossary, IATA/ICAO/ISO standards, regulations, architecture diagrams
 
-Return a JSON array with this structure:
+Format Requirements:
+- Separate paragraphs with "\n\n"
+- Include specific airline terms: PSS, DCS, revenue management, crew scheduling, etc.
+- Reference industry standards in multiple sections
+- Use formal procurement language
+- Make content specific to ${businessCaseExtract.projectName}
+
+Return JSON array (MUST include all 10 sections):
 [
   {
     "sectionId": "section-1",
     "title": "Introduction & Overview",
-    "content": "Detailed multi-paragraph content for this section..."
+    "content": "Paragraph 1 text here...\n\nParagraph 2 text...\n\nParagraph 3 text..."
   },
-  ...
-]
-
-Make the content:
-- Professional and formal in tone
-- Specific to airline/aviation industry
-- Detailed with 3-5 paragraphs per section
-- Include realistic requirements, timelines, and evaluation criteria
-- Reference industry standards (IATA, ISO, etc.) where appropriate
-
-Return ONLY valid JSON array, no additional text.`;
+  ...all 10 sections...
+]`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -97,6 +90,24 @@ Return ONLY valid JSON array, no additional text.`;
     const result = JSON.parse(content);
     // Handle both array and object with sections array
     const sections = Array.isArray(result) ? result : (result.sections || []);
+    
+    console.log(`📊 AI generated ${sections.length} sections`);
+    
+    // Validate that we got all 10 sections
+    if (sections.length < 10) {
+      console.warn(`⚠️  WARNING: Expected 10 sections but got ${sections.length}. This may indicate the AI response was truncated.`);
+      console.warn("Sections received:", sections.map((s: any) => s.title).join(", "));
+    }
+    
+    // Log content length for first section to verify comprehensiveness
+    if (sections.length > 0) {
+      const firstSection = sections[0] as any;
+      const wordCount = firstSection.content?.split(/\s+/).length || 0;
+      console.log(`📝 First section word count: ${wordCount} words (target: 500+)`);
+      if (wordCount < 300) {
+        console.warn(`⚠️  WARNING: First section has only ${wordCount} words, expected 500+`);
+      }
+    }
     
     return sections as RftSection[];
   } catch (error) {
@@ -323,7 +334,7 @@ Generate ONLY the content for this section, well-formatted in markdown.`;
         { role: "user", content: prompt },
       ],
       temperature: 0.4,
-      max_tokens: 2000,
+      // No max_tokens limit - allow comprehensive responses
     });
 
     const content = response.choices[0]?.message?.content || "";
