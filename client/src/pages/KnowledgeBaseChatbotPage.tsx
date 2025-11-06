@@ -164,7 +164,7 @@ export default function KnowledgeBaseChatbotPage() {
             Ask questions about your documents, RFT/RFI processes, compliance standards, or vendor evaluations
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
+        <CardContent className="flex-1 flex flex-col min-h-0">
           {/* Messages */}
           <ScrollArea className="flex-1 pr-4 mb-4" ref={scrollRef}>
             {messages.length === 0 ? (
@@ -176,7 +176,7 @@ export default function KnowledgeBaseChatbotPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 {messages.map((msg, index) => (
                   <div
                     key={index}
@@ -188,22 +188,22 @@ export default function KnowledgeBaseChatbotPage() {
                       </div>
                     )}
                     <div
-                      className={`flex flex-col max-w-[80%] ${
+                      className={`flex flex-col max-w-[80%] min-w-0 ${
                         msg.role === "user" ? "items-end" : "items-start"
                       }`}
                     >
                       <div
-                        className={`rounded-lg px-4 py-3 ${
+                        className={`rounded-lg px-4 py-3 overflow-hidden ${
                           msg.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         }`}
                       >
                         {msg.role === "user" ? (
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                         ) : (
                           <div 
-                            className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0"
+                            className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0 prose-headings:my-2 break-words overflow-wrap-anywhere"
                             dangerouslySetInnerHTML={{ __html: marked(msg.content) as string }}
                           />
                         )}
