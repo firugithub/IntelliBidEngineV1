@@ -34,11 +34,20 @@ export class AzureBlobStorageService {
       throw new Error("Azure Storage connection string not configured. Please configure in Admin Config page or set AZURE_STORAGE_CONNECTION_STRING environment variable.");
     }
 
-    this.client = BlobServiceClient.fromConnectionString(connectionString);
-    this.containerClient = this.client.getContainerClient(this.containerName);
+    try {
+      this.client = BlobServiceClient.fromConnectionString(connectionString);
+      this.containerClient = this.client.getContainerClient(this.containerName);
 
-    // Create container if it doesn't exist
-    await this.containerClient.createIfNotExists();
+      // Create container if it doesn't exist
+      await this.containerClient.createIfNotExists();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to initialize Azure Blob Storage: ${errorMessage}. ` +
+        `Please verify your connection string is correct and has proper permissions. ` +
+        `Configure in Admin Config page or check AZURE_STORAGE_CONNECTION_STRING environment variable.`
+      );
+    }
   }
 
   async uploadDocument(
