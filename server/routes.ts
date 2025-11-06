@@ -2323,6 +2323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         successCriteria,
       });
 
+      console.log("📝 Generated business case content length:", generatedContent?.length || 0);
+      console.log("📝 Generated business case preview:", generatedContent?.substring(0, 300));
+
       // Create business case with AI-generated content
       const businessCase = await storage.createBusinessCase({
         portfolioId,

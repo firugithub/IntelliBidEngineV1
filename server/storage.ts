@@ -1337,7 +1337,9 @@ storage.createBusinessCase = async function(insertBusinessCase: InsertBusinessCa
       name: insertBusinessCase.name,
       description: insertBusinessCase.description || null,
       fileName: insertBusinessCase.fileName || null,
+      documentContent: insertBusinessCase.documentContent || null,
       extractedData: insertBusinessCase.extractedData || null,
+      ragDocumentId: insertBusinessCase.ragDocumentId || null,
       status: insertBusinessCase.status || "pending",
     })
     .returning();
