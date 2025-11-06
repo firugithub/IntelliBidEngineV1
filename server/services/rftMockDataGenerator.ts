@@ -364,11 +364,14 @@ export async function generateVendorResponses(rftId: string) {
   }
 
   const project = await storage.getProject(rft.projectId);
-  if (!project || !project.vendorList) {
-    throw new Error("Project or vendors not found");
+  if (!project) {
+    throw new Error("Project not found");
   }
 
-  const vendors = project.vendorList.slice(0, 3); // Get first 3 vendors
+  // Use project vendorList if available, otherwise use default vendor names
+  const vendors = project.vendorList && project.vendorList.length > 0
+    ? project.vendorList.slice(0, 3)
+    : ["TechVendor Solutions", "GlobalSoft Systems", "InnovateTech Partners"];
   
   console.log(`Generating vendor responses using actual RFT questionnaires...`);
   
