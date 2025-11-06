@@ -35,9 +35,25 @@ export async function generateProfessionalRftSections(
 ): Promise<RftSection[]> {
   const prompt = `Create a comprehensive professional RFT document for ${businessCaseExtract.projectName}.
 
-Context: ${businessCaseExtract.businessObjective} | Scope: ${businessCaseExtract.scope} | Timeline: ${businessCaseExtract.timeline} | Budget: ${businessCaseExtract.budget}
+PROJECT CONTEXT (use this to make content specific and relevant):
+- Business Objective: ${businessCaseExtract.businessObjective}
+- Scope: ${businessCaseExtract.scope}
+- Timeline: ${businessCaseExtract.timeline}
+- Budget: ${businessCaseExtract.budget}
+- Key Stakeholders: ${businessCaseExtract.stakeholders.join(", ")}
+
+KEY REQUIREMENTS (integrate these throughout the RFT sections):
+${businessCaseExtract.keyRequirements.map((req, i) => `${i + 1}. ${req}`).join("\n")}
+
+IDENTIFIED RISKS (address these in Governance & Risk Management section):
+${businessCaseExtract.risks.map((risk, i) => `${i + 1}. ${risk}`).join("\n")}
+
+SUCCESS CRITERIA (use these in Evaluation Criteria section):
+${businessCaseExtract.successCriteria.map((criteria, i) => `${i + 1}. ${criteria}`).join("\n")}
 
 MANDATORY: Generate EXACTLY 10 sections. Each section MUST be 500+ words with realistic professional formatting including bullet points, numbered lists, and tables (where appropriate). Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR).
+
+IMPORTANT: All content must be directly relevant to the above project context and requirements. Do NOT use generic placeholder text.
 
 Required Sections:
 1. Introduction & Overview - Organizational context, strategic alignment, project background, objectives, tendering process, stakeholders
