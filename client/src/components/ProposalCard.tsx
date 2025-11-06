@@ -85,22 +85,22 @@ export function ProposalCard({
   return (
     <Card className="hover-elevate" data-testid="card-proposal">
       <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-muted p-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="rounded-lg bg-muted p-2 flex-shrink-0">
               <Building2 className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg" data-testid="text-vendor-name">
-                  {vendorName}
-                </h3>
-                {getRankBadge()}
-              </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-lg truncate" data-testid="text-vendor-name">
+                {vendorName}
+              </h3>
               <p className="text-sm text-muted-foreground">{cost}</p>
             </div>
           </div>
-          {getStatusBadge()}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {getStatusBadge()}
+            {getRankBadge()}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
