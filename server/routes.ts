@@ -24,6 +24,19 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
+// Middleware to protect development-only endpoints
+const requireDevelopment = (req: any, res: any, next: any) => {
+  const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  
+  if (!isDevelopment) {
+    return res.status(403).json({ 
+      error: "This endpoint is only available in development mode" 
+    });
+  }
+  
+  next();
+};
+
 // Helper function to validate if an IP address is public (not private, loopback, or link-local)
 function isPublicIP(ip: string): boolean {
   // Check for IPv4
@@ -166,8 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Seed sample data endpoint
-  app.post("/api/seed-sample", async (req, res) => {
+  // Seed sample data endpoint (development only)
+  app.post("/api/seed-sample", requireDevelopment, async (req, res) => {
     try {
       const projectId = await seedSampleData();
       res.json({ projectId, message: "Sample data seeded successfully" });
@@ -177,8 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate all mock data endpoint
-  app.post("/api/generate-mock-data", async (req, res) => {
+  // Generate all mock data endpoint (development only)
+  app.post("/api/generate-mock-data", requireDevelopment, async (req, res) => {
     try {
       const result = await seedAllMockData();
       res.json(result);
@@ -188,8 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wipe all data endpoint
-  app.post("/api/wipe-data", async (req, res) => {
+  // Wipe all data endpoint (development only)
+  app.post("/api/wipe-data", requireDevelopment, async (req, res) => {
     try {
       const result = await wipeAllData();
       res.json(result);
@@ -199,7 +212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/wipe-azure", async (req, res) => {
+  // Wipe Azure resources endpoint (development only)
+  app.post("/api/wipe-azure", requireDevelopment, async (req, res) => {
     try {
       const result = await wipeAzureOnly();
       res.json(result);
@@ -209,8 +223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate RFT from topic
-  app.post("/api/mock-data/generate-rft", async (req, res) => {
+  // Generate RFT from topic (development only)
+  app.post("/api/mock-data/generate-rft", requireDevelopment, async (req, res) => {
     try {
       const { topicId } = req.body;
       if (!topicId) {
@@ -224,8 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate RFT Pack
-  app.post("/api/mock-data/generate-pack", async (req, res) => {
+  // Generate RFT Pack (development only)
+  app.post("/api/mock-data/generate-pack", requireDevelopment, async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {
@@ -239,8 +253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate Vendor Responses
-  app.post("/api/mock-data/generate-responses", async (req, res) => {
+  // Generate Vendor Responses (development only)
+  app.post("/api/mock-data/generate-responses", requireDevelopment, async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {
@@ -254,8 +268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate Evaluation
-  app.post("/api/mock-data/generate-evaluation", async (req, res) => {
+  // Generate Evaluation (development only)
+  app.post("/api/mock-data/generate-evaluation", requireDevelopment, async (req, res) => {
     try {
       const { rftId } = req.body;
       if (!rftId) {

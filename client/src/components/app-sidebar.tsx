@@ -1,4 +1,4 @@
-import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon } from "lucide-react";
+import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon, LucideIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,7 +21,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-const navigationItems = [
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  devOnly?: boolean;
+}
+
+// Navigation items - filter out dev-only items in production
+const allNavigationItems: NavigationItem[] = [
   {
     title: "Home",
     url: "/",
@@ -46,6 +54,7 @@ const navigationItems = [
     title: "Generate Mock Data",
     url: "/generate-mock-data",
     icon: SparklesIcon,
+    devOnly: true, // Hide in production
   },
   {
     title: "Admin Config",
@@ -53,6 +62,14 @@ const navigationItems = [
     icon: Settings,
   },
 ];
+
+// Check if running in development mode
+const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
+
+// Filter navigation items based on environment
+const navigationItems = allNavigationItems.filter(item => 
+  !item.devOnly || isDevelopment
+);
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -110,44 +127,47 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="flex flex-col gap-2 px-2">
-              <AlertDialog open={isWipeDialogOpen} onOpenChange={setIsWipeDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start gap-2 hover:bg-destructive/10 hover:text-destructive"
-                    data-testid="button-wipe-data"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Wipe All Data
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action will permanently delete all portfolios, projects, proposals, evaluations, standards, and MCP connectors. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => wipeDataMutation.mutate()}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      disabled={wipeDataMutation.isPending}
+        {/* Data Management section - only show in development mode */}
+        {isDevelopment && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="flex flex-col gap-2 px-2">
+                <AlertDialog open={isWipeDialogOpen} onOpenChange={setIsWipeDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full justify-start gap-2 hover:bg-destructive/10 hover:text-destructive"
+                      data-testid="button-wipe-data"
                     >
-                      {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      <Trash2 className="h-4 w-4" />
+                      Wipe All Data
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will permanently delete all portfolios, projects, proposals, evaluations, standards, and MCP connectors. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => wipeDataMutation.mutate()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={wipeDataMutation.isPending}
+                      >
+                        {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">

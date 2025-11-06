@@ -21,6 +21,9 @@ import GenerateMockDataPage from "@/pages/GenerateMockDataPage";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
+// Check if running in development mode
+const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
+
 function Router() {
   return (
     <Switch>
@@ -36,7 +39,8 @@ function Router() {
       <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route path="/smart-rft-builder" component={SmartRftBuilderPage} />
       <Route path="/kb-chatbot" component={KnowledgeBaseChatbotPage} />
-      <Route path="/generate-mock-data" component={GenerateMockDataPage} />
+      {/* Development-only routes */}
+      {isDevelopment && <Route path="/generate-mock-data" component={GenerateMockDataPage} />}
       <Route component={NotFound} />
     </Switch>
   );
