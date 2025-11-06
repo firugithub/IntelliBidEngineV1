@@ -3202,6 +3202,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Diagnostic endpoint for Azure Blob Storage connectivity
+  app.get("/api/health/azure-storage", async (req, res) => {
+    try {
+      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      
+      // Test initialization
+      await azureBlobStorageService.initialize();
+      
+      // Test listing documents (lightweight operation)
+      const documents = await azureBlobStorageService.listDocuments();
+      
+      res.json({
+        status: "connected",
+        message: "Azure Blob Storage is properly configured and accessible",
+        containerName: "intellibid-documents",
+        documentCount: documents.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Azure Storage health check failed:", errorMessage);
+      
+      res.status(503).json({
+        status: "error",
+        message: "Azure Blob Storage connectivity failed",
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        troubleshooting: {
+          step1: "Verify AZURE_STORAGE_CONNECTION_STRING is set in environment variables or Admin Config",
+          step2: "Check connection string format: DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=...",
+          step3: "Verify storage account exists and key hasn't been rotated",
+          step4: "Ensure storage account has proper permissions and isn't firewalled"
+        }
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
