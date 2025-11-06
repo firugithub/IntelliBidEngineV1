@@ -33,52 +33,149 @@ interface BusinessCaseExtract {
 export async function generateProfessionalRftSections(
   businessCaseExtract: BusinessCaseExtract
 ): Promise<RftSection[]> {
-  const prompt = `Create a comprehensive professional RFT document for ${businessCaseExtract.projectName}.
+  
+  // Validate and build requirements and criteria lists
+  const missingFields: string[] = [];
+  
+  if (!businessCaseExtract.keyRequirements || businessCaseExtract.keyRequirements.length === 0) {
+    console.warn("⚠️  WARNING: No key requirements found in business case");
+    missingFields.push("key requirements");
+  }
+  if (!businessCaseExtract.risks || businessCaseExtract.risks.length === 0) {
+    console.warn("⚠️  WARNING: No risks found in business case");
+    missingFields.push("risks");
+  }
+  if (!businessCaseExtract.successCriteria || businessCaseExtract.successCriteria.length === 0) {
+    console.warn("⚠️  WARNING: No success criteria found in business case");
+    missingFields.push("success criteria");
+  }
+  if (!businessCaseExtract.stakeholders || businessCaseExtract.stakeholders.length === 0) {
+    console.warn("⚠️  WARNING: No stakeholders found in business case");
+    missingFields.push("stakeholders");
+  }
+  
+  if (missingFields.length > 0) {
+    console.warn(`⚠️  Business case is missing: ${missingFields.join(", ")}. RFT may be less specific.`);
+  }
+  
+  const requirementsList = businessCaseExtract.keyRequirements.length > 0
+    ? businessCaseExtract.keyRequirements.map((req, i) => `${i + 1}. ${req}`).join("\n")
+    : "1. [Requirement details not provided in business case - vendors should propose solutions]";
+  
+  const risksList = businessCaseExtract.risks.length > 0
+    ? businessCaseExtract.risks.map((risk, i) => `${i + 1}. ${risk}`).join("\n")
+    : "1. [Risks not identified in business case - vendors should highlight potential risks]";
+  
+  const criteriaList = businessCaseExtract.successCriteria.length > 0
+    ? businessCaseExtract.successCriteria.map((criteria, i) => `${i + 1}. ${criteria}`).join("\n")
+    : "1. [Success criteria not defined in business case - use standard evaluation metrics]";
+  
+  const stakeholdersList = businessCaseExtract.stakeholders.length > 0
+    ? businessCaseExtract.stakeholders.join(", ")
+    : "[Stakeholders not specified in business case]";
+  
+  const prompt = `Create a detailed RFT document for "${businessCaseExtract.projectName}" based on the business case below.
 
-PROJECT CONTEXT (use this to make content specific and relevant):
-- Business Objective: ${businessCaseExtract.businessObjective}
-- Scope: ${businessCaseExtract.scope}
-- Timeline: ${businessCaseExtract.timeline}
-- Budget: ${businessCaseExtract.budget}
-- Key Stakeholders: ${businessCaseExtract.stakeholders.join(", ")}
+PROJECT DETAILS:
+Objective: ${businessCaseExtract.businessObjective}
+Scope: ${businessCaseExtract.scope}
+Timeline: ${businessCaseExtract.timeline}
+Budget: ${businessCaseExtract.budget}
+Stakeholders: ${stakeholdersList}
 
-KEY REQUIREMENTS (integrate these throughout the RFT sections):
-${businessCaseExtract.keyRequirements.map((req, i) => `${i + 1}. ${req}`).join("\n")}
+KEY REQUIREMENTS TO ADDRESS:
+${requirementsList}
 
-IDENTIFIED RISKS (address these in Governance & Risk Management section):
-${businessCaseExtract.risks.map((risk, i) => `${i + 1}. ${risk}`).join("\n")}
+RISKS TO MITIGATE:
+${risksList}
 
-SUCCESS CRITERIA (use these in Evaluation Criteria section):
-${businessCaseExtract.successCriteria.map((criteria, i) => `${i + 1}. ${criteria}`).join("\n")}
+SUCCESS CRITERIA:
+${criteriaList}
 
-MANDATORY: Generate EXACTLY 10 sections. Each section MUST be 500+ words with realistic professional formatting including bullet points, numbered lists, and tables (where appropriate). Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR).
+Generate 10 sections that comprehensively address this specific project. Use the above information to create relevant, detailed content - NOT generic templates. Each section should elaborate on how these specific requirements, risks, and criteria apply.
 
-IMPORTANT: All content must be directly relevant to the above project context and requirements. Do NOT use generic placeholder text.
+Section 1 - Introduction & Overview:
+Explain why this solution is needed to achieve: ${businessCaseExtract.businessObjective}. Describe what problem it solves for these stakeholders: ${stakeholdersList}. Include organizational context based on the scope (${businessCaseExtract.scope}) and explain the tendering process.
 
-Required Sections:
-1. Introduction & Overview - Organizational context, strategic alignment, project background, objectives, tendering process, stakeholders
-2. Scope of Work / Requirements - Detailed requirements (use bullet lists), features, integrations, deliverables, milestones (use tables)
-3. Instructions to Tenderers - Eligibility, submission process (numbered list), deadlines (table), compliance checklist (bullet list)
-4. Evaluation Criteria - Scoring methodology table with weights, mandatory/desirable criteria (bullet lists)
-5. Commercial Terms & Conditions - Pricing models, payment terms (table), SLAs (table with metrics), warranties
-6. Contractual Requirements - Contract terms (bullet lists), IP rights, GDPR compliance, liability, insurance requirements
-7. Non-Functional Requirements - Performance metrics table (99.9% uptime, response times), security requirements (bullet list), scalability, certifications
-8. Governance & Risk Management - Steering committee structure (table), reporting frequency (table), change control process (numbered list), risk mitigation
-9. Response Templates / Schedules - Required vendor submission formats table, documentation checklist (bullet list)
-10. Appendices - Glossary table, IATA/ICAO/ISO standards references (bullet list), regulations, architecture diagrams description
+Section 2 - Scope of Work / Requirements:
+Detail each of the key requirements listed above. For each requirement, explain:
+- What the requirement means in practice
+- Technical specifications needed
+- Expected deliverables
+- Integration points
+Create a timeline table mapping requirements to implementation phases.
+
+Section 3 - Instructions to Tenderers:
+Create submission instructions specific to ${businessCaseExtract.projectName}:
+- Explain what vendors must demonstrate regarding the key requirements listed above
+- Set submission deadline that aligns with ${businessCaseExtract.timeline}
+- List required documentation that addresses the ${businessCaseExtract.scope}
+- Define compliance requirements based on project stakeholders (${stakeholdersList})
+
+Section 4 - Evaluation Criteria:
+Transform each success criterion listed above into a scored evaluation metric. Create a detailed scoring table where each criterion has:
+- Description derived from the success criteria above
+- Weight/points allocation
+- Assessment method
+The total evaluation must directly map back to how we measure success for ${businessCaseExtract.projectName}.
+
+Section 5 - Commercial Terms & Conditions:
+Based on budget ${businessCaseExtract.budget} and timeline ${businessCaseExtract.timeline}, specify:
+- Payment structure that aligns with project milestones  derived from timeline
+- Pricing model appropriate for ${businessCaseExtract.scope}
+- SLA metrics that support achieving ${businessCaseExtract.businessObjective}
+- Warranty terms relevant to the key requirements
+- Cost implications for the risks identified above
+
+Section 6 - Contractual Requirements:
+Draft contract terms specific to ${businessCaseExtract.projectName} and ${businessCaseExtract.scope}:
+- IP ownership for deliverables created for this ${businessCaseExtract.projectName}
+- Data handling requirements appropriate for stakeholders: ${stakeholdersList}
+- Liability terms proportional to budget: ${businessCaseExtract.budget}
+- Insurance coverage for risks identified above
+- Termination conditions tied to success criteria
+
+Section 7 - Non-Functional Requirements:
+Transform each key requirement into quantified non-functional specifications:
+${requirementsList}
+
+For each requirement above, define: target performance metrics, availability SLAs, security standards, scalability targets, required certifications. Create a comprehensive NFR table.
+
+Section 8 - Governance & Risk Management:
+Build a complete risk management framework for ${businessCaseExtract.projectName}:
+
+For each identified risk:
+${risksList}
+
+Provide: probability assessment, business impact on ${businessCaseExtract.businessObjective}, mitigation approach, contingency plan, risk owner from ${stakeholdersList}.
+
+Also define: governance committee composition from stakeholders, reporting cadence aligned with ${businessCaseExtract.timeline}, escalation paths, change control tied to scope.
+
+Section 9 - Response Templates / Schedules:
+Design vendor response templates that capture information needed to evaluate against the success criteria above. For ${businessCaseExtract.projectName}, vendors must provide:
+- Technical solution addressing each key requirement
+- Delivery schedule aligned with ${businessCaseExtract.timeline}
+- Cost breakdown within budget ${businessCaseExtract.budget}
+- Risk mitigation for risks identified above
+- Evidence for success criteria measurement
+
+Section 10 - Appendices:
+Create project-specific appendices for ${businessCaseExtract.projectName}:
+- Glossary: Define all technical terms from ${businessCaseExtract.scope}
+- Standards: List industry standards and regulations relevant to ${businessCaseExtract.scope} and ${businessCaseExtract.businessObjective}
+- Stakeholder Matrix: Detail roles and responsibilities for ${stakeholdersList}
+- Risk Register: Full detail on identified risks
+- Requirement Traceability: Map requirements to success criteria
 
 CRITICAL Formatting Rules (use markdown):
 - Use bullet lists with "- " for unordered items (requirements, features, criteria)
 - Use numbered lists with "1. ", "2. ", etc. for sequential steps or processes
 - Use markdown tables with "| Header 1 | Header 2 |" format for structured data (timelines, scoring, metrics, deadlines)
 - Separate paragraphs with "\n\n"
-- Include specific airline terms: PSS, DCS, revenue management, crew scheduling, ARINC, SITA, etc.
-- Reference industry standards throughout (IATA, ICAO, ISO 27001, PCI-DSS, GDPR)
+- Use terminology appropriate to ${businessCaseExtract.scope} and industry context
+- Reference relevant industry standards and regulations based on project requirements
 - Use formal procurement language
-- Make content specific to ${businessCaseExtract.projectName}
-
-Example formatting:
-"## Introduction\n\nNujum Air seeks to modernize...\n\n### Key Objectives\n\n- Objective 1: Detailed description\n- Objective 2: Another point\n\n### Timeline\n\n| Phase | Duration | Deliverables |\n|-------|----------|-------------|\n| Phase 1 | 3 months | Requirements |\n| Phase 2 | 6 months | Development |\n\nFurther context..."
+- Make ALL content specific to ${businessCaseExtract.projectName} and ${businessCaseExtract.businessObjective}
 
 Return JSON array (MUST include all 10 sections):
 [
@@ -96,7 +193,7 @@ Return JSON array (MUST include all 10 sections):
       messages: [
         {
           role: "system",
-          content: "You are an expert procurement specialist with 20+ years of experience in airline industry RFT/RFP creation. You understand aviation regulations, IATA standards, and airline operational requirements.",
+          content: "You are an expert procurement specialist with 20+ years of experience in creating professional RFT/RFP documents across various industries. You adapt your language and standards to match the project domain and requirements.",
         },
         { role: "user", content: prompt },
       ],
@@ -144,7 +241,7 @@ Return JSON array (MUST include all 10 sections):
 export async function extractBusinessCaseInfo(
   businessCaseContent: string
 ): Promise<BusinessCaseExtract> {
-  const prompt = `You are analyzing a Lean Business Case document for an airline procurement project.
+  const prompt = `You are analyzing a Lean Business Case document for a procurement project.
 Extract the following information in JSON format:
 
 {
@@ -170,7 +267,7 @@ Return ONLY valid JSON, no additional text.`;
       messages: [
         {
           role: "system",
-          content: "You are an expert business analyst specializing in aviation and airline procurement processes.",
+          content: "You are an expert business analyst specializing in procurement processes across various industries.",
         },
         { role: "user", content: prompt },
       ],
@@ -234,7 +331,7 @@ Focus on:
 - Third-party security audits
 - Security training for staff
 
-Each question should address airline industry security standards for ${businessCaseExtract.projectName}.`,
+Each question should address industry-appropriate security standards for ${businessCaseExtract.projectName}.`,
     
     agile: `Generate ${count} detailed agile project delivery questions for vendor evaluation.
 Focus on:
@@ -273,7 +370,7 @@ Requirements:
 - Each question must be clear, specific, and measurable
 - Questions should require detailed vendor responses
 - Avoid yes/no questions - ask for capabilities, processes, or evidence
-- Use aviation industry context where relevant
+- Use industry context appropriate to the project scope
 - Number questions sequentially from 1 to ${count}
 
 Return ONLY valid JSON array, no additional text.`;
@@ -284,7 +381,7 @@ Return ONLY valid JSON array, no additional text.`;
       messages: [
         {
           role: "system",
-          content: "You are an expert procurement specialist for airline industry, creating comprehensive vendor evaluation questionnaires.",
+          content: "You are an expert procurement specialist creating comprehensive vendor evaluation questionnaires across various industries.",
         },
         { role: "user", content: prompt },
       ],
@@ -338,7 +435,7 @@ ${prompt_template || ''}
 
 Requirements:
 - Be specific and measurable
-- Use aviation industry standards (IATA, ICAO, ISO 27001, PCI-DSS, GDPR, ARINC, SITA) where applicable
+- Reference industry-appropriate standards and regulations (e.g., ISO 27001, PCI-DSS, GDPR) where applicable
 - Include acceptance criteria
 - CRITICAL: Format professionally in markdown with:
   * Bullet lists (- ) for requirements, features, criteria
@@ -357,7 +454,7 @@ Generate ONLY the content for this section, well-formatted in markdown.`;
       messages: [
         {
           role: "system",
-          content: "You are an expert RFT author specializing in airline procurement, with deep knowledge of aviation industry standards and best practices.",
+          content: "You are an expert RFT author with deep knowledge of industry standards and procurement best practices across various domains.",
         },
         { role: "user", content: prompt },
       ],
