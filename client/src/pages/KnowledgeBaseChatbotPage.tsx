@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Send, Bot, User, Database, Plug, FileText, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { marked } from "marked";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -46,7 +47,7 @@ export default function KnowledgeBaseChatbotPage() {
   // Query mutation
   const queryMutation = useMutation({
     mutationFn: async (query: string) => {
-      const response = await apiRequest<ChatbotResponse>(
+      const response = await apiRequest(
         "POST",
         "/api/kb-chatbot/query",
         {
@@ -57,7 +58,7 @@ export default function KnowledgeBaseChatbotPage() {
             timestamp: m.timestamp,
           })),
         }
-      );
+      ) as ChatbotResponse;
       return response;
     },
     onSuccess: (data, query) => {
@@ -198,7 +199,14 @@ export default function KnowledgeBaseChatbotPage() {
                             : "bg-muted"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === "user" ? (
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : (
+                          <div 
+                            className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0"
+                            dangerouslySetInnerHTML={{ __html: marked(msg.content) as string }}
+                          />
+                        )}
                       </div>
 
                       {/* Sources */}
