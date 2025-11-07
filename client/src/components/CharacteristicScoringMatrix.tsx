@@ -120,7 +120,7 @@ export function CharacteristicScoringMatrix({ evaluations }: CharacteristicScori
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Score as Percentage per Characteristic</CardTitle>
+        <CardTitle>Non Functional Requirement Score</CardTitle>
         <CardDescription>
           NFR questionnaire scores across software quality characteristics (ISO/IEC 25010)
         </CardDescription>
