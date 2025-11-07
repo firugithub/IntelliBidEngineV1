@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VendorDocumentsDialog } from "./VendorDocumentsDialog";
+import { CharacteristicScoringMatrix } from "./CharacteristicScoringMatrix";
 import { useState } from "react";
 import {
   Briefcase,
@@ -28,6 +29,7 @@ interface VendorDocument {
 interface VendorEvaluation {
   vendorName: string;
   overallScore: number;
+  functionalFit: number;
   technicalFit: number;
   deliveryRisk: number;
   cost: string;
@@ -54,6 +56,17 @@ interface VendorEvaluation {
     score: number;
     findings: string;
   }[];
+  excelScores?: {
+    characteristicScores?: {
+      compatibility: number;
+      maintainability: number;
+      performanceEfficiency: number;
+      portability: number;
+      reliability: number;
+      security: number;
+      usability: number;
+    };
+  };
 }
 
 interface RoleBasedEvaluationReportProps {
@@ -266,6 +279,10 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               </CardDescription>
             </CardHeader>
           </Card>
+          
+          {/* NFR Characteristic Scoring Matrix */}
+          <CharacteristicScoringMatrix evaluations={evaluations} />
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {evaluations.map((evaluation) =>
               renderVendorCard(
