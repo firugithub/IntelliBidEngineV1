@@ -224,20 +224,30 @@ export default function DashboardPage() {
     support: (e.detailedScores?.support || 0) > 80 ? ("24/7" as const) : ("business-hours" as const),
   }));
 
-  // Prepare radar chart data
-  const radarData = evaluations.map((e, index) => ({
-    name: e.vendorName,
-    color: index === 0 ? "hsl(210, 100%, 60%)" : 
-           index === 1 ? "hsl(142, 71%, 55%)" : 
-           "hsl(38, 92%, 60%)",
-    data: [
-      { criterion: "Technical Fit", score: e.technicalFit },
-      { criterion: "Cost", score: 100 - (parseInt(e.cost.replace(/[^0-9]/g, "")) / 3000) },
-      { criterion: "Compliance", score: e.compliance },
-      { criterion: "Support", score: e.detailedScores?.support || 75 },
-      { criterion: "Integration", score: e.detailedScores?.integration || 75 },
-    ],
-  }));
+  // Prepare radar chart data with meaningful dimensions
+  const radarData = evaluations.map((e, index) => {
+    // Use distinct, accessible colors for each vendor
+    const colors = [
+      "hsl(217, 91%, 60%)",  // Blue - Top vendor
+      "hsl(142, 76%, 45%)",  // Green - Second
+      "hsl(38, 92%, 50%)",   // Orange - Third
+      "hsl(280, 65%, 60%)",  // Purple - Fourth
+      "hsl(0, 84%, 60%)",    // Red - Fifth
+    ];
+    
+    return {
+      name: e.vendorName,
+      color: colors[index % colors.length],
+      data: [
+        { criterion: "Functional Fit", score: e.functionalFit },
+        { criterion: "Technical Fit", score: e.technicalFit },
+        { criterion: "Compliance", score: e.compliance },
+        { criterion: "Delivery Confidence", score: 100 - e.deliveryRisk }, // Inverse of risk
+        { criterion: "Integration Ease", score: e.detailedScores?.integration || e.technicalFit },
+        { criterion: "Support Quality", score: e.detailedScores?.support || 75 },
+      ],
+    };
+  });
 
   // Get role insights from top-rated vendor
   const topVendor = evaluations.reduce((prev, curr) => 
