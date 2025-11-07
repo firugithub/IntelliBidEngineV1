@@ -3366,9 +3366,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`✓ Deleted existing evaluations`);
 
-      // Update project status to responses_received
-      await storage.updateProjectStatus(projectId, "responses_received");
-      console.log(`✓ Project status updated to responses_received`);
+      // Update project status to eval_in_progress to show persistent banner
+      await storage.updateProjectStatus(projectId, "eval_in_progress");
+      console.log(`✓ Project status updated to eval_in_progress`);
 
       // Trigger evaluation process in background
       triggerProjectEvaluation(projectId, rft).catch(async (evaluationError) => {
