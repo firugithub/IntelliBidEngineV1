@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -155,6 +155,37 @@ export default function DashboardPage() {
     },
   });
 
+  // Prepare radar chart data with meaningful dimensions
+  // Memoize to prevent unnecessary re-renders and state resets in RadarChart
+  // IMPORTANT: Must be before conditional returns to satisfy React's Rules of Hooks
+  const radarData = useMemo(() => {
+    if (!evaluations || evaluations.length === 0) return [];
+    
+    return evaluations.map((e, index) => {
+      // Use distinct, accessible colors for each vendor
+      const colors = [
+        "hsl(217, 91%, 60%)",  // Blue - Top vendor
+        "hsl(142, 76%, 45%)",  // Green - Second
+        "hsl(38, 92%, 50%)",   // Orange - Third
+        "hsl(280, 65%, 60%)",  // Purple - Fourth
+        "hsl(0, 84%, 60%)",    // Red - Fifth
+      ];
+      
+      return {
+        name: e.vendorName,
+        color: colors[index % colors.length],
+        data: [
+          { criterion: "Functional Fit", score: e.functionalFit },
+          { criterion: "Technical Fit", score: e.technicalFit },
+          { criterion: "Compliance", score: e.compliance },
+          { criterion: "Delivery Confidence", score: 100 - e.deliveryRisk }, // Inverse of risk
+          { criterion: "Integration Ease", score: e.detailedScores?.integration || e.technicalFit },
+          { criterion: "Support Quality", score: e.detailedScores?.support || 75 },
+        ],
+      };
+    });
+  }, [evaluations]);
+
   if (projectLoading || evaluationsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -223,31 +254,6 @@ export default function DashboardPage() {
                  (e.detailedScores?.integration || 0) > 60 ? ("moderate" as const) : ("complex" as const),
     support: (e.detailedScores?.support || 0) > 80 ? ("24/7" as const) : ("business-hours" as const),
   }));
-
-  // Prepare radar chart data with meaningful dimensions
-  const radarData = evaluations.map((e, index) => {
-    // Use distinct, accessible colors for each vendor
-    const colors = [
-      "hsl(217, 91%, 60%)",  // Blue - Top vendor
-      "hsl(142, 76%, 45%)",  // Green - Second
-      "hsl(38, 92%, 50%)",   // Orange - Third
-      "hsl(280, 65%, 60%)",  // Purple - Fourth
-      "hsl(0, 84%, 60%)",    // Red - Fifth
-    ];
-    
-    return {
-      name: e.vendorName,
-      color: colors[index % colors.length],
-      data: [
-        { criterion: "Functional Fit", score: e.functionalFit },
-        { criterion: "Technical Fit", score: e.technicalFit },
-        { criterion: "Compliance", score: e.compliance },
-        { criterion: "Delivery Confidence", score: 100 - e.deliveryRisk }, // Inverse of risk
-        { criterion: "Integration Ease", score: e.detailedScores?.integration || e.technicalFit },
-        { criterion: "Support Quality", score: e.detailedScores?.support || 75 },
-      ],
-    };
-  });
 
   // Get role insights from top-rated vendor
   const topVendor = evaluations.reduce((prev, curr) => 

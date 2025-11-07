@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Radar,
   RadarChart as RechartsRadarChart,
@@ -32,6 +32,12 @@ export function RadarChart({ vendors }: RadarChartProps) {
     new Set(vendors.map(v => v.name))
   );
 
+  // Sync visible vendors when the vendors prop changes (e.g., after re-evaluation)
+  // Reset to show all vendors when data refreshes for consistent, predictable UX
+  useEffect(() => {
+    setVisibleVendors(new Set(vendors.map(v => v.name)));
+  }, [vendors]);
+
   const toggleVendor = (vendorName: string) => {
     setVisibleVendors(prev => {
       const newSet = new Set(prev);
@@ -48,6 +54,9 @@ export function RadarChart({ vendors }: RadarChartProps) {
   };
 
   const toggleAll = () => {
+    // Guard against empty vendor list
+    if (vendors.length === 0) return;
+    
     if (visibleVendors.size === vendors.length) {
       // If all visible, show only first vendor
       setVisibleVendors(new Set([vendors[0].name]));
@@ -84,11 +93,17 @@ export function RadarChart({ vendors }: RadarChartProps) {
               variant={isVisible ? "default" : "outline"}
               size="sm"
               onClick={() => toggleVendor(vendor.name)}
-              className="gap-2 toggle-elevate"
+              className="gap-2"
               style={{
-                backgroundColor: isVisible ? vendor.color : undefined,
-                borderColor: vendor.color,
-                color: isVisible ? 'white' : vendor.color,
+                ...(isVisible && {
+                  backgroundColor: vendor.color,
+                  borderColor: vendor.color,
+                  color: 'white',
+                }),
+                ...(!isVisible && {
+                  borderColor: vendor.color,
+                  color: vendor.color,
+                }),
               }}
               data-testid={`button-toggle-vendor-${vendor.name.toLowerCase().replace(/\s+/g, '-')}`}
             >
