@@ -4,7 +4,8 @@ import { ComparisonTable } from "@/components/ComparisonTable";
 import { RoleViewTabs } from "@/components/RoleViewTabs";
 import { RadarChart } from "@/components/RadarChart";
 import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
-import { StakeholderComparisonTable } from "@/components/StakeholderComparisonTable";
+import { RiskValueMatrix } from "@/components/RiskValueMatrix";
+import { CostBenefitChart } from "@/components/CostBenefitChart";
 import { EvaluationProgress } from "@/components/EvaluationProgress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -459,8 +460,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Stakeholder Comparison - Why each vendor per stakeholder role */}
-          <StakeholderComparisonTable evaluations={evaluations} />
+          {/* Risk vs Value Matrix - Strategic vendor positioning */}
+          <RiskValueMatrix vendors={evaluations} />
+
+          {/* Cost-Benefit Analysis - Value for money comparison */}
+          <CostBenefitChart vendors={evaluations} />
 
           <Card>
             <CardHeader>
