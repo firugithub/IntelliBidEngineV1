@@ -15,6 +15,28 @@ export interface QuestionnaireScore {
     none: number;
     notApplicable: number;
   };
+  sectionScores?: Record<string, number>;
+}
+
+export interface NFRSectionScores {
+  performance: number;
+  reliability: number;
+  scalability: number;
+  security: number;
+  compliance: number;
+  compatibility: number;
+  maintainability: number;
+  usability: number;
+}
+
+export interface CharacteristicScores {
+  compatibility: number;
+  maintainability: number;
+  performanceEfficiency: number;
+  portability: number;
+  reliability: number;
+  security: number;
+  usability: number;
 }
 
 export interface VendorExcelScores {
@@ -24,6 +46,8 @@ export interface VendorExcelScores {
   cybersecurityScore: QuestionnaireScore | null;
   agileScore: QuestionnaireScore | null;
   averageScore: number;
+  nfrSectionScores?: NFRSectionScores;
+  characteristicScores?: CharacteristicScores;
 }
 
 export function calculateQuestionnaireScore(questions: QuestionnaireQuestion[]): QuestionnaireScore {
@@ -57,6 +81,8 @@ export function calculateQuestionnaireScore(questions: QuestionnaireQuestion[]):
     overallScore = (fullPoints + partialPoints + nonePoints) / answeredQuestions;
   }
   
+  const sectionScores = calculateSectionScores(questions);
+  
   return {
     questionnaireType: "Unknown",
     totalQuestions,
@@ -72,6 +98,86 @@ export function calculateQuestionnaireScore(questions: QuestionnaireQuestion[]):
       none: noneCount,
       notApplicable: notApplicableCount,
     },
+    sectionScores,
+  };
+}
+
+function calculateSectionScores(questions: QuestionnaireQuestion[]): Record<string, number> {
+  const sections = new Map<string, { full: number; partial: number; none: number }>();
+  
+  questions.forEach(q => {
+    const category = q.section?.toLowerCase().trim() || 'uncategorized';
+    
+    if (!sections.has(category)) {
+      sections.set(category, { full: 0, partial: 0, none: 0 });
+    }
+    
+    const sectionData = sections.get(category)!;
+    const score = q.complianceScore.toLowerCase().trim();
+    
+    if (score === 'full') {
+      sectionData.full++;
+    } else if (score === 'partial') {
+      sectionData.partial++;
+    } else if (score === 'none' || score === '') {
+      sectionData.none++;
+    }
+  });
+  
+  const sectionScores: Record<string, number> = {};
+  
+  sections.forEach((data, category) => {
+    const answered = data.full + data.partial + data.none;
+    if (answered > 0) {
+      const score = (data.full * 100 + data.partial * 50) / answered;
+      sectionScores[category] = Math.round(score * 10) / 10;
+    } else {
+      sectionScores[category] = 0;
+    }
+  });
+  
+  return sectionScores;
+}
+
+export function extractNFRSectionScores(sectionScores: Record<string, number>): NFRSectionScores {
+  const getScore = (key: string): number => {
+    const normalizedKey = key.toLowerCase();
+    const matchingKey = Object.keys(sectionScores).find(k => 
+      k.toLowerCase().includes(normalizedKey)
+    );
+    return matchingKey ? sectionScores[matchingKey] : 0;
+  };
+  
+  return {
+    performance: getScore('performance'),
+    reliability: getScore('reliability'),
+    scalability: getScore('scalability'),
+    security: getScore('security'),
+    compliance: getScore('compliance'),
+    compatibility: getScore('compatibility'),
+    maintainability: getScore('maintainability'),
+    usability: getScore('usability'),
+  };
+}
+
+export function mapNFRToCharacteristics(
+  nfrSections: NFRSectionScores,
+  cybersecurityScore?: number
+): CharacteristicScores {
+  return {
+    compatibility: nfrSections.compatibility,
+    maintainability: nfrSections.maintainability,
+    performanceEfficiency: Math.round(
+      (nfrSections.performance * 0.7 + nfrSections.scalability * 0.3) * 10
+    ) / 10,
+    portability: Math.round(
+      (nfrSections.compatibility * 0.6 + nfrSections.scalability * 0.4) * 10
+    ) / 10,
+    reliability: nfrSections.reliability,
+    security: cybersecurityScore !== undefined && cybersecurityScore > 0
+      ? Math.round((nfrSections.security * 0.4 + cybersecurityScore * 0.6) * 10) / 10
+      : nfrSections.security,
+    usability: nfrSections.usability,
   };
 }
 
@@ -136,6 +242,15 @@ export async function calculateExcelScoresForVendor(
     scores.averageScore = Math.round(
       (validScores.reduce((sum, s) => sum + s, 0) / validScores.length) * 10
     ) / 10;
+  }
+  
+  // Extract NFR section scores and calculate characteristic scores
+  if (scores.nfrScore?.sectionScores) {
+    scores.nfrSectionScores = extractNFRSectionScores(scores.nfrScore.sectionScores);
+    scores.characteristicScores = mapNFRToCharacteristics(
+      scores.nfrSectionScores,
+      scores.cybersecurityScore?.overallScore
+    );
   }
   
   return scores;
