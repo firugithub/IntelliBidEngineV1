@@ -128,12 +128,7 @@ export function CharacteristicScoringMatrix({ evaluations }: CharacteristicScori
                     className="text-center p-3 min-w-[140px]"
                     data-testid={`header-vendor-${vendor.vendorName}`}
                   >
-                    <div className="space-y-1">
-                      <div className="font-semibold text-base">{vendor.vendorName}</div>
-                      <div className="text-xs text-muted-foreground font-normal">
-                        Sum of V{vendorCharacteristics.indexOf(vendor) + 1} Percent
-                      </div>
-                    </div>
+                    <div className="font-semibold text-base">{vendor.vendorName}</div>
                   </th>
                 ))}
               </tr>
