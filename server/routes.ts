@@ -11,6 +11,7 @@ import { generateRft, generateRftPack, generateVendorResponses, generateEvaluati
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { azureBlobStorageService } from "./services/azureBlobStorage";
+import { evaluationProgressService } from "./services/evaluationProgress";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import fs from "fs";
@@ -3103,7 +3104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Evaluate each proposal
-      for (const proposal of proposals) {
+      for (let i = 0; i < proposals.length; i++) {
+        const proposal = proposals[i];
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
         
         let proposalAnalysis = proposal.extractedData as any;
@@ -3145,10 +3147,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData = requirementStandardData;
         }
         
+        // Emit progress for this vendor
+        const vendorContext = {
+          projectId,
+          vendorName: proposal.vendorName,
+          vendorIndex: i,
+          totalVendors: proposals.length,
+        };
+        
         const { evaluation, diagnostics } = await evaluateProposal(
           requirementAnalysis, 
           proposalAnalysis,
-          proposalStandardData || undefined
+          proposalStandardData || undefined,
+          vendorContext
         );
 
         await storage.createEvaluation({
@@ -3171,6 +3182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`✓ Completed evaluation for ${proposal.vendorName}`);
       }
 
+      // Clear progress for this project
+      evaluationProgressService.clearProgress(projectId);
+      
       // Update project status to completed
       await storage.updateProjectStatus(projectId, "completed");
       console.log(`✓ Project evaluation completed, status updated to completed`);
@@ -3394,6 +3408,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error re-triggering evaluation:", error);
       res.status(500).json({ error: "Failed to re-trigger evaluation" });
     }
+  });
+
+  // Server-Sent Events endpoint for real-time evaluation progress
+  app.get("/api/projects/:id/evaluation-progress", (req, res) => {
+    const projectId = req.params.id;
+    
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
+    
+    console.log(`📡 SSE client connected for project ${projectId}`);
+    
+    // Send initial connection confirmation
+    res.write(`data: ${JSON.stringify({ type: 'connected', projectId })}\n\n`);
+    
+    // Subscribe to progress updates
+    const unsubscribe = evaluationProgressService.subscribe(projectId, (update) => {
+      const data = JSON.stringify({ type: 'progress', ...update });
+      res.write(`data: ${data}\n\n`);
+    });
+    
+    // Handle client disconnect
+    req.on('close', () => {
+      console.log(`📡 SSE client disconnected for project ${projectId}`);
+      unsubscribe();
+    });
   });
 
   // Seed sample RFT for demonstration

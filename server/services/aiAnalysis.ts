@@ -377,18 +377,27 @@ Return JSON with this structure:
   return JSON.parse(content) as VendorEvaluation;
 }
 
+// Vendor context for progress tracking
+export interface VendorContext {
+  projectId: string;
+  vendorName: string;
+  vendorIndex: number;
+  totalVendors: number;
+}
+
 // Main evaluation function with multiagent support
 export async function evaluateProposal(
   requirementAnalysis: RequirementAnalysis,
   proposalAnalysis: ProposalAnalysis,
-  standardData?: StandardData
+  standardData?: StandardData,
+  vendorContext?: VendorContext
 ): Promise<{ evaluation: VendorEvaluation; diagnostics?: any }> {
   // Try multiagent evaluation first
   if (USE_MULTIAGENT) {
     try {
       console.log("🚀 Using multiagent evaluation system");
       // Pass organization standards to all agents for evaluation
-      const result = await evaluateProposalMultiAgent(requirementAnalysis, proposalAnalysis, standardData);
+      const result = await evaluateProposalMultiAgent(requirementAnalysis, proposalAnalysis, standardData, vendorContext);
       
       // Generate section-level compliance if standard data is provided
       if (standardData && standardData.taggedSectionIds.length > 0) {

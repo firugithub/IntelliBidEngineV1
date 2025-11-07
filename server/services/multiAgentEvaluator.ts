@@ -1,7 +1,8 @@
-import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation } from "./aiAnalysis";
+import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation, VendorContext } from "./aiAnalysis";
 import { getOpenAIClient } from "./aiAnalysis";
 import { ragRetrievalService } from "./ragRetrieval";
 import { mcpConnectorService, type ConnectorError } from "./mcpConnectorService";
+import { evaluationProgressService } from "./evaluationProgress";
 
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
@@ -435,9 +436,32 @@ async function executeAgent(
   standardData?: StandardData,
   ragContext?: string,
   mcpContext?: string,
+  vendorContext?: VendorContext,
   timeout: number = 30000
 ): Promise<AgentResult> {
   const startTime = Date.now();
+  
+  // Emit progress: agent starting
+  if (vendorContext) {
+    const roleLabels: Record<AgentRole, string> = {
+      delivery: "Delivery Manager",
+      product: "Product Manager",
+      architecture: "Solution Architect",
+      engineering: "Engineering Lead",
+      procurement: "Procurement",
+      security: "Cybersecurity"
+    };
+    
+    evaluationProgressService.emitProgress({
+      projectId: vendorContext.projectId,
+      vendorName: vendorContext.vendorName,
+      vendorIndex: vendorContext.vendorIndex,
+      totalVendors: vendorContext.totalVendors,
+      agentRole: roleLabels[role],
+      agentStatus: 'in_progress',
+      timestamp: Date.now(),
+    });
+  }
   
   const prompt = AGENT_PROMPTS[role];
   
@@ -523,6 +547,28 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
       }
     }
 
+    // Emit progress: agent completed successfully
+    if (vendorContext) {
+      const roleLabels: Record<AgentRole, string> = {
+        delivery: "Delivery Manager",
+        product: "Product Manager",
+        architecture: "Solution Architect",
+        engineering: "Engineering Lead",
+        procurement: "Procurement",
+        security: "Cybersecurity"
+      };
+      
+      evaluationProgressService.emitProgress({
+        projectId: vendorContext.projectId,
+        vendorName: vendorContext.vendorName,
+        vendorIndex: vendorContext.vendorIndex,
+        totalVendors: vendorContext.totalVendors,
+        agentRole: roleLabels[role],
+        agentStatus: 'completed',
+        timestamp: Date.now(),
+      });
+    }
+    
     return {
       role,
       insights: result.insights || [],
@@ -536,6 +582,28 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
   } catch (error) {
     const executionTime = Date.now() - startTime;
     console.error(`Agent ${role} failed:`, error);
+    
+    // Emit progress: agent failed
+    if (vendorContext) {
+      const roleLabels: Record<AgentRole, string> = {
+        delivery: "Delivery Manager",
+        product: "Product Manager",
+        architecture: "Solution Architect",
+        engineering: "Engineering Lead",
+        procurement: "Procurement",
+        security: "Cybersecurity"
+      };
+      
+      evaluationProgressService.emitProgress({
+        projectId: vendorContext.projectId,
+        vendorName: vendorContext.vendorName,
+        vendorIndex: vendorContext.vendorIndex,
+        totalVendors: vendorContext.totalVendors,
+        agentRole: roleLabels[role],
+        agentStatus: 'failed',
+        timestamp: Date.now(),
+      });
+    }
     
     // Return fallback result with succeeded=false
     const fallbackInsights = getFallbackInsights(role);
@@ -659,9 +727,35 @@ interface StandardData {
 export async function evaluateProposalMultiAgent(
   requirements: RequirementAnalysis,
   proposal: ProposalAnalysis,
-  standardData?: StandardData
+  standardData?: StandardData,
+  vendorContext?: VendorContext
 ): Promise<{ evaluation: VendorEvaluation; diagnostics: AgentDiagnostics[] }> {
   console.log(`🤖 Starting multiagent evaluation for ${proposal.vendorName}...`);
+  
+  // Emit initial progress for all agents (pending status)
+  if (vendorContext) {
+    const roles: AgentRole[] = ["delivery", "product", "architecture", "engineering", "procurement", "security"];
+    const roleLabels = {
+      delivery: "Delivery Manager",
+      product: "Product Manager",
+      architecture: "Solution Architect",
+      engineering: "Engineering Lead",
+      procurement: "Procurement",
+      security: "Cybersecurity"
+    };
+    
+    for (const role of roles) {
+      evaluationProgressService.emitProgress({
+        projectId: vendorContext.projectId,
+        vendorName: vendorContext.vendorName,
+        vendorIndex: vendorContext.vendorIndex,
+        totalVendors: vendorContext.totalVendors,
+        agentRole: roleLabels[role],
+        agentStatus: 'pending',
+        timestamp: Date.now(),
+      });
+    }
+  }
   
   if (standardData) {
     console.log(`   📋 Organization standards: ${standardData.name} (${standardData.taggedSectionIds.length} tagged sections)`);
@@ -746,7 +840,7 @@ export async function evaluateProposalMultiAgent(
   try {
     // Execute all agents in parallel with allSettled for resilience
     const agentPromises = roles.map(role => 
-      executeAgent(role, requirements, proposal, standardData, ragContext, mcpContextByRole.get(role))
+      executeAgent(role, requirements, proposal, standardData, ragContext, mcpContextByRole.get(role), vendorContext)
     );
     const settledResults = await Promise.allSettled(agentPromises);
     

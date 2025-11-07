@@ -5,6 +5,7 @@ import { RoleViewTabs } from "@/components/RoleViewTabs";
 import { RadarChart } from "@/components/RadarChart";
 import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
 import { StakeholderComparisonTable } from "@/components/StakeholderComparisonTable";
+import { EvaluationProgress } from "@/components/EvaluationProgress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -333,12 +334,15 @@ export default function DashboardPage() {
       <div className="border-b">
         <div className="container mx-auto px-4 py-6">
           {isReEvaluating && (
-            <Alert variant="destructive" className="mb-4" data-testid="alert-re-evaluating">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="font-medium">
-                Re-evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete.
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-4 mb-4">
+              <Alert variant="destructive" data-testid="alert-re-evaluating">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="font-medium">
+                  Re-evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete.
+                </AlertDescription>
+              </Alert>
+              {projectId && <EvaluationProgress projectId={projectId} />}
+            </div>
           )}
           <div className="flex items-center justify-between">
             <div>
