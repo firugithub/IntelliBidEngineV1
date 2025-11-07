@@ -5,7 +5,6 @@ import { RoleViewTabs } from "@/components/RoleViewTabs";
 import { RadarChart } from "@/components/RadarChart";
 import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
 import { StakeholderComparisonTable } from "@/components/StakeholderComparisonTable";
-import { CharacteristicScoringMatrix } from "@/components/CharacteristicScoringMatrix";
 import { EvaluationProgress } from "@/components/EvaluationProgress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -474,9 +473,6 @@ export default function DashboardPage() {
               <RadarChart vendors={radarData} />
             </CardContent>
           </Card>
-
-          {/* Characteristic Scoring Matrix - Architecture Quality Assessment */}
-          <CharacteristicScoringMatrix evaluations={evaluations} />
 
           <Card>
             <CardHeader>
