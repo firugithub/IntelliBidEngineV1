@@ -114,6 +114,63 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
     return "text-red-500";
   };
 
+  // Generate realistic functional fit assessments based on vendor scores
+  const getFunctionalFitAssessment = (evaluation: VendorEvaluation, metric: string): string => {
+    const functionalFit = evaluation.functionalFit || 0;
+    const technicalFit = evaluation.technicalFit || 0;
+    const scalability = evaluation.detailedScores?.scalability || 0;
+    const usability = evaluation.excelScores?.characteristicScores?.usability || 0;
+    
+    switch (metric) {
+      case "Feature Coverage":
+        if (functionalFit >= 85) {
+          return "Comprehensive feature coverage with strong alignment to all functional requirements. Solution demonstrates excellent product-market fit.";
+        } else if (functionalFit >= 70) {
+          return "Good coverage of core functional requirements with some gaps in advanced features. Majority of mandatory capabilities are supported.";
+        } else if (functionalFit >= 50) {
+          return "Partial coverage of functional requirements. Several key features require customization or are planned for future releases.";
+        } else {
+          return "Limited alignment with functional requirements. Significant feature gaps identified across multiple functional areas.";
+        }
+      
+      case "Configuration vs Customization":
+        if (technicalFit >= 85) {
+          return "Highly configurable solution with minimal code customization required. Rich out-of-box features aligned with industry best practices.";
+        } else if (technicalFit >= 70) {
+          return "Balanced mix of configuration and light customization. Most requirements achievable through standard configuration workflows.";
+        } else if (technicalFit >= 50) {
+          return "Moderate customization effort required. Solution provides framework but needs significant tailoring for specific requirements.";
+        } else {
+          return "Heavy customization required across multiple modules. Limited out-of-box functionality aligned with requirements.";
+        }
+      
+      case "Scalability & Extensibility":
+        if (scalability >= 85) {
+          return "Robust architecture with proven scalability patterns. Well-documented APIs, plugin framework, and extensibility points for future enhancements.";
+        } else if (scalability >= 70) {
+          return "Good scalability foundation with standard integration capabilities. API coverage supports most common extension scenarios.";
+        } else if (scalability >= 50) {
+          return "Basic scalability considerations with limited extensibility options. May require architectural enhancements for complex integrations.";
+        } else {
+          return "Scalability concerns identified. Limited extensibility mechanisms and integration patterns may constrain future growth.";
+        }
+      
+      case "Usability & UX Maturity":
+        if (usability >= 85) {
+          return "Modern, intuitive interface with excellent user experience. Strong accessibility compliance and minimal learning curve for end users.";
+        } else if (usability >= 70) {
+          return "User-friendly interface with reasonable learning curve. Good usability for standard workflows with some complexity in advanced features.";
+        } else if (usability >= 50) {
+          return "Functional interface but with notable usability gaps. Training required for users to navigate complex workflows efficiently.";
+        } else {
+          return "Dated user interface with steep learning curve. Significant usability improvements needed to meet modern UX standards.";
+        }
+      
+      default:
+        return "Assessment pending based on detailed analysis of vendor responses.";
+    }
+  };
+
   const renderVendorCard = (evaluation: VendorEvaluation, relevantInsights: string[], role: typeof currentRole, metrics?: { label: string; value: number | string; inverse?: boolean }[]) => (
     <Card key={evaluation.vendorName} className="hover-elevate">
       <CardHeader>
@@ -295,7 +352,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                       </td>
                       {evaluations.map((evaluation) => (
                         <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
-                          Extent to which vendor meets functional requirements
+                          {getFunctionalFitAssessment(evaluation, "Feature Coverage")}
                         </td>
                       ))}
                       <td className="py-3 px-4 align-top">
@@ -310,7 +367,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                       </td>
                       {evaluations.map((evaluation) => (
                         <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
-                          Balance of out-of-box features vs heavy customization
+                          {getFunctionalFitAssessment(evaluation, "Configuration vs Customization")}
                         </td>
                       ))}
                       <td className="py-3 px-4 align-top">
@@ -325,7 +382,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                       </td>
                       {evaluations.map((evaluation) => (
                         <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
-                          Ability to handle future enhancements or integrations
+                          {getFunctionalFitAssessment(evaluation, "Scalability & Extensibility")}
                         </td>
                       ))}
                       <td className="py-3 px-4 align-top">
@@ -340,7 +397,7 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
                       </td>
                       {evaluations.map((evaluation) => (
                         <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
-                          Ease of use, learning curve, and accessibility
+                          {getFunctionalFitAssessment(evaluation, "Usability & UX Maturity")}
                         </td>
                       ))}
                       <td className="py-3 px-4 align-top">
