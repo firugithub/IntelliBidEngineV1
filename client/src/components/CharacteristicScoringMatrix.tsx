@@ -36,6 +36,17 @@ interface CharacteristicScoringMatrixProps {
       security?: number;
       usability?: number;
     };
+    excelScores?: {
+      characteristicScores?: {
+        compatibility: number;
+        maintainability: number;
+        performanceEfficiency: number;
+        portability: number;
+        reliability: number;
+        security: number;
+        usability: number;
+      };
+    };
   }[];
 }
 
@@ -43,17 +54,17 @@ export function CharacteristicScoringMatrix({ evaluations }: CharacteristicScori
   // Calculate characteristic scores for each vendor
   const vendorCharacteristics: VendorCharacteristics[] = evaluations.map(evaluation => {
     const detailed = evaluation.detailedScores || {};
+    const excelCharacteristics = evaluation.excelScores?.characteristicScores;
     
-    // Calculate characteristics from available scores
-    // If detailed scores exist, use them; otherwise derive from main metrics
+    // PRIORITY: Use NFR Excel scores if available, otherwise fall back to AI-derived scores
     const characteristics = {
-      compatibility: detailed.compatibility ?? evaluation.functionalFit,
-      maintainability: detailed.maintainability ?? (evaluation.technicalFit * 0.8 + (detailed.documentation ?? 75) * 0.2),
-      performanceEfficiency: detailed.performance ?? evaluation.technicalFit,
-      portability: detailed.portability ?? ((detailed.integration ?? 70) * 0.6 + evaluation.technicalFit * 0.4),
-      reliability: detailed.reliability ?? (100 - evaluation.deliveryRisk),
-      security: detailed.security ?? evaluation.compliance,
-      usability: detailed.usability ?? ((detailed.documentation ?? 75) * 0.5 + evaluation.functionalFit * 0.5),
+      compatibility: excelCharacteristics?.compatibility ?? detailed.compatibility ?? evaluation.functionalFit,
+      maintainability: excelCharacteristics?.maintainability ?? detailed.maintainability ?? (evaluation.technicalFit * 0.8 + (detailed.documentation ?? 75) * 0.2),
+      performanceEfficiency: excelCharacteristics?.performanceEfficiency ?? detailed.performance ?? evaluation.technicalFit,
+      portability: excelCharacteristics?.portability ?? detailed.portability ?? ((detailed.integration ?? 70) * 0.6 + evaluation.technicalFit * 0.4),
+      reliability: excelCharacteristics?.reliability ?? detailed.reliability ?? (100 - evaluation.deliveryRisk),
+      security: excelCharacteristics?.security ?? detailed.security ?? evaluation.compliance,
+      usability: excelCharacteristics?.usability ?? detailed.usability ?? ((detailed.documentation ?? 75) * 0.5 + evaluation.functionalFit * 0.5),
     };
 
     // Calculate grand total as weighted average
@@ -111,7 +122,7 @@ export function CharacteristicScoringMatrix({ evaluations }: CharacteristicScori
       <CardHeader>
         <CardTitle>Score as Percentage per Characteristic</CardTitle>
         <CardDescription>
-          Technical quality assessment across software characteristics for each vendor
+          NFR questionnaire scores across software quality characteristics (ISO/IEC 25010)
         </CardDescription>
       </CardHeader>
       <CardContent>

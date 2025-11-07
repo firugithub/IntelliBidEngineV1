@@ -174,7 +174,7 @@ export function mapNFRToCharacteristics(
       (nfrSections.compatibility * 0.6 + nfrSections.scalability * 0.4) * 10
     ) / 10,
     reliability: nfrSections.reliability,
-    security: cybersecurityScore !== undefined && cybersecurityScore > 0
+    security: cybersecurityScore != null
       ? Math.round((nfrSections.security * 0.4 + cybersecurityScore * 0.6) * 10) / 10
       : nfrSections.security,
     usability: nfrSections.usability,
