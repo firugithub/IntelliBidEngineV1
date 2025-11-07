@@ -251,6 +251,108 @@ export function RoleBasedEvaluationReport({ evaluations }: RoleBasedEvaluationRe
               </CardDescription>
             </CardHeader>
           </Card>
+
+          {/* Functional Fit Score Comparison Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">Functional Fit Score</CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  From RFT & Product Excel
+                </Badge>
+              </div>
+              <CardDescription>
+                Quantitative assessment of vendor solutions against functional requirements
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse" data-testid="table-functional-fit">
+                  <thead>
+                    <tr className="border-b">
+                      <th scope="col" className="text-left py-3 px-4 font-semibold bg-muted/50 min-w-[180px]">
+                        Metric
+                      </th>
+                      {evaluations.map((evaluation) => (
+                        <th
+                          key={evaluation.vendorName}
+                          scope="col"
+                          className="text-left py-3 px-4 font-semibold bg-muted/50 min-w-[200px]"
+                        >
+                          {evaluation.vendorName}
+                        </th>
+                      ))}
+                      <th scope="col" className="text-left py-3 px-4 font-semibold bg-muted/50 min-w-[220px]">
+                        Example KPI / Scoring Approach
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Feature Coverage Row */}
+                    <tr className="border-b hover-elevate">
+                      <td className="py-3 px-4 font-medium align-top">
+                        Feature Coverage
+                      </td>
+                      {evaluations.map((evaluation) => (
+                        <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
+                          Extent to which vendor meets functional requirements
+                        </td>
+                      ))}
+                      <td className="py-3 px-4 align-top">
+                        <span className="font-mono text-xs">% of mandatory features supported</span>
+                      </td>
+                    </tr>
+
+                    {/* Configuration vs Customization Row */}
+                    <tr className="border-b hover-elevate">
+                      <td className="py-3 px-4 font-medium align-top">
+                        Configuration vs Customization
+                      </td>
+                      {evaluations.map((evaluation) => (
+                        <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
+                          Balance of out-of-box features vs heavy customization
+                        </td>
+                      ))}
+                      <td className="py-3 px-4 align-top">
+                        <span className="font-mono text-xs">% of requirements met without code changes</span>
+                      </td>
+                    </tr>
+
+                    {/* Scalability & Extensibility Row */}
+                    <tr className="border-b hover-elevate">
+                      <td className="py-3 px-4 font-medium align-top">
+                        Scalability & Extensibility
+                      </td>
+                      {evaluations.map((evaluation) => (
+                        <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
+                          Ability to handle future enhancements or integrations
+                        </td>
+                      ))}
+                      <td className="py-3 px-4 align-top">
+                        <span className="font-mono text-xs">Supports modular APIs, plug-in architecture</span>
+                      </td>
+                    </tr>
+
+                    {/* Usability & UX Maturity Row */}
+                    <tr className="hover-elevate">
+                      <td className="py-3 px-4 font-medium align-top">
+                        Usability & UX Maturity
+                      </td>
+                      {evaluations.map((evaluation) => (
+                        <td key={evaluation.vendorName} className="py-3 px-4 text-muted-foreground align-top text-xs">
+                          Ease of use, learning curve, and accessibility
+                        </td>
+                      ))}
+                      <td className="py-3 px-4 align-top">
+                        <span className="font-mono text-xs">User satisfaction rating (1–5)</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {evaluations.map((evaluation) =>
               renderVendorCard(

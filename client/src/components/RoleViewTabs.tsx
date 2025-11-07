@@ -97,69 +97,6 @@ export function RoleViewTabs({
                 </li>
               ))}
             </ul>
-
-            {/* Functional Fit Score */}
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold">Functional Fit Score</h3>
-                <Badge variant="secondary" className="text-xs">
-                  From RFT & Product Excel
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Quantitative assessment of vendor solution against functional requirements
-              </p>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse" data-testid="table-functional-fit">
-                  <thead>
-                    <tr className="border-b">
-                      <th scope="col" className="text-left py-3 px-4 font-semibold bg-muted/50">Metric</th>
-                      <th scope="col" className="text-left py-3 px-4 font-semibold bg-muted/50">Description</th>
-                      <th scope="col" className="text-left py-3 px-4 font-semibold bg-muted/50">Example KPI / Scoring Approach</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b hover-elevate">
-                      <td className="py-3 px-4 font-medium">Feature Coverage</td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        Extent to which vendor meets functional requirements
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-xs">% of mandatory features supported</span>
-                      </td>
-                    </tr>
-                    <tr className="border-b hover-elevate">
-                      <td className="py-3 px-4 font-medium">Configuration vs Customization</td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        Balance of out-of-box features vs heavy customization
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-xs">% of requirements met without code changes</span>
-                      </td>
-                    </tr>
-                    <tr className="border-b hover-elevate">
-                      <td className="py-3 px-4 font-medium">Scalability & Extensibility</td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        Ability to handle future enhancements or integrations
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-xs">Supports modular APIs, plug-in architecture</span>
-                      </td>
-                    </tr>
-                    <tr className="hover-elevate">
-                      <td className="py-3 px-4 font-medium">Usability & UX Maturity</td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        Ease of use, learning curve, and accessibility
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-xs">User satisfaction rating (1–5)</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </CardContent>
           {evaluationId && vendorName && projectId && (
             <CardFooter>
