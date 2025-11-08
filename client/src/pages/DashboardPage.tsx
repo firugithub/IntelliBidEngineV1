@@ -7,6 +7,8 @@ import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationRepor
 import { RiskValueMatrix } from "@/components/RiskValueMatrix";
 import { CostBenefitChart } from "@/components/CostBenefitChart";
 import { EvaluationProgress } from "@/components/EvaluationProgress";
+import { VendorShortlistingProgress } from "@/components/VendorShortlistingProgress";
+import { VendorStageGrid } from "@/components/VendorStageGrid";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw, AlertCircle, ChevronRight, Home, Folder, FileText } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
@@ -72,7 +74,7 @@ export default function DashboardPage() {
   const [selectedVendor, setSelectedVendor] = useState<Evaluation | null>(null);
   const { toast } = useToast();
 
-  const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string; status: string }>({
+  const { data: project, isLoading: projectLoading } = useQuery<{ portfolioId: string; status: string; name: string }>({
     queryKey: ["/api/projects", projectId],
     enabled: !!projectId,
     refetchInterval: (query) => {
@@ -83,6 +85,11 @@ export default function DashboardPage() {
       }
       return false;
     },
+  });
+
+  const { data: portfolio } = useQuery<{ id: string; name: string }>({
+    queryKey: ["/api/portfolios", project?.portfolioId],
+    enabled: !!project?.portfolioId,
   });
 
   const [pollCount, setPollCount] = useState(0);
@@ -224,6 +231,41 @@ export default function DashboardPage() {
   // Sort evaluations by ranking (overall score descending)
   const sortedEvaluations = [...evaluations].sort((a, b) => b.overallScore - a.overallScore);
 
+  // Sample vendor shortlisting stage data (in production, this would come from the database)
+  const vendorStageData = evaluations.map((evaluation, index) => {
+    // Simulate different progress levels for each vendor
+    const stageProgression = [
+      { currentStage: 7, completed: [1, 2, 3, 4, 5, 6], inProgress: 7 }, // Vendor 1: RFT Evaluation Completed
+      { currentStage: 5, completed: [1, 2, 3, 4], inProgress: 5 },       // Vendor 2: RFT Response Received
+      { currentStage: 3, completed: [1, 2], inProgress: 3 },             // Vendor 3: RFI Evaluation Completed
+    ];
+    
+    const progress = stageProgression[index % 3];
+    const stageStatuses: Record<number, { status: string; date: string | null }> = {};
+    
+    // Mark completed stages
+    progress.completed.forEach(stage => {
+      stageStatuses[stage] = {
+        status: 'completed',
+        date: new Date(Date.now() - (10 - stage) * 7 * 24 * 60 * 60 * 1000).toISOString(), // Simulate dates going back
+      };
+    });
+    
+    // Mark in-progress stage
+    if (progress.inProgress) {
+      stageStatuses[progress.inProgress] = {
+        status: 'in_progress',
+        date: new Date().toISOString(),
+      };
+    }
+    
+    return {
+      vendorName: evaluation.vendorName,
+      currentStage: progress.currentStage,
+      stageStatuses,
+    };
+  });
+
   // Calculate aggregated metrics
   const avgFunctionalFit = Math.round(
     evaluations.reduce((sum, e) => sum + e.functionalFit, 0) / evaluations.length
@@ -346,16 +388,45 @@ export default function DashboardPage() {
             </div>
           )}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Shortlisting Report</h1>
-              <p className="text-muted-foreground">
-                AI-generated evaluation of {evaluations.length} vendor proposal{evaluations.length > 1 ? 's' : ''}
-              </p>
-              {hasGenericInsights && !isReEvaluating && (
-                <p className="text-sm text-orange-500 mt-1">
-                  ⚠️ Generic insights detected (agent evaluation incomplete). Click "Re-Evaluate" to retry.
+            <div className="space-y-3">
+              {/* Breadcrumb Navigation */}
+              <nav className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="nav-breadcrumb">
+                <button 
+                  onClick={() => setLocation('/')}
+                  className="hover-elevate flex items-center gap-1 px-2 py-1 rounded transition-colors"
+                  data-testid="link-home"
+                >
+                  <Home className="h-3.5 w-3.5" />
+                  <span>Home</span>
+                </button>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <button
+                  onClick={() => setLocation(`/portfolio/${project?.portfolioId}`)}
+                  className="hover-elevate flex items-center gap-1 px-2 py-1 rounded transition-colors"
+                  data-testid="link-portfolio"
+                >
+                  <Folder className="h-3.5 w-3.5" />
+                  <span>{portfolio?.name || 'Portfolio'}</span>
+                </button>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <span className="flex items-center gap-1 px-2 py-1 text-foreground font-medium" data-testid="text-current-project">
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>{project?.name || 'Project'}</span>
+                </span>
+              </nav>
+              
+              {/* Title and Description */}
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Shortlisting Report</h1>
+                <p className="text-muted-foreground">
+                  AI-generated evaluation of {evaluations.length} vendor proposal{evaluations.length > 1 ? 's' : ''}
                 </p>
-              )}
+                {hasGenericInsights && !isReEvaluating && (
+                  <p className="text-sm text-orange-500 mt-1">
+                    ⚠️ Generic insights detected (agent evaluation incomplete). Click "Re-Evaluate" to retry.
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
@@ -405,6 +476,16 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
+          {/* Vendor Shortlisting Progress Dashboard */}
+          <VendorShortlistingProgress 
+            vendorStages={vendorStageData}
+            projectName={project?.name || 'Project'}
+            portfolioName={portfolio?.name || 'Portfolio'}
+          />
+
+          {/* Vendor Stage Matrix - Compact view */}
+          <VendorStageGrid vendorStages={vendorStageData} />
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScoreCard
               title="Average Functional Fit"

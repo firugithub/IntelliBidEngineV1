@@ -105,6 +105,27 @@ export const evaluations = pgTable("evaluations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const vendorShortlistingStages = pgTable("vendor_shortlisting_stages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  vendorName: text("vendor_name").notNull(),
+  currentStage: integer("current_stage").notNull().default(1), // 1-10
+  stageStatuses: jsonb("stage_statuses").notNull(), // {1: {status: 'completed', date: '2024-01-15'}, 2: {status: 'in_progress', date: null}, ...}
+  rfiInitiatedDate: timestamp("rfi_initiated_date"),
+  rfiResponseReceivedDate: timestamp("rfi_response_received_date"),
+  rfiEvaluationCompletedDate: timestamp("rfi_evaluation_completed_date"),
+  rftInitiatedDate: timestamp("rft_initiated_date"),
+  rftResponseReceivedDate: timestamp("rft_response_received_date"),
+  vendorDemoCompletedDate: timestamp("vendor_demo_completed_date"),
+  rftEvaluationCompletedDate: timestamp("rft_evaluation_completed_date"),
+  pocInitiatedDate: timestamp("poc_initiated_date"),
+  sowSubmittedDate: timestamp("sow_submitted_date"),
+  sowReviewedDate: timestamp("sow_reviewed_date"),
+  notes: text("notes"), // Additional notes or comments
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const evaluationCriteria = pgTable("evaluation_criteria", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   evaluationId: varchar("evaluation_id").notNull(),
@@ -394,6 +415,12 @@ export const insertGeneratedRftSchema = createInsertSchema(generatedRfts).omit({
   updatedAt: true,
 });
 
+export const insertVendorShortlistingStageSchema = createInsertSchema(vendorShortlistingStages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -453,3 +480,6 @@ export type RftTemplate = typeof rftTemplates.$inferSelect;
 
 export type InsertGeneratedRft = z.infer<typeof insertGeneratedRftSchema>;
 export type GeneratedRft = typeof generatedRfts.$inferSelect;
+
+export type InsertVendorShortlistingStage = z.infer<typeof insertVendorShortlistingStageSchema>;
+export type VendorShortlistingStage = typeof vendorShortlistingStages.$inferSelect;
