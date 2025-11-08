@@ -1,4 +1,4 @@
-import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon, LucideIcon } from "lucide-react";
+import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon, BarChart3, LucideIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,11 @@ const allNavigationItems: NavigationItem[] = [
     title: "Home",
     url: "/",
     icon: Home,
+  },
+  {
+    title: "Executive Summary",
+    url: "/executive-summary",
+    icon: BarChart3,
   },
   {
     title: "Smart RFT Builder",

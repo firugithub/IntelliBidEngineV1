@@ -108,6 +108,7 @@ export interface IStorage {
   // Evaluations
   createEvaluation(evaluation: InsertEvaluation): Promise<Evaluation>;
   getEvaluationsByProject(projectId: string): Promise<Evaluation[]>;
+  getAllEvaluations(): Promise<Evaluation[]>;
   getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined>;
   getEvaluation(id: string): Promise<Evaluation | undefined>;
   updateEvaluation(id: string, updates: Partial<InsertEvaluation>): Promise<void>;
@@ -535,6 +536,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.evaluations.values()).filter(
       (evaluation) => evaluation.projectId === projectId
     );
+  }
+
+  async getAllEvaluations(): Promise<Evaluation[]> {
+    throw new Error("getAllEvaluations: Use PostgreSQL database");
   }
 
   async getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined> {
@@ -1537,6 +1542,10 @@ storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): P
 
 storage.getEvaluationsByProject = async function(projectId: string): Promise<Evaluation[]> {
   return await db.select().from(evaluations).where(eq(evaluations.projectId, projectId));
+};
+
+storage.getAllEvaluations = async function(): Promise<Evaluation[]> {
+  return await db.select().from(evaluations);
 };
 
 storage.getEvaluationByProposal = async function(proposalId: string): Promise<Evaluation | undefined> {

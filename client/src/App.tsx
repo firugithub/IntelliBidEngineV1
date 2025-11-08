@@ -18,6 +18,7 @@ import AIFeaturesPage from "@/pages/AIFeaturesPage";
 import SmartRftBuilderPage from "@/pages/SmartRftBuilderPage";
 import KnowledgeBaseChatbotPage from "@/pages/KnowledgeBaseChatbotPage";
 import GenerateMockDataPage from "@/pages/GenerateMockDataPage";
+import ExecutiveSummaryPage from "@/pages/ExecutiveSummaryPage";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -28,6 +29,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
+      <Route path="/executive-summary" component={ExecutiveSummaryPage} />
       <Route path="/admin-config" component={AdminConfigPage} />
       <Route path="/standards" component={StandardsPage} />
       <Route path="/portfolio/:id" component={PortfolioPage} />

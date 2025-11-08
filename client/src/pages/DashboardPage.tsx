@@ -231,40 +231,18 @@ export default function DashboardPage() {
   // Sort evaluations by ranking (overall score descending)
   const sortedEvaluations = [...evaluations].sort((a, b) => b.overallScore - a.overallScore);
 
-  // Sample vendor shortlisting stage data (in production, this would come from the database)
-  const vendorStageData = evaluations.map((evaluation, index) => {
-    // Simulate different progress levels for each vendor
-    const stageProgression = [
-      { currentStage: 7, completed: [1, 2, 3, 4, 5, 6], inProgress: 7 }, // Vendor 1: RFT Evaluation Completed
-      { currentStage: 5, completed: [1, 2, 3, 4], inProgress: 5 },       // Vendor 2: RFT Response Received
-      { currentStage: 3, completed: [1, 2], inProgress: 3 },             // Vendor 3: RFI Evaluation Completed
-    ];
-    
-    const progress = stageProgression[index % 3];
-    const stageStatuses: Record<number, { status: string; date: string | null }> = {};
-    
-    // Mark completed stages
-    progress.completed.forEach(stage => {
-      stageStatuses[stage] = {
-        status: 'completed',
-        date: new Date(Date.now() - (10 - stage) * 7 * 24 * 60 * 60 * 1000).toISOString(), // Simulate dates going back
-      };
-    });
-    
-    // Mark in-progress stage
-    if (progress.inProgress) {
-      stageStatuses[progress.inProgress] = {
-        status: 'in_progress',
-        date: new Date().toISOString(),
-      };
-    }
-    
-    return {
-      vendorName: evaluation.vendorName,
-      currentStage: progress.currentStage,
-      stageStatuses,
-    };
+  // Fetch real vendor shortlisting stage data from the database
+  const { data: vendorStages } = useQuery<any[]>({
+    queryKey: ["/api/projects", projectId, "vendor-stages"],
+    enabled: !!projectId,
   });
+
+  // Transform database vendor stages to match component props format
+  const vendorStageData = vendorStages?.map(stage => ({
+    vendorName: stage.vendorName,
+    currentStage: stage.currentStage,
+    stageStatuses: stage.stageStatuses || {},
+  })) || [];
 
   // Calculate aggregated metrics
   const avgFunctionalFit = Math.round(
