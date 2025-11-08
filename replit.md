@@ -11,7 +11,8 @@ Preferred communication style: Simple, everyday language.
 ### Frontend
 **Technology Stack:** React with TypeScript, Vite, wouter, shadcn/ui (Radix UI), Tailwind CSS, TanStack Query, and Recharts.
 **Design System:** Dark mode-first, enterprise-focused with "New York" style shadcn/ui components, and information-dense layouts.
-**Key Pages & Navigation:** Portfolio-centric 6-menu structure including Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, and Admin Config. Dashboard features interactive visualizations like a Risk vs Value Matrix, Cost-Benefit Analysis Chart, Characteristic Scoring Matrix (ISO/IEC 25010), Functional Fit Score Comparison Table, and a Vendor Shortlisting Progress Dashboard with a 10-stage procurement workflow view.
+**Key Pages & Navigation:** Portfolio-centric 7-menu structure including Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, Executive Summary, and Admin Config. Dashboard features interactive visualizations like a Risk vs Value Matrix, Cost-Benefit Analysis Chart, Characteristic Scoring Matrix (ISO/IEC 25010), Functional Fit Score Comparison Table, and a Vendor Shortlisting Progress Dashboard with a 10-stage procurement workflow view.
+**Executive Summary Dashboard:** Global visibility page providing aggregated metrics across all portfolios and projects, including total counts, vendor stage distribution chart, top-performing vendor leaders table, and recent activity feed with drill-down navigation to individual project dashboards.
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
