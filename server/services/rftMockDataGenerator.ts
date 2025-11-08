@@ -618,16 +618,22 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
  * Distributes vendors across different stages of the procurement workflow
  */
 export async function generateVendorStages(projectId?: string) {
-  const vendors = [
-    "Vendor A",
-    "Vendor B", 
-    "Vendor C",
-    "Vendor D",
-    "Vendor E"
+  // Use more varied vendor names to avoid duplicates
+  const vendorNames = [
+    "TechCorp Solutions",
+    "Global Systems Inc",
+    "Innovation Partners",
+    "Enterprise Dynamics",
+    "Digital Ventures Ltd",
+    "Cloud Services Pro",
+    "Data Analytics Corp",
+    "Secure Systems Group",
+    "Platform Technologies",
+    "NextGen Solutions"
   ];
   
   // Stage distribution across the 10-stage workflow
-  const stages = [2, 3, 5, 7, 8]; // Different stages for variety
+  const stages = [2, 3, 5, 7, 8, 2, 3, 5, 7, 8]; // Different stages for variety
   
   let targetProjects: any[] = [];
   
@@ -639,17 +645,26 @@ export async function generateVendorStages(projectId?: string) {
     }
     targetProjects = [project];
   } else {
-    // Generate for all projects
-    targetProjects = await storage.getAllProjects();
-    // Limit to first 5 projects to avoid overwhelming the system
-    targetProjects = targetProjects.slice(0, 5);
+    // Generate for all projects (or limit to 10 for performance)
+    const allProjects = await storage.getAllProjects();
+    targetProjects = allProjects.slice(0, Math.min(10, allProjects.length));
   }
   
   let totalCreated = 0;
   
   for (const project of targetProjects) {
-    for (let i = 0; i < vendors.length; i++) {
-      const vendorName = vendors[i];
+    // Get existing vendor stages for this project
+    const existingStages = await storage.getVendorStagesByProject(project.id);
+    const existingVendorNames = new Set(existingStages.map((s: any) => s.vendorName));
+    
+    // Find vendors that don't already exist for this project
+    const availableVendors = vendorNames.filter(name => !existingVendorNames.has(name));
+    
+    // Take up to 5 vendors per project
+    const vendorsToCreate = availableVendors.slice(0, 5);
+    
+    for (let i = 0; i < vendorsToCreate.length; i++) {
+      const vendorName = vendorsToCreate[i];
       const currentStage = stages[i % stages.length];
       
       // Create stage status object
@@ -658,19 +673,13 @@ export async function generateVendorStages(projectId?: string) {
         stageStatuses[stage.toString()] = currentStage >= stage ? 'completed' : 'pending';
       }
       
-      // Check if vendor stage already exists
-      const existingStages = await storage.getVendorStagesByProject(project.id);
-      const exists = existingStages.some((s: any) => s.vendorName === vendorName);
-      
-      if (!exists) {
-        await storage.createVendorStage({
-          projectId: project.id,
-          vendorName,
-          currentStage,
-          stageStatuses
-        });
-        totalCreated++;
-      }
+      await storage.createVendorStage({
+        projectId: project.id,
+        vendorName,
+        currentStage,
+        stageStatuses
+      });
+      totalCreated++;
     }
   }
   

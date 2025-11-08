@@ -67,8 +67,8 @@ function StageCell({ status, date }: { status: string; date: string | null }) {
   return (
     <div
       className={`flex items-center justify-center p-2 rounded border ${bgClass()} transition-all hover-elevate`}
-      title={date ? `Completed: ${new Date(date).toLocaleDateString()}` : status.toUpperCase()}
-      data-testid={`cell-${status}`}
+      title={date ? `Completed: ${new Date(date).toLocaleDateString()}` : (status || 'pending').toUpperCase()}
+      data-testid={`cell-${status || 'pending'}`}
     >
       {getIcon()}
     </div>
