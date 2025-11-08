@@ -613,6 +613,75 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
   };
 }
 
+/**
+ * Generate vendor stage tracking data for projects
+ * Distributes vendors across different stages of the procurement workflow
+ */
+export async function generateVendorStages(projectId?: string) {
+  const vendors = [
+    "Vendor A",
+    "Vendor B", 
+    "Vendor C",
+    "Vendor D",
+    "Vendor E"
+  ];
+  
+  // Stage distribution across the 10-stage workflow
+  const stages = [2, 3, 5, 7, 8]; // Different stages for variety
+  
+  let targetProjects: any[] = [];
+  
+  if (projectId) {
+    // Generate for specific project
+    const project = await storage.getProject(projectId);
+    if (!project) {
+      throw new Error("Project not found");
+    }
+    targetProjects = [project];
+  } else {
+    // Generate for all projects
+    targetProjects = await storage.getAllProjects();
+    // Limit to first 5 projects to avoid overwhelming the system
+    targetProjects = targetProjects.slice(0, 5);
+  }
+  
+  let totalCreated = 0;
+  
+  for (const project of targetProjects) {
+    for (let i = 0; i < vendors.length; i++) {
+      const vendorName = vendors[i];
+      const currentStage = stages[i % stages.length];
+      
+      // Create stage status object
+      const stageStatuses: Record<string, string> = {};
+      for (let stage = 1; stage <= 10; stage++) {
+        stageStatuses[stage.toString()] = currentStage >= stage ? 'completed' : 'pending';
+      }
+      
+      // Check if vendor stage already exists
+      const existingStages = await storage.getVendorStagesByProject(project.id);
+      const exists = existingStages.some((s: any) => s.vendorName === vendorName);
+      
+      if (!exists) {
+        await storage.createVendorStage({
+          projectId: project.id,
+          vendorName,
+          currentStage,
+          stageStatuses
+        });
+        totalCreated++;
+      }
+    }
+  }
+  
+  return {
+    success: true,
+    projectsCount: targetProjects.length,
+    vendorsCreated: totalCreated,
+    message: `Created ${totalCreated} vendor stage records across ${targetProjects.length} projects`
+  };
+}
+
 // Helper functions for vendor responses
 // Note: Vendor response generation now uses actual RFT questionnaires
 // See excelQuestionnaireHandler.ts for the implementation

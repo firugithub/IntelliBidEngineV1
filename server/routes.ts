@@ -7,7 +7,7 @@ import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./servic
 import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/sampleData";
 import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/smartRftService";
 import { generateAllQuestionnaires } from "./services/excelGenerator";
-import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation } from "./services/rftMockDataGenerator";
+import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rftMockDataGenerator";
 import { azureEmbeddingService } from "./services/azureEmbedding";
 import { azureAISearchService } from "./services/azureAISearch";
 import { azureBlobStorageService } from "./services/azureBlobStorage";
@@ -281,6 +281,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating evaluation:", error);
       res.status(500).json({ error: "Failed to generate evaluation" });
+    }
+  });
+
+  // Generate Vendor Stage Tracking Data
+  app.post("/api/mock-data/generate-vendor-stages", async (req, res) => {
+    try {
+      const { projectId } = req.body;
+      const result = await generateVendorStages(projectId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating vendor stages:", error);
+      res.status(500).json({ error: "Failed to generate vendor stages" });
     }
   });
 
