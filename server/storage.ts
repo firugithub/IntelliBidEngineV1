@@ -39,6 +39,8 @@ import {
   type InsertRftTemplate,
   type GeneratedRft,
   type InsertGeneratedRft,
+  type VendorShortlistingStage,
+  type InsertVendorShortlistingStage,
   systemConfig,
   mcpConnectors,
   portfolios,
@@ -48,6 +50,7 @@ import {
   requirements,
   proposals,
   evaluations,
+  vendorShortlistingStages,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { encryptApiKey, decryptApiKey } from "./utils/encryption";
@@ -200,6 +203,14 @@ export interface IStorage {
   getGeneratedRftsByBusinessCase(businessCaseId: string): Promise<GeneratedRft[]>;
   updateGeneratedRft(id: string, updates: Partial<InsertGeneratedRft>): Promise<void>;
   deleteGeneratedRft(id: string): Promise<void>;
+
+  // Vendor Shortlisting Stages
+  createVendorStage(stage: InsertVendorShortlistingStage): Promise<VendorShortlistingStage>;
+  getVendorStagesByProject(projectId: string): Promise<VendorShortlistingStage[]>;
+  getVendorStageByProjectAndVendor(projectId: string, vendorName: string): Promise<VendorShortlistingStage | undefined>;
+  updateVendorStage(id: string, updates: Partial<InsertVendorShortlistingStage>): Promise<void>;
+  deleteVendorStage(id: string): Promise<void>;
+  getAllVendorStages(): Promise<VendorShortlistingStage[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1142,6 +1153,30 @@ export class MemStorage implements IStorage {
       evaluationInProgress: projectsWithEvaluationsInProgress,
     };
   }
+
+  async createVendorStage(stage: InsertVendorShortlistingStage): Promise<VendorShortlistingStage> {
+    throw new Error("createVendorStage not implemented in MemStorage - PostgreSQL override required");
+  }
+
+  async getVendorStagesByProject(projectId: string): Promise<VendorShortlistingStage[]> {
+    throw new Error("getVendorStagesByProject not implemented in MemStorage - PostgreSQL override required");
+  }
+
+  async getVendorStageByProjectAndVendor(projectId: string, vendorName: string): Promise<VendorShortlistingStage | undefined> {
+    throw new Error("getVendorStageByProjectAndVendor not implemented in MemStorage - PostgreSQL override required");
+  }
+
+  async updateVendorStage(id: string, updates: Partial<InsertVendorShortlistingStage>): Promise<void> {
+    throw new Error("updateVendorStage not implemented in MemStorage - PostgreSQL override required");
+  }
+
+  async deleteVendorStage(id: string): Promise<void> {
+    throw new Error("deleteVendorStage not implemented in MemStorage - PostgreSQL override required");
+  }
+
+  async getAllVendorStages(): Promise<VendorShortlistingStage[]> {
+    throw new Error("getAllVendorStages not implemented in MemStorage - PostgreSQL override required");
+  }
 }
 
 import { db } from "./db";
@@ -1563,4 +1598,46 @@ storage.getPortfolioRftStats = async function(portfolioId: string): Promise<{
     active: filteredRfts.filter((rft) => rft.status === "published").length,
     evaluationInProgress: projectsWithEvaluationsInProgress,
   };
+};
+
+// Override vendor shortlisting stage methods to use PostgreSQL
+storage.createVendorStage = async function(insertStage: InsertVendorShortlistingStage): Promise<VendorShortlistingStage> {
+  const created = await db.insert(vendorShortlistingStages)
+    .values(insertStage)
+    .returning();
+  return created[0]!;
+};
+
+storage.getVendorStagesByProject = async function(projectId: string): Promise<VendorShortlistingStage[]> {
+  return await db.select().from(vendorShortlistingStages).where(eq(vendorShortlistingStages.projectId, projectId));
+};
+
+storage.getVendorStageByProjectAndVendor = async function(projectId: string, vendorName: string): Promise<VendorShortlistingStage | undefined> {
+  const results = await db.select()
+    .from(vendorShortlistingStages)
+    .where(
+      and(
+        eq(vendorShortlistingStages.projectId, projectId),
+        eq(vendorShortlistingStages.vendorName, vendorName)
+      )
+    )
+    .limit(1);
+  return results[0];
+};
+
+storage.updateVendorStage = async function(id: string, updates: Partial<InsertVendorShortlistingStage>): Promise<void> {
+  await db.update(vendorShortlistingStages)
+    .set({
+      ...updates,
+      updatedAt: new Date(),
+    })
+    .where(eq(vendorShortlistingStages.id, id));
+};
+
+storage.deleteVendorStage = async function(id: string): Promise<void> {
+  await db.delete(vendorShortlistingStages).where(eq(vendorShortlistingStages.id, id));
+};
+
+storage.getAllVendorStages = async function(): Promise<VendorShortlistingStage[]> {
+  return await db.select().from(vendorShortlistingStages);
 };

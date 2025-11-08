@@ -3438,6 +3438,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Vendor Shortlisting Stages
+  app.get("/api/projects/:projectId/vendor-stages", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const stages = await storage.getVendorStagesByProject(projectId);
+      res.json(stages);
+    } catch (error) {
+      console.error("Error fetching vendor stages:", error);
+      res.status(500).json({ error: "Failed to fetch vendor stages" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/vendor-stages", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { insertVendorShortlistingStageSchema } = await import("@shared/schema");
+      
+      const validatedData = insertVendorShortlistingStageSchema.parse({
+        ...req.body,
+        projectId,
+      });
+      
+      const stage = await storage.createVendorStage(validatedData);
+      res.json(stage);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error creating vendor stage:", error);
+      res.status(500).json({ error: "Failed to create vendor stage" });
+    }
+  });
+
+  app.put("/api/vendor-stages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { insertVendorShortlistingStageSchema } = await import("@shared/schema");
+      
+      // Verify record exists first
+      const allStages = await storage.getAllVendorStages();
+      const existingStage = allStages.find(s => s.id === id);
+      if (!existingStage) {
+        return res.status(404).json({ error: "Vendor stage not found" });
+      }
+      
+      // Validate updates with partial schema (exclude id, projectId, vendorName which cannot be changed)
+      const updateSchema = insertVendorShortlistingStageSchema.partial().omit({
+        projectId: true,
+        vendorName: true,
+      });
+      
+      const validatedUpdates = updateSchema.parse(req.body);
+      
+      await storage.updateVendorStage(id, validatedUpdates);
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error updating vendor stage:", error);
+      res.status(500).json({ error: "Failed to update vendor stage" });
+    }
+  });
+
+  app.delete("/api/vendor-stages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Verify record exists first
+      const allStages = await storage.getAllVendorStages();
+      const existingStage = allStages.find(s => s.id === id);
+      if (!existingStage) {
+        return res.status(404).json({ error: "Vendor stage not found" });
+      }
+      
+      await storage.deleteVendorStage(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting vendor stage:", error);
+      res.status(500).json({ error: "Failed to delete vendor stage" });
+    }
+  });
+
   // Seed sample RFT for demonstration
   app.post("/api/seed-sample-rft", async (req, res) => {
     try {
