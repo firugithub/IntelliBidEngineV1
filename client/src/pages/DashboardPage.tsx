@@ -195,6 +195,13 @@ export default function DashboardPage() {
     });
   }, [evaluations]);
 
+  // Fetch real vendor shortlisting stage data from the database
+  // IMPORTANT: Must be before conditional returns to satisfy React's Rules of Hooks
+  const { data: vendorStages } = useQuery<any[]>({
+    queryKey: ["/api/projects", projectId, "vendor-stages"],
+    enabled: !!projectId,
+  });
+
   if (projectLoading || evaluationsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -230,12 +237,6 @@ export default function DashboardPage() {
 
   // Sort evaluations by ranking (overall score descending)
   const sortedEvaluations = [...evaluations].sort((a, b) => b.overallScore - a.overallScore);
-
-  // Fetch real vendor shortlisting stage data from the database
-  const { data: vendorStages } = useQuery<any[]>({
-    queryKey: ["/api/projects", projectId, "vendor-stages"],
-    enabled: !!projectId,
-  });
 
   // Transform database vendor stages to match component props format
   const vendorStageData = vendorStages?.map(stage => ({

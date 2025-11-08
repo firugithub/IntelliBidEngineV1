@@ -275,7 +275,7 @@ export default function ExecutiveSummaryPage() {
                     {recentActivity.map((activity, index) => (
                       <button
                         key={index}
-                        onClick={() => setLocation(`/project/${activity.projectId}/dashboard`)}
+                        onClick={() => setLocation(`/project/${activity.projectId}`)}
                         className="w-full flex items-start gap-3 p-3 rounded-md hover-elevate active-elevate-2 text-left border"
                         data-testid={`activity-${index}`}
                       >
