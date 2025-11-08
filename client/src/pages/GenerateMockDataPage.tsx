@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Package, FileSpreadsheet, BarChart3, Loader2, CheckCircle2, Download } from "lucide-react";
+import { FileText, Package, FileSpreadsheet, BarChart3, Loader2, CheckCircle2, Download, Users } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -127,6 +127,23 @@ export default function GenerateMockDataPage() {
     },
     onError: () => {
       toast({ title: "Failed to generate evaluation", variant: "destructive" });
+    },
+  });
+
+  const generateVendorStagesMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/mock-data/generate-vendor-stages", {});
+    },
+    onSuccess: (data: any) => {
+      toast({ 
+        title: "Vendor Stages Generated!", 
+        description: data.message 
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/executive-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to generate vendor stages", variant: "destructive" });
     },
   });
 
@@ -407,6 +424,60 @@ export default function GenerateMockDataPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Generate Vendor Stage Tracking Data */}
+        <Card className="mt-6 border-blue-500/20 bg-blue-500/5">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-blue-500/10 p-2">
+                <Users className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Generate Vendor Stage Tracking Data</CardTitle>
+                <CardDescription className="text-sm">
+                  Populate vendor shortlisting progress and stage matrix with demo data
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This will create 5 vendors distributed across different stages of the 10-stage procurement workflow for existing projects. The data will appear in:
+            </p>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                <span>Vendor Shortlisting Progress Dashboard</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                <span>Vendor Stage Matrix</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                <span>Executive Summary Stage Distribution Chart</span>
+              </div>
+            </div>
+            <Button
+              onClick={() => generateVendorStagesMutation.mutate()}
+              disabled={generateVendorStagesMutation.isPending}
+              className="w-full gap-2"
+              data-testid="button-generate-vendor-stages"
+            >
+              {generateVendorStagesMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating Vendor Stages...
+                </>
+              ) : (
+                <>
+                  <Users className="h-4 w-4" />
+                  Generate Vendor Stage Data
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
