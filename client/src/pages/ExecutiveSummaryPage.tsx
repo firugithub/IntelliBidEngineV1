@@ -274,7 +274,7 @@ export default function ExecutiveSummaryPage() {
                   <div className="space-y-3">
                     {recentActivity.map((activity, index) => (
                       <button
-                        key={index}
+                        key={`${activity.projectId}-${activity.timestamp}-${index}`}
                         onClick={() => setLocation(`/project/${activity.projectId}`)}
                         className="w-full flex items-start gap-3 p-3 rounded-md hover-elevate active-elevate-2 text-left border"
                         data-testid={`activity-${index}`}

@@ -615,25 +615,11 @@ All vendors have been assessed across technical fit, delivery risk, cost, compli
 
 /**
  * Generate vendor stage tracking data for projects
- * Distributes vendors across different stages of the procurement workflow
+ * Uses actual vendor names from existing proposals and creates stage tracking records
  */
 export async function generateVendorStages(projectId?: string) {
-  // Use more varied vendor names to avoid duplicates
-  const vendorNames = [
-    "TechCorp Solutions",
-    "Global Systems Inc",
-    "Innovation Partners",
-    "Enterprise Dynamics",
-    "Digital Ventures Ltd",
-    "Cloud Services Pro",
-    "Data Analytics Corp",
-    "Secure Systems Group",
-    "Platform Technologies",
-    "NextGen Solutions"
-  ];
-  
   // Stage distribution across the 10-stage workflow
-  const stages = [2, 3, 5, 7, 8, 2, 3, 5, 7, 8]; // Different stages for variety
+  const possibleStages = [2, 3, 5, 7, 8]; // Different stages for variety
   
   let targetProjects: any[] = [];
   
@@ -645,27 +631,45 @@ export async function generateVendorStages(projectId?: string) {
     }
     targetProjects = [project];
   } else {
-    // Generate for all projects (or limit to 10 for performance)
+    // Generate for all projects (increased limit to ensure we find projects needing vendor stages)
     const allProjects = await storage.getAllProjects();
-    targetProjects = allProjects.slice(0, Math.min(10, allProjects.length));
+    targetProjects = allProjects.slice(0, Math.min(50, allProjects.length));
   }
   
   let totalCreated = 0;
+  let projectsWithVendors = 0;
   
   for (const project of targetProjects) {
+    // Get actual vendor names from proposals for this project
+    const proposals = await storage.getProposalsByProject(project.id);
+    
+    if (proposals.length === 0) {
+      // Skip projects with no proposals
+      continue;
+    }
+    
+    // Extract unique vendor names from proposals
+    const uniqueVendorNames = [...new Set(proposals.map(p => p.vendorName))];
+    
     // Get existing vendor stages for this project
     const existingStages = await storage.getVendorStagesByProject(project.id);
     const existingVendorNames = new Set(existingStages.map((s: any) => s.vendorName));
     
-    // Find vendors that don't already exist for this project
-    const availableVendors = vendorNames.filter(name => !existingVendorNames.has(name));
+    // Find vendors that don't already have stage tracking
+    const vendorsToCreate = uniqueVendorNames.filter(name => !existingVendorNames.has(name));
     
-    // Take up to 5 vendors per project
-    const vendorsToCreate = availableVendors.slice(0, 5);
+    if (vendorsToCreate.length === 0) {
+      // All vendors already have stage tracking
+      continue;
+    }
     
+    projectsWithVendors++;
+    
+    // Create vendor stage records for each vendor
     for (let i = 0; i < vendorsToCreate.length; i++) {
       const vendorName = vendorsToCreate[i];
-      const currentStage = stages[i % stages.length];
+      // Assign a stage based on index for variety
+      const currentStage = possibleStages[i % possibleStages.length];
       
       // Create stage status object
       const stageStatuses: Record<string, string> = {};
@@ -686,8 +690,9 @@ export async function generateVendorStages(projectId?: string) {
   return {
     success: true,
     projectsCount: targetProjects.length,
+    projectsWithVendors,
     vendorsCreated: totalCreated,
-    message: `Created ${totalCreated} vendor stage records across ${targetProjects.length} projects`
+    message: `Created ${totalCreated} vendor stage records for ${projectsWithVendors} projects (using actual vendor names from proposals)`
   };
 }
 
