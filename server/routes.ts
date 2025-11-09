@@ -3201,6 +3201,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateProjectStatus(projectId, "completed");
       console.log(`✓ Project evaluation completed, status updated to completed`);
 
+      // Synchronize vendor shortlisting stages after evaluations complete
+      try {
+        const { synchronizeVendorStages } = await import("./services/vendorStageService");
+        const result = await synchronizeVendorStages(storage, projectId, { evaluatedStage: 7 });
+        console.log(`✓ Vendor stages synchronized: ${result.created} created, ${result.updated} updated (${result.vendors.join(', ')})`);
+      } catch (stageError) {
+        // Log error but don't block evaluation completion
+        console.error(`⚠️ Failed to synchronize vendor stages (non-critical):`, stageError);
+      }
+
     } catch (error) {
       console.error(`Error in triggerProjectEvaluation:`, error);
       throw error;
