@@ -164,13 +164,13 @@ export class ExecutiveSummaryService {
       })
     );
 
-    // Sort by project count desc, then by avg score desc
+    // Sort by avg score desc (quality first), then by project count desc (quantity second)
     return leaders
       .sort((a, b) => {
-        if (b.projectCount !== a.projectCount) {
-          return b.projectCount - a.projectCount;
+        if (b.avgScore !== a.avgScore) {
+          return b.avgScore - a.avgScore;
         }
-        return b.avgScore - a.avgScore;
+        return b.projectCount - a.projectCount;
       })
       .slice(0, limit);
   }
