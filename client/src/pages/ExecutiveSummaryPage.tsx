@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScoreCard } from "@/components/ScoreCard";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Building2, 
@@ -12,7 +12,12 @@ import {
   AlertCircle,
   Trophy,
   Medal,
-  Award
+  Award,
+  BarChart3,
+  Clock,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -101,11 +106,11 @@ export default function ExecutiveSummaryPage() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "project_created":
-        return <FileText className="h-4 w-4 text-blue-500" />;
+        return <FileText className="h-4 w-4 text-primary" />;
       case "evaluation_completed":
-        return <Activity className="h-4 w-4 text-green-500" />;
+        return <Activity className="h-4 w-4 text-primary" />;
       case "stage_updated":
-        return <TrendingUp className="h-4 w-4 text-orange-500" />;
+        return <TrendingUp className="h-4 w-4 text-primary" />;
       default:
         return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
@@ -113,136 +118,234 @@ export default function ExecutiveSummaryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold">Executive Summary</h1>
-              <p className="text-muted-foreground">
-                Global visibility across all portfolios and projects
+      {/* Professional Hero Section */}
+      <div className="relative overflow-hidden border-b bg-gradient-to-br from-primary/5 via-background to-background">
+        <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05]" />
+        <div className="container relative mx-auto px-6 py-12">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-4 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="gap-1.5 px-3 py-1">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  Executive Dashboard
+                </Badge>
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
+                Portfolio Intelligence
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-xl">
+                Comprehensive oversight of vendor evaluations, procurement workflows, 
+                and strategic initiatives across all business units.
               </p>
             </div>
-            <Button
-              onClick={() => setLocation("/")}
-              variant="outline"
-              className="gap-2"
-              data-testid="button-view-portfolios"
-            >
-              <Building2 className="h-4 w-4" />
-              View Portfolios
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setLocation("/")}
+                variant="outline"
+                className="gap-2"
+                data-testid="button-view-portfolios"
+              >
+                <Building2 className="h-4 w-4" />
+                View Portfolios
+              </Button>
+              <Button
+                onClick={() => setLocation("/generate-mock-data")}
+                className="gap-2"
+                data-testid="button-generate-data"
+              >
+                <TrendingUp className="h-4 w-4" />
+                Generate Data
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Global Metrics */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Global Metrics</h2>
+      <div className="container mx-auto px-6 py-10">
+        <div className="space-y-10">
+          {/* Enhanced Global Metrics */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Key Performance Indicators</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Real-time metrics across your enterprise portfolio
+                </p>
+              </div>
+              <Badge variant="secondary" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Live
+              </Badge>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ScoreCard
-                title="Total Portfolios"
-                value={stats?.totalPortfolios.toString() || "0"}
-                subtitle="Active business units"
-                icon={Building2}
-                trend="neutral"
-                data-testid="card-total-portfolios"
-              />
-              <ScoreCard
-                title="Total Projects"
-                value={stats?.totalProjects.toString() || "0"}
-                subtitle={`${stats?.activeProjects || 0} active, ${stats?.completedProjects || 0} completed`}
-                icon={FileText}
-                trend={stats?.activeProjects ? "up" : "neutral"}
-                data-testid="card-total-projects"
-              />
-              <ScoreCard
-                title="RFTs Generated"
-                value={stats?.totalRfts.toString() || "0"}
-                subtitle="Across all projects"
-                icon={FileText}
-                trend="neutral"
-                data-testid="card-total-rfts"
-              />
-              <ScoreCard
-                title="Vendors Evaluated"
-                value={stats?.totalVendors.toString() || "0"}
-                subtitle={`${stats?.totalEvaluations || 0} total evaluations`}
-                icon={Users}
-                trend="neutral"
-                data-testid="card-total-vendors"
-              />
+              <Card className="hover-elevate transition-all duration-300" data-testid="card-total-portfolios">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Portfolios</CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.totalPortfolios || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Active business units
+                  </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs">
+                    <Minus className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">No change</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all duration-300" data-testid="card-total-projects">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Projects</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.totalProjects || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats?.activeProjects || 0} active • {stats?.completedProjects || 0} completed
+                  </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-primary">
+                    <ArrowUpRight className="h-3 w-3" />
+                    <span className="font-medium">Active pipeline</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all duration-300" data-testid="card-total-rfts">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">RFTs Generated</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.totalRfts || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Across all portfolios
+                  </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs">
+                    <Minus className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">Baseline metric</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all duration-300" data-testid="card-total-vendors">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Vendors</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.totalVendors || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats?.totalEvaluations || 0} total evaluations
+                  </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-primary">
+                    <ArrowUpRight className="h-3 w-3" />
+                    <span className="font-medium">Growing network</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {/* Stage Distribution Chart */}
-          <Card data-testid="card-stage-distribution">
+          {/* Enhanced Stage Distribution Chart */}
+          <Card className="hover-elevate transition-all duration-300" data-testid="card-stage-distribution">
             <CardHeader>
-              <CardTitle>Procurement Stage Distribution</CardTitle>
-              <CardDescription>
-                Vendor count at each stage of the 10-stage procurement workflow
-              </CardDescription>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl">Procurement Workflow Distribution</CardTitle>
+                  <CardDescription className="mt-1.5">
+                    Vendor progress across the 10-stage enterprise procurement lifecycle
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary">10 Stages</Badge>
+              </div>
             </CardHeader>
             <CardContent>
               {stageDistribution && stageDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={stageDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                <ResponsiveContainer width="100%" height={450}>
+                  <BarChart data={stageDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+                    <defs>
+                      <linearGradient id="colorVendors" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9}/>
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
                       dataKey="stageNumber" 
-                      label={{ value: "Stage", position: "insideBottom", offset: -5 }}
+                      label={{ value: "Procurement Stage", position: "insideBottom", offset: -10, style: { fontSize: 14, fill: 'hsl(var(--muted-foreground))' } }}
+                      tick={{ fontSize: 12 }}
                     />
                     <YAxis 
-                      label={{ value: "Vendor Count", angle: -90, position: "insideLeft" }}
+                      label={{ value: "Active Vendors", angle: -90, position: "insideLeft", style: { fontSize: 14, fill: 'hsl(var(--muted-foreground))' } }}
                       allowDecimals={false}
+                      tick={{ fontSize: 12 }}
                     />
                     <Tooltip 
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-card border rounded-md p-3 shadow-lg">
-                              <p className="font-semibold">{payload[0].payload.stageName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {payload[0].value} vendor{payload[0].value !== 1 ? 's' : ''}
+                            <div className="bg-card border rounded-lg p-4 shadow-xl">
+                              <p className="font-bold text-base mb-1">{payload[0].payload.stageName}</p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                <Users className="h-3.5 w-3.5" />
+                                {payload[0].value} vendor{payload[0].value !== 1 ? 's' : ''} active
                               </p>
                             </div>
                           );
                         }
                         return null;
                       }}
+                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
                     />
-                    <Legend />
-                    <Bar dataKey="vendorCount" fill="hsl(var(--primary))" name="Vendors" />
+                    <Bar 
+                      dataKey="vendorCount" 
+                      fill="url(#colorVendors)" 
+                      name="Active Vendors"
+                      radius={[8, 8, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  No vendor stage data available
+                <div className="text-center py-20 text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">No vendor stage data available</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Vendor Leaders */}
-            <Card data-testid="card-vendor-leaders">
+            {/* Enhanced Vendor Leaders */}
+            <Card className="hover-elevate transition-all duration-300" data-testid="card-vendor-leaders">
               <CardHeader>
-                <CardTitle>Top Vendors</CardTitle>
-                <CardDescription>
-                  Leading vendors by project count and evaluation scores
-                </CardDescription>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                      Top Performing Vendors
+                    </CardTitle>
+                    <CardDescription className="mt-1.5">
+                      Ranked by evaluation quality scores and project engagement
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Top 5
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 {vendorLeaders && vendorLeaders.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {vendorLeaders.map((vendor, index) => {
                       const getRankColor = (rank: number) => {
                         switch (rank) {
-                          case 0: return "bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30";
-                          case 1: return "bg-gradient-to-r from-slate-400/10 to-slate-500/10 border-slate-400/30";
-                          case 2: return "bg-gradient-to-r from-orange-600/10 to-orange-700/10 border-orange-600/30";
-                          default: return "bg-card border";
+                          case 0: return "bg-primary/5 border-primary/30";
+                          case 1: return "bg-accent/10 dark:bg-accent/5 border-accent/40 dark:border-accent/30";
+                          case 2: return "bg-muted/20 dark:bg-muted/10 border-muted-foreground/20 dark:border-muted-foreground/15";
+                          default: return "bg-card border-border/50";
                         }
                       };
 
@@ -267,48 +370,43 @@ export default function ExecutiveSummaryPage() {
                       return (
                         <div
                           key={vendor.vendorName}
-                          className={`flex items-center gap-4 p-4 rounded-md hover-elevate border ${getRankColor(index)}`}
+                          className={`group relative flex items-center gap-4 p-5 rounded-lg hover-elevate active-elevate-2 border-2 transition-all duration-300 ${getRankColor(index)}`}
                           data-testid={`vendor-leader-${index}`}
                         >
-                          <div className={`flex items-center justify-center ${rankBadge.color} min-w-[50px]`}>
+                          <div className={`flex items-center justify-center ${rankBadge.color} min-w-[60px]`}>
                             {rankBadge.icon ? (
-                              <rankBadge.icon className="h-8 w-8" strokeWidth={2.5} />
+                              <rankBadge.icon className="h-10 w-10" strokeWidth={2.5} />
                             ) : (
-                              <span className="text-3xl font-bold">{rankBadge.text}</span>
+                              <span className="text-4xl font-bold">{rankBadge.text}</span>
                             )}
                           </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="font-semibold text-base">{vendor.vendorName}</p>
-                              <span className={`text-2xl font-bold font-mono ${getScoreColor(vendor.avgScore)}`}>
-                                {vendor.avgScore}%
-                              </span>
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center justify-between gap-4">
+                              <p className="font-bold text-lg leading-tight">{vendor.vendorName}</p>
+                              <div className="flex items-baseline gap-1">
+                                <span className={`text-3xl font-bold font-mono ${getScoreColor(vendor.avgScore)}`}>
+                                  {vendor.avgScore}
+                                </span>
+                                <span className={`text-sm font-medium ${getScoreColor(vendor.avgScore)}`}>%</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2 text-sm">
-                                <div className="h-2 w-2 rounded-full bg-primary"></div>
-                                <span className="text-muted-foreground">
-                                  {vendor.projectCount} project{vendor.projectCount !== 1 ? 's' : ''}
+                            <div className="flex items-center gap-6 text-sm">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-primary" />
+                                <span className="font-medium text-foreground">
+                                  {vendor.projectCount} {vendor.projectCount === 1 ? 'Project' : 'Projects'}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                                <span className="text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-primary" />
+                                <span className="font-medium text-foreground">
                                   Stage {vendor.totalStageProgress}/10
                                 </span>
                               </div>
                             </div>
-                            <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                            <div className="relative w-full bg-muted/40 rounded-full h-2.5 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${
-                                  vendor.avgScore >= 80 
-                                    ? "bg-gradient-to-r from-green-500 to-emerald-600" 
-                                    : vendor.avgScore >= 60 
-                                    ? "bg-gradient-to-r from-blue-500 to-cyan-600"
-                                    : vendor.avgScore >= 40
-                                    ? "bg-gradient-to-r from-yellow-500 to-amber-600"
-                                    : "bg-gradient-to-r from-orange-500 to-red-600"
-                                }`}
+                                className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-500"
                                 style={{ width: `${vendor.avgScore}%` }}
                               />
                             </div>
@@ -318,20 +416,32 @@ export default function ExecutiveSummaryPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No vendor data available
+                  <div className="text-center py-20 text-muted-foreground">
+                    <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">No vendor performance data available</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Recent Activity Feed */}
-            <Card data-testid="card-recent-activity">
+            {/* Enhanced Recent Activity Feed */}
+            <Card className="hover-elevate transition-all duration-300" data-testid="card-recent-activity">
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest updates across all portfolios and projects
-                </CardDescription>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      Activity Stream
+                    </CardTitle>
+                    <CardDescription className="mt-1.5">
+                      Real-time updates from across your portfolio ecosystem
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="gap-1">
+                    <Clock className="h-3 w-3" />
+                    Live
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 {recentActivity && recentActivity.length > 0 ? (
@@ -340,31 +450,36 @@ export default function ExecutiveSummaryPage() {
                       <button
                         key={`${activity.projectId}-${activity.timestamp}-${index}`}
                         onClick={() => setLocation(`/project/${activity.projectId}`)}
-                        className="w-full flex items-start gap-3 p-3 rounded-md hover-elevate active-elevate-2 text-left border"
+                        className="w-full flex items-start gap-4 p-4 rounded-lg hover-elevate active-elevate-2 text-left border border-border/50 bg-muted/20 transition-all duration-300 group"
                         data-testid={`activity-${index}`}
                       >
-                        <div className="mt-0.5">
+                        <div className="flex items-center justify-center h-9 w-9 rounded-full bg-background border shadow-sm group-hover:shadow-md transition-shadow">
                           {getActivityIcon(activity.type)}
                         </div>
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <p className="text-sm font-medium truncate">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <p className="text-sm font-semibold leading-tight">
                             {activity.description}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{activity.portfolioName}</span>
+                            <Building2 className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate font-medium">{activity.portfolioName}</span>
                             <ChevronRight className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate">{activity.projectName}</span>
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatTimestamp(activity.timestamp)}
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+                            {formatTimestamp(activity.timestamp)}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                         </div>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No recent activity
+                  <div className="text-center py-20 text-muted-foreground">
+                    <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">No recent activity to display</p>
                   </div>
                 )}
               </CardContent>
