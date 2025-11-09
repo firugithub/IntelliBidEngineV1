@@ -4,9 +4,11 @@
 IntelliBid is an AI-powered platform designed to objectively transform and streamline the vendor evaluation and shortlisting process for Nujum Air, the Middle East's largest airline. It automates the analysis of RFT/RFI responses and partner proposals, generating risk-adjusted shortlisting reports with clear rationale for various airline stakeholders. The platform aims to significantly reduce manual review times, offering transparent, data-driven decision-making for vendor selection in the aviation industry. It is a fully functional MVP with comprehensive frontend, backend, AI analysis, and airline-specific sample data.
 
 **Recent Updates (November 2025):**
-- Vendor stage tracking now uses actual vendor names from proposals table (eliminating generic placeholder names)
-- Enhanced vendor stage generation to process up to 50 projects for comprehensive coverage
-- All vendor stage data uses real aviation/technology vendor names (Amadeus, SITA, IBS Software, Rockwell Collins, etc.)
+- **Context-Aware Vendor Stage Tracking**: Stages intelligently set based on project state (stage 6-8 for evaluated projects, stage 5 for proposal-only projects)
+- **Enhanced Top Vendors Display**: Replaced emojis with lucide-react icons (Trophy, Medal, Award), added color-coded scores and gradient progress bars
+- **Vendor Data Quality**: Uses actual vendor names from proposals table with proper joins between evaluations and proposals
+- **Improved Project Counting**: Top Vendors aggregation now includes projects from both evaluations and vendor stage tracking for accurate counts
+- **Data Format Evolution**: Stage statuses stored as nested objects `{ status: string, date: string | null }` for better extensibility
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

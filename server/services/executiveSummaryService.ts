@@ -105,9 +105,13 @@ export class ExecutiveSummaryService {
 
   async getVendorLeaders(limit: number = 5): Promise<VendorLeader[]> {
     const evaluations = await this.storage.getAllEvaluations();
+    const proposals = await this.storage.getAllProposals();
     const vendorStages = await this.storage.getAllVendorStages();
 
-    // Group evaluations by vendor
+    // Create proposal lookup map
+    const proposalMap = new Map(proposals.map((p: any) => [p.id, p.vendorName]));
+
+    // Group evaluations by vendor (get vendor name from proposals)
     const vendorMap = new Map<string, {
       projectIds: Set<string>;
       scores: number[];
@@ -115,23 +119,35 @@ export class ExecutiveSummaryService {
     }>();
 
     evaluations.forEach((evaluation: any) => {
-      if (!vendorMap.has(evaluation.vendorName)) {
-        vendorMap.set(evaluation.vendorName, {
+      const vendorName = proposalMap.get(evaluation.proposalId) as string | undefined;
+      if (!vendorName) return; // Skip if no matching proposal
+      
+      if (!vendorMap.has(vendorName)) {
+        vendorMap.set(vendorName, {
           projectIds: new Set(),
           scores: [],
           maxStage: 0,
         });
       }
       
-      const vendor = vendorMap.get(evaluation.vendorName)!;
+      const vendor = vendorMap.get(vendorName)!;
       vendor.projectIds.add(evaluation.projectId);
       vendor.scores.push(evaluation.overallScore);
     });
 
     // Add stage progress data
-    vendorStages.forEach(stage => {
-      if (vendorMap.has(stage.vendorName)) {
+    vendorStages.forEach((stage: any) => {
+      if (!vendorMap.has(stage.vendorName)) {
+        // Add vendors from stage tracking even if they don't have evaluations yet
+        vendorMap.set(stage.vendorName, {
+          projectIds: new Set([stage.projectId]),
+          scores: [],
+          maxStage: stage.currentStage,
+        });
+      } else {
         const vendor = vendorMap.get(stage.vendorName)!;
+        // Always add the project ID from stage tracking
+        vendor.projectIds.add(stage.projectId);
         vendor.maxStage = Math.max(vendor.maxStage, stage.currentStage);
       }
     });

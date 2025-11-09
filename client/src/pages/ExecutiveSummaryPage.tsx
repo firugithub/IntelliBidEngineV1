@@ -9,7 +9,10 @@ import {
   Activity,
   ChevronRight,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Trophy,
+  Medal,
+  Award
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -232,26 +235,87 @@ export default function ExecutiveSummaryPage() {
               </CardHeader>
               <CardContent>
                 {vendorLeaders && vendorLeaders.length > 0 ? (
-                  <div className="space-y-4">
-                    {vendorLeaders.map((vendor, index) => (
-                      <div
-                        key={vendor.vendorName}
-                        className="flex items-center justify-between p-4 rounded-md hover-elevate border"
-                        data-testid={`vendor-leader-${index}`}
-                      >
-                        <div className="space-y-1">
-                          <p className="font-semibold">{vendor.vendorName}</p>
-                          <div className="flex gap-4 text-sm text-muted-foreground">
-                            <span>{vendor.projectCount} project{vendor.projectCount !== 1 ? 's' : ''}</span>
-                            <span>Avg Score: {vendor.avgScore}%</span>
-                            <span>Stage {vendor.totalStageProgress}/10</span>
+                  <div className="space-y-3">
+                    {vendorLeaders.map((vendor, index) => {
+                      const getRankColor = (rank: number) => {
+                        switch (rank) {
+                          case 0: return "bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30";
+                          case 1: return "bg-gradient-to-r from-slate-400/10 to-slate-500/10 border-slate-400/30";
+                          case 2: return "bg-gradient-to-r from-orange-600/10 to-orange-700/10 border-orange-600/30";
+                          default: return "bg-card border";
+                        }
+                      };
+
+                      const getRankBadge = (rank: number) => {
+                        switch (rank) {
+                          case 0: return { icon: Trophy, color: "text-yellow-600 dark:text-yellow-500" };
+                          case 1: return { icon: Medal, color: "text-slate-500 dark:text-slate-400" };
+                          case 2: return { icon: Award, color: "text-orange-600 dark:text-orange-500" };
+                          default: return { icon: null, text: `#${rank + 1}`, color: "text-muted-foreground" };
+                        }
+                      };
+
+                      const getScoreColor = (score: number) => {
+                        if (score >= 80) return "text-green-600 dark:text-green-500";
+                        if (score >= 60) return "text-blue-600 dark:text-blue-500";
+                        if (score >= 40) return "text-yellow-600 dark:text-yellow-500";
+                        return "text-orange-600 dark:text-orange-500";
+                      };
+
+                      const rankBadge = getRankBadge(index);
+
+                      return (
+                        <div
+                          key={vendor.vendorName}
+                          className={`flex items-center gap-4 p-4 rounded-md hover-elevate border ${getRankColor(index)}`}
+                          data-testid={`vendor-leader-${index}`}
+                        >
+                          <div className={`flex items-center justify-center ${rankBadge.color} min-w-[50px]`}>
+                            {rankBadge.icon ? (
+                              <rankBadge.icon className="h-8 w-8" strokeWidth={2.5} />
+                            ) : (
+                              <span className="text-3xl font-bold">{rankBadge.text}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-base">{vendor.vendorName}</p>
+                              <span className={`text-2xl font-bold font-mono ${getScoreColor(vendor.avgScore)}`}>
+                                {vendor.avgScore}%
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <div className="h-2 w-2 rounded-full bg-primary"></div>
+                                <span className="text-muted-foreground">
+                                  {vendor.projectCount} project{vendor.projectCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                <span className="text-muted-foreground">
+                                  Stage {vendor.totalStageProgress}/10
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  vendor.avgScore >= 80 
+                                    ? "bg-gradient-to-r from-green-500 to-emerald-600" 
+                                    : vendor.avgScore >= 60 
+                                    ? "bg-gradient-to-r from-blue-500 to-cyan-600"
+                                    : vendor.avgScore >= 40
+                                    ? "bg-gradient-to-r from-yellow-500 to-amber-600"
+                                    : "bg-gradient-to-r from-orange-500 to-red-600"
+                                }`}
+                                style={{ width: `${vendor.avgScore}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div className="text-2xl font-bold text-primary">
-                          #{index + 1}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">

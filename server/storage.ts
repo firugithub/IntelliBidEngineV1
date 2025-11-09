@@ -102,6 +102,7 @@ export interface IStorage {
   // Proposals
   createProposal(proposal: InsertProposal): Promise<Proposal>;
   getProposalsByProject(projectId: string): Promise<Proposal[]>;
+  getAllProposals(): Promise<Proposal[]>;
   getProposal(id: string): Promise<Proposal | undefined>;
   deleteProposal(id: string): Promise<void>;
 
@@ -1506,6 +1507,10 @@ storage.createProposal = async function(insertProposal: InsertProposal): Promise
 
 storage.getProposalsByProject = async function(projectId: string): Promise<Proposal[]> {
   return await db.select().from(proposals).where(eq(proposals.projectId, projectId));
+};
+
+storage.getAllProposals = async function(): Promise<Proposal[]> {
+  return await db.select().from(proposals);
 };
 
 storage.getProposal = async function(id: string): Promise<Proposal | undefined> {
