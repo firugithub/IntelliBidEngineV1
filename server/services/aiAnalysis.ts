@@ -45,12 +45,17 @@ export async function getOpenAIClient(): Promise<OpenAI> {
 
     // If Azure OpenAI is configured (endpoint contains 'azure' and has deployment), use Azure
     if (azureEndpoint && azureDeployment && azureApiKey && azureEndpoint.includes('azure')) {
+      // Remove trailing slash from endpoint
+      const cleanEndpoint = azureEndpoint.replace(/\/$/, '');
+      
       console.log("Using Azure OpenAI config from database for agents");
-      console.log(`  Endpoint: ${azureEndpoint}`);
+      console.log(`  Endpoint: ${cleanEndpoint}`);
       console.log(`  Deployment: ${azureDeployment}`);
       console.log(`  API Version: ${azureApiVersion}`);
+      console.log(`  Final URL: ${cleanEndpoint}/openai/deployments/${azureDeployment}`);
+      
       openaiClient = new OpenAI({
-        baseURL: `${azureEndpoint}/openai/deployments/${azureDeployment}`,
+        baseURL: `${cleanEndpoint}/openai/deployments/${azureDeployment}`,
         apiKey: azureApiKey,
         defaultQuery: { "api-version": azureApiVersion },
         defaultHeaders: { "api-key": azureApiKey },

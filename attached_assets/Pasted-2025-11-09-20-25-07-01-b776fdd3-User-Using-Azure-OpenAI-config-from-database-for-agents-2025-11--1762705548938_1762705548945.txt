@@ -1,0 +1,105 @@
+2025-11-09 20:25:07.01
+b776fdd3
+User
+Using Azure OpenAI config from database for agents
+2025-11-09 20:25:07.01
+b776fdd3
+User
+Endpoint: https://azureopenaiintellibid.cognitiveservices.azure.com/
+2025-11-09 20:25:07.01
+b776fdd3
+User
+Deployment: gpt-4.1
+2025-11-09 20:25:07.01
+b776fdd3
+User
+API Version: 2025-04-14
+2025-11-09 20:25:08.20
+b776fdd3
+User
+Error creating standard from upload: NotFoundError: 404 Resource not found
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at APIError.generate (file:///home/runner/workspace/node_modules/openai/core/error.mjs:50:20)
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at OpenAI.makeStatusError (file:///home/runner/workspace/node_modules/openai/client.mjs:162:32)
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at OpenAI.makeRequest (file:///home/runner/workspace/node_modules/openai/client.mjs:330:30)
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at async extractComplianceSections (file:///home/runner/workspace/dist/index.js:3522:20)
+2025-11-09 20:25:08.20
+b776fdd3
+User
+at async file:///home/runner/workspace/dist/index.js:10359:24 {
+2025-11-09 20:25:08.20
+b776fdd3
+User
+status: 404,
+2025-11-09 20:25:08.20
+b776fdd3
+User
+headers: Headers {
+2025-11-09 20:25:08.20
+b776fdd3
+User
+'content-length': '56',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+'content-type': 'application/json',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+'apim-request-id': '0a3ef793-2359-45d5-8668-24f84084cdb2',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+'x-content-type-options': 'nosniff',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+date: 'Sun, 09 Nov 2025 16:25:07 GMT'
+2025-11-09 20:25:08.20
+b776fdd3
+User
+},
+2025-11-09 20:25:08.20
+b776fdd3
+User
+requestID: null,
+2025-11-09 20:25:08.20
+b776fdd3
+User
+error: { code: '404', message: 'Resource not found' },
+2025-11-09 20:25:08.20
+b776fdd3
+User
+code: '404',
+2025-11-09 20:25:08.20
+b776fdd3
+User
+param: undefined,
+2025-11-09 20:25:08.20
+b776fdd3
+User
+type: undefined
+2025-11-09 20:25:08.20
+b776fdd3
+User
+}
