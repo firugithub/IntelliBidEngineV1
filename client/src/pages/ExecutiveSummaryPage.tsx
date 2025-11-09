@@ -17,7 +17,8 @@ import {
   Clock,
   ArrowUpRight,
   ArrowDownRight,
-  Minus
+  Minus,
+  Sparkles
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -106,11 +107,11 @@ export default function ExecutiveSummaryPage() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "project_created":
-        return <FileText className="h-4 w-4 text-primary" />;
+        return <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
       case "evaluation_completed":
-        return <Activity className="h-4 w-4 text-primary" />;
+        return <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case "stage_updated":
-        return <TrendingUp className="h-4 w-4 text-primary" />;
+        return <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
       default:
         return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
@@ -181,16 +182,18 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-portfolios">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Portfolios</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
+                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{stats?.totalPortfolios || 0}</div>
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats?.totalPortfolios || 0}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Active business units
                   </p>
-                  <div className="mt-3 flex items-center gap-1 text-xs">
-                    <Minus className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">No change</span>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                    <TrendingUp className="h-3 w-3" />
+                    <span className="font-medium">Portfolio growth</span>
                   </div>
                 </CardContent>
               </Card>
@@ -198,14 +201,16 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-projects">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Projects</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div className="p-2 rounded-lg bg-green-500/10 dark:bg-green-400/10">
+                    <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{stats?.totalProjects || 0}</div>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats?.totalProjects || 0}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {stats?.activeProjects || 0} active • {stats?.completedProjects || 0} completed
                   </p>
-                  <div className="mt-3 flex items-center gap-1 text-xs text-primary">
+                  <div className="mt-3 flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                     <ArrowUpRight className="h-3 w-3" />
                     <span className="font-medium">Active pipeline</span>
                   </div>
@@ -215,16 +220,18 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-rfts">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">RFTs Generated</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <div className="p-2 rounded-lg bg-purple-500/10 dark:bg-purple-400/10">
+                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{stats?.totalRfts || 0}</div>
+                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats?.totalRfts || 0}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Across all portfolios
                   </p>
-                  <div className="mt-3 flex items-center gap-1 text-xs">
-                    <Minus className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">Baseline metric</span>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                    <Sparkles className="h-3 w-3" />
+                    <span className="font-medium">AI-powered creation</span>
                   </div>
                 </CardContent>
               </Card>
@@ -232,14 +239,16 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-vendors">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Vendors</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <div className="p-2 rounded-lg bg-orange-500/10 dark:bg-orange-400/10">
+                    <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{stats?.totalVendors || 0}</div>
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats?.totalVendors || 0}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {stats?.totalEvaluations || 0} total evaluations
                   </p>
-                  <div className="mt-3 flex items-center gap-1 text-xs text-primary">
+                  <div className="mt-3 flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
                     <ArrowUpRight className="h-3 w-3" />
                     <span className="font-medium">Growing network</span>
                   </div>
@@ -267,8 +276,8 @@ export default function ExecutiveSummaryPage() {
                   <BarChart data={stageDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
                     <defs>
                       <linearGradient id="colorVendors" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9}/>
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                        <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -342,9 +351,9 @@ export default function ExecutiveSummaryPage() {
                     {vendorLeaders.map((vendor, index) => {
                       const getRankColor = (rank: number) => {
                         switch (rank) {
-                          case 0: return "bg-primary/5 border-primary/30";
-                          case 1: return "bg-accent/10 dark:bg-accent/5 border-accent/40 dark:border-accent/30";
-                          case 2: return "bg-muted/20 dark:bg-muted/10 border-muted-foreground/20 dark:border-muted-foreground/15";
+                          case 0: return "bg-gradient-to-br from-yellow-500/10 to-amber-500/5 dark:from-yellow-400/10 dark:to-amber-400/5 border-yellow-500/40 dark:border-yellow-400/40";
+                          case 1: return "bg-gradient-to-br from-slate-400/10 to-slate-500/5 dark:from-slate-300/10 dark:to-slate-400/5 border-slate-400/40 dark:border-slate-300/40";
+                          case 2: return "bg-gradient-to-br from-orange-600/10 to-orange-700/5 dark:from-orange-500/10 dark:to-orange-600/5 border-orange-600/40 dark:border-orange-500/40";
                           default: return "bg-card border-border/50";
                         }
                       };
@@ -406,7 +415,15 @@ export default function ExecutiveSummaryPage() {
                             </div>
                             <div className="relative w-full bg-muted/40 rounded-full h-2.5 overflow-hidden">
                               <div
-                                className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-500"
+                                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
+                                  vendor.avgScore >= 80 
+                                    ? "bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500" 
+                                    : vendor.avgScore >= 60 
+                                    ? "bg-gradient-to-r from-blue-500 to-cyan-600 dark:from-blue-400 dark:to-cyan-500"
+                                    : vendor.avgScore >= 40
+                                    ? "bg-gradient-to-r from-yellow-500 to-amber-600 dark:from-yellow-400 dark:to-amber-500"
+                                    : "bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500"
+                                }`}
                                 style={{ width: `${vendor.avgScore}%` }}
                               />
                             </div>
