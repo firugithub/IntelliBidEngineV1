@@ -457,6 +457,10 @@ Return a JSON object with this exact structure:
 
 Generate exactly ${count} questions. Number them sequentially from 1 to ${count}.`;
 
+  console.log(`\n🎯 Generating ${questionnaireType} questionnaire with ${count} questions`);
+  console.log(`📊 Context: ${requirementCount} requirements, ${businessCaseExtract.risks?.length || 0} risks, ${businessCaseExtract.successCriteria?.length || 0} criteria`);
+  console.log(`📝 First requirement: ${businessCaseExtract.keyRequirements?.[0] || "None"}`);
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
