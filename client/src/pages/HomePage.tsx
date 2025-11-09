@@ -90,13 +90,14 @@ export default function HomePage() {
         href={`/portfolio/${portfolio.id}`}
         data-testid={`link-portfolio-${portfolio.id}`}
       >
-        <Card className="h-full hover-elevate active-elevate-2 cursor-pointer transition-all">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-3">
+        <Card className="h-full hover-elevate active-elevate-2 cursor-pointer transition-all group">
+          <CardHeader className="pb-4 relative">
+            <div className="absolute inset-0 gradient-primary-soft opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-lg pointer-events-none"></div>
+            <div className="flex items-start justify-between gap-3 relative z-10">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Building2 className="h-5 w-5 text-primary" />
+                  <div className="rounded-lg gradient-primary p-2">
+                    <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <CardTitle className="text-lg" data-testid={`text-portfolio-${portfolio.id}`}>
                     {portfolio.name}
@@ -146,22 +147,24 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-8">
+      {/* Gradient Hero Section */}
+      <div className="border-b relative overflow-hidden">
+        <div className="absolute inset-0 gradient-accent-soft opacity-70"></div>
+        <div className="container mx-auto px-4 py-12 relative z-10">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold">IntelliBid</h1>
+              <div className="flex items-center gap-3 mb-3">
+                <h1 className="text-5xl font-bold gradient-text-accent">IntelliBid</h1>
                 <Badge variant="secondary" className="text-sm px-3 py-1">
                   Nujum Air
                 </Badge>
               </div>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground font-medium">
                 AI-Powered Vendor Shortlisting for Middle East's Largest Airline
               </p>
             </div>
             <Link href="/standards">
-              <Button variant="outline" className="gap-2" data-testid="button-standards">
+              <Button variant="outline" className="gap-2 backdrop-blur-sm" data-testid="button-standards">
                 <Shield className="h-4 w-4" />
                 Knowledge Pack
               </Button>

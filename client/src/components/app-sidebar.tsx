@@ -98,10 +98,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <div className="flex items-center justify-center h-8 w-8 rounded-md bg-primary/10">
-            <Sparkles className="h-5 w-5 text-primary" />
+      <SidebarHeader className="border-b border-sidebar-border relative overflow-hidden">
+        <div className="absolute inset-0 gradient-secondary-soft opacity-50"></div>
+        <div className="flex items-center gap-2 px-4 py-3 relative z-10">
+          <div className="flex items-center justify-center h-8 w-8 rounded-md gradient-accent shadow-lg">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
           {state === "expanded" && (
             <div className="flex flex-col">

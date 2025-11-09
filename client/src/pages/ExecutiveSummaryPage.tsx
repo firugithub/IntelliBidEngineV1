@@ -182,8 +182,8 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-portfolios">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Portfolios</CardTitle>
-                  <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
-                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 rounded-lg gradient-primary">
+                    <Building2 className="h-4 w-4 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -201,8 +201,8 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-projects">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Projects</CardTitle>
-                  <div className="p-2 rounded-lg bg-green-500/10 dark:bg-green-400/10">
-                    <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <div className="p-2 rounded-lg gradient-success">
+                    <FileText className="h-4 w-4 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -220,8 +220,8 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-rfts">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">RFTs Generated</CardTitle>
-                  <div className="p-2 rounded-lg bg-purple-500/10 dark:bg-purple-400/10">
-                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 rounded-lg gradient-secondary">
+                    <BarChart3 className="h-4 w-4 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -239,8 +239,8 @@ export default function ExecutiveSummaryPage() {
               <Card className="hover-elevate transition-all duration-300" data-testid="card-total-vendors">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Vendors</CardTitle>
-                  <div className="p-2 rounded-lg bg-orange-500/10 dark:bg-orange-400/10">
-                    <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  <div className="p-2 rounded-lg gradient-warning">
+                    <Users className="h-4 w-4 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>

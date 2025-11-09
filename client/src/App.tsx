@@ -62,9 +62,12 @@ function App() {
             <div className="flex h-screen w-full">
               <AppSidebar />
               <div className="flex flex-col flex-1 overflow-hidden">
-                <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 border-b border-border bg-background">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <ThemeToggle />
+                <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 border-b border-border/50 backdrop-blur-sm relative overflow-hidden">
+                  <div className="absolute inset-0 gradient-primary-soft opacity-60"></div>
+                  <SidebarTrigger data-testid="button-sidebar-toggle" className="relative z-10" />
+                  <div className="relative z-10">
+                    <ThemeToggle />
+                  </div>
                 </header>
                 <main className="flex-1 overflow-auto">
                   <Router />
