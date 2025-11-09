@@ -410,10 +410,9 @@ export async function generatePdfDocument(options: GenerateDocOptions): Promise<
         for (const item of parsedContent) {
           if (item.type === 'paragraph') {
             doc.fontSize(11).font('Helvetica');
-            let currentX = doc.x;
             for (const seg of item.segments!) {
               const font = seg.bold ? 'Helvetica-Bold' : seg.italic ? 'Helvetica-Oblique' : 'Helvetica';
-              doc.font(font).text(seg.text, currentX, doc.y, { continued: true, lineBreak: false });
+              doc.font(font).text(seg.text, { continued: true, width: doc.page.width - 144 });
             }
             doc.text('', { continued: false }); // End the line
             doc.moveDown(0.5);
