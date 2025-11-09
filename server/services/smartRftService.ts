@@ -308,85 +308,154 @@ export async function generateQuestionnaireQuestions(
   questionnaireType: "product" | "nfr" | "cybersecurity" | "agile",
   count: number
 ): Promise<QuestionnaireQuestion[]> {
+  
+  // Build detailed context strings
+  const requirementsList = businessCaseExtract.keyRequirements?.length > 0
+    ? businessCaseExtract.keyRequirements.map((req, i) => `${i + 1}. ${req}`).join("\n")
+    : "No specific requirements provided";
+  
+  const risksList = businessCaseExtract.risks?.length > 0
+    ? businessCaseExtract.risks.map((risk, i) => `${i + 1}. ${risk}`).join("\n")
+    : "No specific risks identified";
+  
+  const criteriaList = businessCaseExtract.successCriteria?.length > 0
+    ? businessCaseExtract.successCriteria.map((criteria, i) => `${i + 1}. ${criteria}`).join("\n")
+    : "No specific success criteria defined";
+  
+  const stakeholdersList = businessCaseExtract.stakeholders?.length > 0
+    ? businessCaseExtract.stakeholders.join(", ")
+    : "Not specified";
+
+  // Calculate questions per requirement for better distribution
+  const requirementCount = businessCaseExtract.keyRequirements?.length || 0;
+  const questionsPerRequirement = requirementCount > 0 
+    ? Math.ceil(count / requirementCount)
+    : count;
+
   const questionnairePrompts = {
-    product: `Generate ${count} detailed product capability questions for evaluating vendor solutions.
-Focus on:
-- Core product features and functionality
-- User experience and interface
-- Integration capabilities
-- Scalability and performance
-- Product roadmap and innovation
-- Vendor support and training
+    product: `CRITICAL: Generate ${count} product capability questions that are DIRECTLY DERIVED from the Key Requirements listed below.
 
-Each question should be specific, measurable, and relevant to ${businessCaseExtract.projectName}.`,
-    
-    nfr: `Generate ${count} comprehensive Non-Functional Requirements (NFR) questions for vendor evaluation.
-Focus on:
-- Performance (response time, throughput, load handling)
-- Reliability and availability (uptime, failover, disaster recovery)
-- Scalability (horizontal/vertical scaling, multi-tenancy)
-- Security (authentication, authorization, encryption, data protection)
-- Maintainability (monitoring, logging, troubleshooting)
-- Usability (accessibility, user training, documentation)
-- Compatibility (browser support, mobile, integrations)
-- Compliance (data privacy, regulatory requirements)
+APPROACH:
+${requirementCount > 0 
+  ? `For each of the ${requirementCount} Key Requirements listed, create approximately ${questionsPerRequirement} specific questions that ask vendors to demonstrate how their product addresses that exact requirement.` 
+  : `Since no specific requirements were provided, generate ${count} questions covering core product capabilities aligned with the project objective and scope.`}
+The questions MUST reference the specific requirement details whenever available.
 
-Each question should be specific and measurable for ${businessCaseExtract.projectName}.`,
-    
-    cybersecurity: `Generate ${count} detailed cybersecurity and compliance questions for vendor evaluation.
-Focus on:
-- Data encryption (at rest, in transit)
-- Access control and authentication (SSO, MFA, RBAC)
-- Vulnerability management and penetration testing
-- Incident response and security monitoring
-- Compliance certifications (ISO 27001, SOC 2, GDPR, PCI-DSS)
-- Data backup and recovery
-- Third-party security audits
-- Security training for staff
+For example, if a requirement is "Real-time fleet tracking for 200+ aircraft":
+✓ GOOD: "How does your solution handle real-time tracking and location updates for a fleet of 200+ aircraft simultaneously?"
+✓ GOOD: "Describe your product's data refresh rate and latency for fleet tracking operations at scale."
+✗ BAD: "Does your product support fleet tracking?" (too generic, yes/no)
+✗ BAD: "What features does your product have?" (not tied to requirement)
 
-Each question should address industry-appropriate security standards for ${businessCaseExtract.projectName}.`,
+Additional question categories to cover:
+- Integration capabilities (mention specific systems from scope)
+- User experience for the stakeholders mentioned
+- Scalability to handle the scope described
+- Product roadmap alignment with project timeline
+- Support and training approach
+
+Each question MUST be measurable and require detailed vendor responses with evidence.`,
     
-    agile: `Generate ${count} detailed agile project delivery questions for vendor evaluation.
-Focus on:
-- Development methodology (Scrum, Kanban, SAFe)
-- Sprint planning and execution
-- Collaboration tools and practices
-- CI/CD pipeline and deployment frequency
-- Quality assurance and testing approach
+    nfr: `Generate ${count} Non-Functional Requirements (NFR) questions that directly address the Risks and Timeline/Budget constraints below.
+
+APPROACH:
+1. For each Risk identified, create questions asking how vendors will mitigate that specific risk
+2. Reference the Timeline (${businessCaseExtract.timeline}) and Budget (${businessCaseExtract.budget}) in performance/scalability questions
+3. Tie NFR questions to Success Criteria where applicable
+
+Example: If a risk is "Integration with legacy systems":
+✓ GOOD: "What is your approach to integrating with legacy systems, and what performance impact should we expect?"
+✗ BAD: "How do you handle integrations?" (too generic)
+
+Cover these NFR categories with specific context:
+- Performance requirements aligned with project scale
+- Reliability needs based on identified risks
+- Scalability to support the scope over the timeline
+- Security requirements for the stakeholders involved
+- Maintainability considering the project lifecycle
+- Compliance with regulations mentioned in scope`,
+    
+    cybersecurity: `Generate ${count} cybersecurity and compliance questions tailored to the Stakeholders and industry context.
+
+APPROACH:
+1. Consider who the stakeholders are (${stakeholdersList}) and what data they'll access
+2. Reference any compliance or regulatory requirements mentioned in the scope
+3. Ask about specific security measures for the risks identified
+
+Example: If scope mentions "customer data" and stakeholders include "passengers":
+✓ GOOD: "How does your solution protect passenger personal data in compliance with GDPR and local privacy regulations?"
+✗ BAD: "Do you encrypt data?" (yes/no, not specific)
+
+Cover:
+- Data protection for stakeholder groups mentioned
+- Access control appropriate to organizational structure
+- Compliance certifications relevant to the industry/scope
+- Incident response for risks identified
+- Security audits and penetration testing approach
+- Data residency requirements if mentioned in scope`,
+    
+    agile: `Generate ${count} agile delivery questions aligned with the Project Timeline and Stakeholder structure.
+
+APPROACH:
+1. Reference the specific Timeline (${businessCaseExtract.timeline}) in delivery schedule questions
+2. Ask about collaboration with the Stakeholders mentioned
+3. Tie delivery methodology to achieving the Success Criteria
+
+Example: If timeline is "6 months" and stakeholders include "operations team":
+✓ GOOD: "How will you structure sprints and deliverables over the 6-month timeline to enable early feedback from the operations team?"
+✗ BAD: "What agile methodology do you use?" (too generic)
+
+Cover:
+- Delivery approach aligned with project timeline
+- Collaboration and communication with specific stakeholder groups
+- Risk management for identified risks
+- Quality assurance approach for success criteria
+- Team structure and expertise for the scope
 - Change management process
-- Communication and reporting
-- Team structure and expertise
-- Risk management approach
-
-Each question should evaluate vendor's agile maturity for ${businessCaseExtract.projectName}.`
+- Progress reporting frequency and format`
   };
 
-  const prompt = `You are creating a vendor evaluation questionnaire for ${businessCaseExtract.projectName}.
+  const prompt = `You are creating a vendor evaluation questionnaire for: ${businessCaseExtract.projectName}
 
-Business Context:
-- Objective: ${businessCaseExtract.businessObjective}
-- Scope: ${businessCaseExtract.scope}
-- Key Requirements: ${businessCaseExtract.keyRequirements.join(", ")}
+PROJECT CONTEXT:
+Objective: ${businessCaseExtract.businessObjective}
+Scope: ${businessCaseExtract.scope}
+Timeline: ${businessCaseExtract.timeline}
+Budget: ${businessCaseExtract.budget}
+
+KEY REQUIREMENTS (use these as the foundation for questions):
+${requirementsList}
+
+IDENTIFIED RISKS (address these in questions):
+${risksList}
+
+SUCCESS CRITERIA (ensure questions help evaluate these):
+${criteriaList}
+
+STAKEHOLDERS (consider their needs):
+${stakeholdersList}
 
 ${questionnairePrompts[questionnaireType]}
 
-Return a JSON array of exactly ${count} questions in this format:
-[
-  {
-    "number": 1,
-    "question": "Detailed question text here?",
-    "category": "Category name"
-  }
-]
+CRITICAL INSTRUCTIONS:
+1. Every question must reference specific details from the context above
+2. Do NOT use generic template questions
+3. Questions should be open-ended, requiring detailed vendor responses
+4. Include specific metrics, numbers, systems, or stakeholders from the context
+5. Make vendors demonstrate HOW they address each requirement/risk/criterion
 
-Requirements:
-- Each question must be clear, specific, and measurable
-- Questions should require detailed vendor responses
-- Avoid yes/no questions - ask for capabilities, processes, or evidence
-- Use industry context appropriate to the project scope
-- Number questions sequentially from 1 to ${count}
+Return a JSON object with this exact structure:
+{
+  "questions": [
+    {
+      "number": 1,
+      "question": "Detailed, context-specific question text here?",
+      "category": "Category name"
+    }
+  ]
+}
 
-Return ONLY valid JSON array, no additional text.`;
+Generate exactly ${count} questions. Number them sequentially from 1 to ${count}.`;
 
   try {
     const response = await openai.chat.completions.create({
