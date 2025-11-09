@@ -267,18 +267,21 @@ export async function generateDocxDocument(options: GenerateDocOptions): Promise
       } else if (item.type === 'numberedList') {
         for (let i = 0; i < item.items!.length; i++) {
           const listItem = item.items![i];
-          const textRuns = listItem.segments!.map(seg => 
-            new TextRun({ 
-              text: seg.text, 
-              bold: seg.bold, 
-              italics: seg.italic 
-            })
-          );
+          const textRuns = [
+            new TextRun({ text: `${i + 1}. `, bold: false }),
+            ...listItem.segments!.map(seg => 
+              new TextRun({ 
+                text: seg.text, 
+                bold: seg.bold, 
+                italics: seg.italic 
+              })
+            )
+          ];
           docSections.push(
             new Paragraph({
               children: textRuns,
-              numbering: { reference: "default", level: 0 },
               spacing: { after: 100 },
+              indent: { left: convertInchesToTwip(0.5) },
             })
           );
         }
@@ -410,11 +413,15 @@ export async function generatePdfDocument(options: GenerateDocOptions): Promise<
         for (const item of parsedContent) {
           if (item.type === 'paragraph') {
             doc.fontSize(11).font('Helvetica');
-            for (const seg of item.segments!) {
+            for (let idx = 0; idx < item.segments!.length; idx++) {
+              const seg = item.segments![idx];
               const font = seg.bold ? 'Helvetica-Bold' : seg.italic ? 'Helvetica-Oblique' : 'Helvetica';
-              doc.font(font).text(seg.text, { continued: true, width: doc.page.width - 144 });
+              const isLastSegment = idx === item.segments!.length - 1;
+              doc.font(font).text(seg.text, { 
+                continued: !isLastSegment, 
+                width: doc.page.width - 144 
+              });
             }
-            doc.text('', { continued: false }); // End the line
             doc.moveDown(0.5);
           } else if (item.type === 'heading') {
             const fontSize = item.level === 1 ? 14 : item.level === 2 ? 12 : 11;
