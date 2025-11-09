@@ -5,15 +5,37 @@ import type { SystemConfig } from "@shared/schema";
 
 // Lazy-initialized OpenAI client
 let openaiClient: OpenAI | null = null;
+let cachedConfigHash: string | null = null;
+
+// Helper function to create a hash of the current config for cache invalidation
+function getConfigHash(configs: SystemConfig[]): string {
+  const endpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value || "";
+  const deployment = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_DEPLOYMENT")?.value || "";
+  const apiVersion = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_VERSION")?.value || "";
+  return `${endpoint}:${deployment}:${apiVersion}`;
+}
 
 export async function getOpenAIClient(): Promise<OpenAI> {
-  if (openaiClient) {
-    return openaiClient;
-  }
-
-  // Try to get config from database first
+  // Try to get config from database first to check if cache is still valid
+  let configs: SystemConfig[] = [];
   try {
-    const configs = await storage.getAllSystemConfig();
+    configs = await storage.getAllSystemConfig();
+    const currentHash = getConfigHash(configs);
+    
+    // Invalidate cache if config has changed
+    if (openaiClient && cachedConfigHash !== currentHash) {
+      console.log("OpenAI config changed, invalidating cache");
+      openaiClient = null;
+      cachedConfigHash = null;
+    }
+    
+    // Return cached client if still valid
+    if (openaiClient) {
+      return openaiClient;
+    }
+    
+    // Store current hash for future comparisons
+    cachedConfigHash = currentHash;
     
     // Option 1: Try Azure OpenAI configuration (primary)
     const azureEndpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
@@ -24,6 +46,9 @@ export async function getOpenAIClient(): Promise<OpenAI> {
     // If Azure OpenAI is configured (endpoint contains 'azure' and has deployment), use Azure
     if (azureEndpoint && azureDeployment && azureApiKey && azureEndpoint.includes('azure')) {
       console.log("Using Azure OpenAI config from database for agents");
+      console.log(`  Endpoint: ${azureEndpoint}`);
+      console.log(`  Deployment: ${azureDeployment}`);
+      console.log(`  API Version: ${azureApiVersion}`);
       openaiClient = new OpenAI({
         baseURL: `${azureEndpoint}/openai/deployments/${azureDeployment}`,
         apiKey: azureApiKey,
