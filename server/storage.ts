@@ -42,6 +42,9 @@ import {
   type VendorShortlistingStage,
   type InsertVendorShortlistingStage,
   systemConfig,
+  standards,
+  ragDocuments,
+  ragChunks,
   mcpConnectors,
   portfolios,
   projects,
@@ -1236,6 +1239,104 @@ storage.getSystemConfigByCategory = async function(category: string): Promise<Sy
 
 storage.deleteSystemConfig = async function(key: string): Promise<void> {
   await db.delete(systemConfig).where(eq(systemConfig.key, key));
+};
+
+// Override standards methods to use PostgreSQL
+storage.createStandard = async function(insertStandard: InsertStandard): Promise<Standard> {
+  const created = await db.insert(standards)
+    .values({
+      name: insertStandard.name,
+      description: insertStandard.description || null,
+      category: insertStandard.category || "general",
+      sections: insertStandard.sections,
+      tags: insertStandard.tags || null,
+      fileName: insertStandard.fileName || null,
+      documentContent: insertStandard.documentContent || null,
+      ragDocumentId: insertStandard.ragDocumentId || null,
+      isActive: insertStandard.isActive || "true",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getStandard = async function(id: string): Promise<Standard | undefined> {
+  const results = await db.select().from(standards).where(eq(standards.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllStandards = async function(): Promise<Standard[]> {
+  return await db.select().from(standards);
+};
+
+storage.getActiveStandards = async function(): Promise<Standard[]> {
+  return await db.select().from(standards).where(eq(standards.isActive, "true"));
+};
+
+storage.updateStandard = async function(id: string, updates: Partial<InsertStandard>): Promise<void> {
+  await db.update(standards)
+    .set(updates)
+    .where(eq(standards.id, id));
+};
+
+storage.deactivateStandard = async function(id: string): Promise<void> {
+  await db.update(standards)
+    .set({ isActive: "false" })
+    .where(eq(standards.id, id));
+};
+
+// Override RAG document methods to use PostgreSQL
+storage.createRagDocument = async function(insertDocument: InsertRagDocument & { id?: string }): Promise<RagDocument> {
+  const created = await db.insert(ragDocuments)
+    .values({
+      id: insertDocument.id,
+      sourceType: insertDocument.sourceType,
+      sourceId: insertDocument.sourceId || null,
+      fileName: insertDocument.fileName,
+      blobUrl: insertDocument.blobUrl || null,
+      blobName: insertDocument.blobName || null,
+      searchDocId: insertDocument.searchDocId || null,
+      indexName: insertDocument.indexName || "intellibid-rag",
+      totalChunks: insertDocument.totalChunks || 0,
+      status: insertDocument.status || "pending",
+      metadata: insertDocument.metadata || null,
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getRagDocument = async function(id: string): Promise<RagDocument | undefined> {
+  const results = await db.select().from(ragDocuments).where(eq(ragDocuments.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllRagDocuments = async function(): Promise<RagDocument[]> {
+  return await db.select().from(ragDocuments);
+};
+
+storage.getRagDocumentsBySourceType = async function(sourceType: string): Promise<RagDocument[]> {
+  return await db.select().from(ragDocuments).where(eq(ragDocuments.sourceType, sourceType));
+};
+
+storage.updateRagDocument = async function(id: string, updates: Partial<InsertRagDocument>): Promise<void> {
+  await db.update(ragDocuments)
+    .set({
+      ...updates,
+      updatedAt: new Date(),
+    })
+    .where(eq(ragDocuments.id, id));
+};
+
+storage.updateRagDocumentStatus = async function(id: string, status: string): Promise<void> {
+  await db.update(ragDocuments)
+    .set({ 
+      status,
+      updatedAt: new Date(),
+    })
+    .where(eq(ragDocuments.id, id));
+};
+
+storage.deleteRagDocument = async function(id: string): Promise<void> {
+  await db.delete(ragDocuments).where(eq(ragDocuments.id, id));
 };
 
 // Override MCP connector methods to use PostgreSQL
