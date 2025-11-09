@@ -14,11 +14,31 @@ export async function getOpenAIClient(): Promise<OpenAI> {
   // Try to get config from database first
   try {
     const configs = await storage.getAllSystemConfig();
+    
+    // Option 1: Try Azure OpenAI configuration (primary)
+    const azureEndpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
+    const azureDeployment = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_DEPLOYMENT")?.value;
+    const azureApiVersion = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_VERSION")?.value || "2024-08-01-preview";
+    const azureApiKey = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_KEY")?.value;
+
+    // If Azure OpenAI is configured (endpoint contains 'azure' and has deployment), use Azure
+    if (azureEndpoint && azureDeployment && azureApiKey && azureEndpoint.includes('azure')) {
+      console.log("Using Azure OpenAI config from database for agents");
+      openaiClient = new OpenAI({
+        baseURL: `${azureEndpoint}/openai/deployments/${azureDeployment}`,
+        apiKey: azureApiKey,
+        defaultQuery: { "api-version": azureApiVersion },
+        defaultHeaders: { "api-key": azureApiKey },
+      });
+      return openaiClient;
+    }
+    
+    // Option 2: Try regular OpenAI configuration from database (fallback)
     const endpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
     const apiKey = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_KEY")?.value;
 
-    if (endpoint && apiKey) {
-      console.log("Using OpenAI config from database for agents");
+    if (endpoint && apiKey && !endpoint.includes('azure')) {
+      console.log("Using regular OpenAI config from database for agents");
       openaiClient = new OpenAI({
         apiKey,
         baseURL: endpoint,
@@ -29,7 +49,7 @@ export async function getOpenAIClient(): Promise<OpenAI> {
     console.warn("Failed to load OpenAI config from database, falling back to environment variables:", error);
   }
 
-  // Fall back to environment variables
+  // Option 3: Fall back to environment variables (regular OpenAI)
   console.log("Using OpenAI config from environment variables for agents");
   openaiClient = new OpenAI({
     apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,

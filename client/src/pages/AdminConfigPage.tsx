@@ -228,8 +228,10 @@ export default function AdminConfigPage() {
 
   const saveAllAgentsOpenAI = () => {
     const configs = [
-      { key: "AGENTS_OPENAI_ENDPOINT", category: "agents_openai", isEncrypted: false, description: "OpenAI endpoint for multi-agent evaluation" },
+      { key: "AGENTS_OPENAI_ENDPOINT", category: "agents_openai", isEncrypted: false, description: "OpenAI endpoint for multi-agent evaluation (Azure or regular OpenAI)" },
       { key: "AGENTS_OPENAI_API_KEY", category: "agents_openai", isEncrypted: true, description: "OpenAI API key for multi-agent evaluation" },
+      { key: "AGENTS_OPENAI_DEPLOYMENT", category: "agents_openai", isEncrypted: false, description: "Azure OpenAI deployment name (required for Azure, leave empty for regular OpenAI)" },
+      { key: "AGENTS_OPENAI_API_VERSION", category: "agents_openai", isEncrypted: false, description: "Azure OpenAI API version (default: 2024-08-01-preview)" },
     ];
 
     configs.forEach(config => {
@@ -313,12 +315,12 @@ export default function AdminConfigPage() {
                 <Input
                   id="agents-openai-endpoint"
                   data-testid="input-agents-openai-endpoint"
-                  placeholder="https://api.openai.com/v1"
+                  placeholder="https://api.openai.com/v1 or https://YOUR_RESOURCE.openai.azure.com"
                   value={getConfigValue("AGENTS_OPENAI_ENDPOINT")}
                   onChange={(e) => setConfigValue("AGENTS_OPENAI_ENDPOINT", e.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
-                  OpenAI API endpoint (default: https://api.openai.com/v1)
+                  For regular OpenAI: https://api.openai.com/v1 | For Azure OpenAI: https://YOUR_RESOURCE.openai.azure.com
                 </p>
               </div>
 
@@ -328,19 +330,47 @@ export default function AdminConfigPage() {
                   id="agents-openai-key"
                   data-testid="input-agents-openai-key"
                   type="password"
-                  placeholder="sk-..."
+                  placeholder="sk-... or Azure key"
                   value={getConfigValue("AGENTS_OPENAI_API_KEY")}
                   onChange={(e) => setConfigValue("AGENTS_OPENAI_API_KEY", e.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Your OpenAI API key from platform.openai.com
+                  Your OpenAI API key (regular OpenAI) or Azure OpenAI API key
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="agents-openai-deployment">Azure Deployment Name (Optional)</Label>
+                <Input
+                  id="agents-openai-deployment"
+                  data-testid="input-agents-openai-deployment"
+                  placeholder="gpt-4o"
+                  value={getConfigValue("AGENTS_OPENAI_DEPLOYMENT")}
+                  onChange={(e) => setConfigValue("AGENTS_OPENAI_DEPLOYMENT", e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Required for Azure OpenAI only. Your deployment name (e.g., gpt-4o). Leave empty for regular OpenAI.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="agents-openai-api-version">Azure API Version (Optional)</Label>
+                <Input
+                  id="agents-openai-api-version"
+                  data-testid="input-agents-openai-api-version"
+                  placeholder="2024-08-01-preview"
+                  value={getConfigValue("AGENTS_OPENAI_API_VERSION")}
+                  onChange={(e) => setConfigValue("AGENTS_OPENAI_API_VERSION", e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Required for Azure OpenAI only. Default: 2024-08-01-preview. Leave empty for regular OpenAI.
                 </p>
               </div>
 
               <Alert data-testid="alert-agents-info">
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>
-                  The 6 agents use GPT-4o for evaluation. If not configured, the system will fall back to environment variables.
+                  <strong>Primary:</strong> Azure OpenAI (if endpoint contains 'azure' and deployment is set). <strong>Fallback:</strong> Regular OpenAI or environment variables. The 6 agents use GPT-4o for evaluation.
                 </AlertDescription>
               </Alert>
 
