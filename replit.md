@@ -4,8 +4,10 @@
 IntelliBid is an AI-powered platform designed to objectively transform and streamline the vendor evaluation and shortlisting process for Nujum Air, the Middle East's largest airline. It automates the analysis of RFT/RFI responses and partner proposals, generating risk-adjusted shortlisting reports with clear rationale for various airline stakeholders. The platform aims to significantly reduce manual review times, offering transparent, data-driven decision-making for vendor selection in the aviation industry. It is a fully functional MVP with comprehensive frontend, backend, AI analysis, and airline-specific sample data.
 
 **Recent Updates (November 2025):**
+- **Executive Summary Beautification**: Comprehensive visual enhancement with professional hero section, enhanced KPI cards with trend indicators, beautified Top Vendors section with lucide icons and progress bars, improved chart styling with gradients and enhanced tooltips, and timeline-style activity feed with professional visual indicators
+- **Design System Compliance**: All components now use semantic color tokens (bg-primary, text-primary, bg-muted) with explicit dark mode support, proper gap utilities on all justify-between flex containers, and hover/active elevation effects throughout
+- **Top Vendor Leader Sorting**: Vendors ranked by avgScore (primary) then projectCount (secondary) to prioritize highest quality performers
 - **Context-Aware Vendor Stage Tracking**: Stages intelligently set based on project state (stage 6-8 for evaluated projects, stage 5 for proposal-only projects)
-- **Enhanced Top Vendors Display**: Replaced emojis with lucide-react icons (Trophy, Medal, Award), added color-coded scores and gradient progress bars
 - **Vendor Data Quality**: Uses actual vendor names from proposals table with proper joins between evaluations and proposals
 - **Improved Project Counting**: Top Vendors aggregation now includes projects from both evaluations and vendor stage tracking for accurate counts
 - **Data Format Evolution**: Stage statuses stored as nested objects `{ status: string, date: string | null }` for better extensibility
@@ -19,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 **Technology Stack:** React with TypeScript, Vite, wouter, shadcn/ui (Radix UI), Tailwind CSS, TanStack Query, and Recharts.
 **Design System:** Dark mode-first, enterprise-focused with "New York" style shadcn/ui components, and information-dense layouts.
 **Key Pages & Navigation:** Portfolio-centric 7-menu structure including Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, Executive Summary, and Admin Config. Dashboard features interactive visualizations like a Risk vs Value Matrix, Cost-Benefit Analysis Chart, Characteristic Scoring Matrix (ISO/IEC 25010), Functional Fit Score Comparison Table, and a Vendor Shortlisting Progress Dashboard with a 10-stage procurement workflow view.
-**Executive Summary Dashboard:** Global visibility page providing aggregated metrics across all portfolios and projects, including total counts, vendor stage distribution chart, top-performing vendor leaders table, and recent activity feed with drill-down navigation to individual project dashboards.
+**Executive Summary Dashboard:** Global visibility page featuring a professional gradient hero section with executive-level messaging, enhanced KPI cards with trend indicators and hover effects, beautified Top Vendors rankings with Trophy/Medal/Award lucide icons and animated progress bars, improved vendor stage distribution chart with gradient bars and enhanced tooltips, and timeline-style activity stream with circular icon backgrounds and smooth hover transitions. All components use semantic color tokens for proper dark mode support and follow enterprise design guidelines.
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
