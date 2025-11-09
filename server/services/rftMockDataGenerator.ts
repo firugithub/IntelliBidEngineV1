@@ -649,7 +649,8 @@ export async function generateVendorStages(projectId?: string) {
     }
     
     // Extract unique vendor names from proposals
-    const uniqueVendorNames = [...new Set(proposals.map(p => p.vendorName))];
+    const vendorNameSet = new Set(proposals.map(p => p.vendorName));
+    const uniqueVendorNames = Array.from(vendorNameSet);
     
     // Get existing vendor stages for this project
     const existingStages = await storage.getVendorStagesByProject(project.id);
@@ -663,18 +664,33 @@ export async function generateVendorStages(projectId?: string) {
       continue;
     }
     
+    // Determine appropriate stage based on project progress
+    // Check if project has evaluations completed
+    const evaluations = await storage.getEvaluationsByProject(project.id);
+    let baseStage = 5; // Default: RFT Response Received (stage 5)
+    
+    if (evaluations.length > 0) {
+      // If evaluations exist, vendors should be at stage 7 (RFT Evaluation Completed)
+      baseStage = 7;
+    }
+    
     projectsWithVendors++;
     
     // Create vendor stage records for each vendor
     for (let i = 0; i < vendorsToCreate.length; i++) {
       const vendorName = vendorsToCreate[i];
-      // Assign a stage based on index for variety
-      const currentStage = possibleStages[i % possibleStages.length];
       
-      // Create stage status object
-      const stageStatuses: Record<string, string> = {};
+      // Add slight variation (+/- 1 stage) for realism while respecting project state
+      const stageVariation = [-1, 0, 0, 1][i % 4]; // Most at base, some at base-1 or base+1
+      const currentStage = Math.max(2, Math.min(10, baseStage + stageVariation));
+      
+      // Create stage status object with proper format: { status: string, date: string | null }
+      const stageStatuses: Record<string, any> = {};
       for (let stage = 1; stage <= 10; stage++) {
-        stageStatuses[stage.toString()] = currentStage >= stage ? 'completed' : 'pending';
+        stageStatuses[stage.toString()] = {
+          status: currentStage >= stage ? 'completed' : (currentStage === stage ? 'in_progress' : 'pending'),
+          date: currentStage >= stage ? new Date().toISOString() : null
+        };
       }
       
       await storage.createVendorStage({
