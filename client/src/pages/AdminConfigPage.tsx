@@ -1,13 +1,9 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Database, Cloud, Brain, Save, AlertCircle, Users, Trash2 } from "lucide-react";
+import { Settings, AlertCircle, CheckCircle2, XCircle, Trash2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -21,43 +17,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface SystemConfig {
-  id: string;
-  category: string;
-  key: string;
-  value: string | null;
-  isEncrypted: string;
-  description: string | null;
-}
-
 export default function AdminConfigPage() {
   const { toast } = useToast();
-  const [localConfig, setLocalConfig] = useState<Record<string, string>>({});
-
-  const { data: configs = [], isLoading } = useQuery<SystemConfig[]>({
-    queryKey: ["/api/system-config"],
-  });
-
-  const saveConfigMutation = useMutation({
-    mutationFn: async (data: { category: string; key: string; value: string; isEncrypted?: string; description?: string }) => {
-      return apiRequest("POST", "/api/system-config", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/system-config"] });
-      toast({
-        title: "Configuration saved",
-        description: "Your configuration has been saved successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save configuration. Please try again.",
-      });
-      console.error("Save error:", error);
-    },
-  });
 
   const testConnectivityMutation = useMutation({
     mutationFn: async () => {
@@ -117,147 +78,6 @@ export default function AdminConfigPage() {
     },
   });
 
-  const wipeAzureMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/wipe-azure", {});
-      return response.json();
-    },
-    onSuccess: (data: any) => {
-      console.log("Wipe Azure results:", data);
-      toast({
-        title: "Azure Resources Wiped Successfully",
-        description: `Deleted ${data.summary?.azure?.blobDocuments || 0} documents from Blob Storage and ${data.summary?.azure?.searchDocuments || 0} documents from AI Search. Database data remains intact.`,
-      });
-      queryClient.invalidateQueries();
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Azure Wipe Failed",
-        description: "Failed to wipe Azure resources. Please try again.",
-      });
-      console.error("Azure wipe error:", error);
-    },
-  });
-
-  const getConfigValue = (key: string): string => {
-    if (localConfig[key] !== undefined) {
-      return localConfig[key];
-    }
-    const config = configs.find(c => c.key === key);
-    return config?.value || "";
-  };
-
-  const setConfigValue = (key: string, value: string) => {
-    setLocalConfig(prev => ({ ...prev, [key]: value }));
-  };
-
-  const saveConfig = (category: string, key: string, isEncrypted: boolean, description?: string) => {
-    const value = localConfig[key];
-    if (!value) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please enter a value before saving.",
-      });
-      return;
-    }
-
-    saveConfigMutation.mutate({
-      category,
-      key,
-      value,
-      isEncrypted: isEncrypted ? "true" : "false",
-      description,
-    });
-  };
-
-  const saveAllAzureSearch = () => {
-    const configs = [
-      { key: "AZURE_SEARCH_ENDPOINT", category: "azure_search", isEncrypted: false, description: "Azure AI Search service endpoint" },
-      { key: "AZURE_SEARCH_KEY", category: "azure_search", isEncrypted: true, description: "Azure AI Search admin API key" },
-    ];
-
-    configs.forEach(config => {
-      const value = localConfig[config.key];
-      if (value) {
-        saveConfigMutation.mutate({
-          category: config.category,
-          key: config.key,
-          value,
-          isEncrypted: config.isEncrypted ? "true" : "false",
-          description: config.description,
-        });
-      }
-    });
-  };
-
-  const saveAllAzureStorage = () => {
-    const value = localConfig["AZURE_STORAGE_CONNECTION_STRING"];
-    if (value) {
-      saveConfigMutation.mutate({
-        category: "azure_storage",
-        key: "AZURE_STORAGE_CONNECTION_STRING",
-        value,
-        isEncrypted: "true",
-        description: "Azure Blob Storage connection string",
-      });
-    }
-  };
-
-  const saveAllAzureOpenAI = () => {
-    const configs = [
-      { key: "AZURE_OPENAI_ENDPOINT", category: "azure_openai", isEncrypted: false, description: "Azure OpenAI service endpoint" },
-      { key: "AZURE_OPENAI_KEY", category: "azure_openai", isEncrypted: true, description: "Azure OpenAI API key" },
-      { key: "AZURE_OPENAI_EMBEDDING_DEPLOYMENT", category: "azure_openai", isEncrypted: false, description: "Embedding model deployment name" },
-    ];
-
-    configs.forEach(config => {
-      const value = localConfig[config.key];
-      if (value) {
-        saveConfigMutation.mutate({
-          category: config.category,
-          key: config.key,
-          value,
-          isEncrypted: config.isEncrypted ? "true" : "false",
-          description: config.description,
-        });
-      }
-    });
-  };
-
-  const saveAllAgentsOpenAI = () => {
-    const configs = [
-      { key: "AGENTS_OPENAI_ENDPOINT", category: "agents_openai", isEncrypted: false, description: "OpenAI endpoint for multi-agent evaluation (Azure or regular OpenAI)" },
-      { key: "AGENTS_OPENAI_API_KEY", category: "agents_openai", isEncrypted: true, description: "OpenAI API key for multi-agent evaluation" },
-      { key: "AGENTS_OPENAI_DEPLOYMENT", category: "agents_openai", isEncrypted: false, description: "Azure OpenAI deployment name (required for Azure, leave empty for regular OpenAI)" },
-      { key: "AGENTS_OPENAI_API_VERSION", category: "agents_openai", isEncrypted: false, description: "Azure OpenAI API version (default: 2024-08-01-preview)" },
-    ];
-
-    configs.forEach(config => {
-      const value = localConfig[config.key];
-      if (value) {
-        saveConfigMutation.mutate({
-          category: config.category,
-          key: config.key,
-          value,
-          isEncrypted: config.isEncrypted ? "true" : "false",
-          description: config.description,
-        });
-      }
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Loading configuration...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
@@ -266,362 +86,110 @@ export default function AdminConfigPage() {
           <h1 className="text-3xl font-bold">Admin Configuration</h1>
         </div>
         <p className="text-muted-foreground">
-          Configure Azure services and RAG system settings
+          Manage Azure connectivity and application data
         </p>
       </div>
 
-      <Alert className="mb-6" data-testid="alert-security-notice">
-        <AlertCircle className="w-4 h-4" />
-        <AlertDescription>
-          Encrypted credentials are securely stored and never displayed in full. Changes take effect immediately after saving.
+      <Alert className="mb-6 border-blue-500/50 bg-blue-500/10" data-testid="alert-config-info">
+        <Info className="w-4 h-4 text-blue-500" />
+        <AlertDescription className="text-foreground">
+          <strong>Configuration is now managed through Replit Secrets only.</strong>
+          <br />
+          Database configuration has been removed for security and simplicity. All Azure credentials and API keys must be set in Replit Secrets:
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_OPENAI_ENDPOINT</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_OPENAI_KEY</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_OPENAI_DEPLOYMENT</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_OPENAI_EMBEDDING_DEPLOYMENT</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_OPENAI_API_VERSION</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_SEARCH_ENDPOINT</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_SEARCH_KEY</code></li>
+            <li><code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_STORAGE_CONNECTION_STRING</code></li>
+          </ul>
+          <p className="mt-2 text-sm">
+            To access Replit Secrets: Click <strong>Tools</strong> → <strong>Secrets</strong> in the left sidebar, or use the search bar and type "Secrets".
+          </p>
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="agents-openai" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="agents-openai" data-testid="tab-agents-openai">
-            <Users className="w-4 h-4 mr-2" />
-            Agents
-          </TabsTrigger>
-          <TabsTrigger value="azure-search" data-testid="tab-azure-search">
-            <Database className="w-4 h-4 mr-2" />
-            AI Search
-          </TabsTrigger>
-          <TabsTrigger value="azure-storage" data-testid="tab-azure-storage">
-            <Cloud className="w-4 h-4 mr-2" />
-            Storage
-          </TabsTrigger>
-          <TabsTrigger value="azure-openai" data-testid="tab-azure-openai">
-            <Brain className="w-4 h-4 mr-2" />
-            Azure OpenAI
-          </TabsTrigger>
-          <TabsTrigger value="rag-settings" data-testid="tab-rag-settings">
-            <Settings className="w-4 h-4 mr-2" />
-            RAG
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="agents-openai">
-          <Card>
-            <CardHeader>
-              <CardTitle>OpenAI Configuration for Multi-Agent Evaluation</CardTitle>
-              <CardDescription>
-                Configure OpenAI endpoint and API key for the 6 specialized agents (Delivery, Product, Architecture, Engineering, Procurement, Security)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="agents-openai-endpoint">OpenAI Endpoint</Label>
-                <Input
-                  id="agents-openai-endpoint"
-                  data-testid="input-agents-openai-endpoint"
-                  placeholder="https://api.openai.com/v1 or https://YOUR_RESOURCE.openai.azure.com"
-                  value={getConfigValue("AGENTS_OPENAI_ENDPOINT")}
-                  onChange={(e) => setConfigValue("AGENTS_OPENAI_ENDPOINT", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  For regular OpenAI: https://api.openai.com/v1 | For Azure OpenAI: https://YOUR_RESOURCE.openai.azure.com
-                </p>
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Azure Connectivity Test</CardTitle>
+            <CardDescription>
+              Verify that all Azure services are properly configured and accessible with your current environment variables
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => testConnectivityMutation.mutate()}
+              disabled={testConnectivityMutation.isPending}
+              data-testid="button-test-azure-connectivity"
+              className="w-full"
+            >
+              {testConnectivityMutation.isPending ? (
+                <>Testing Connectivity...</>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Test Azure Connectivity
+                </>
+              )}
+            </Button>
+            {testConnectivityMutation.data && (
+              <div className="mt-4 space-y-3">
+                <div className="text-sm font-semibold">Test Results:</div>
+                {testConnectivityMutation.data.results && (
+                  <div className="space-y-2">
+                    <ConnectivityResult
+                      name="Azure OpenAI (Embeddings)"
+                      result={testConnectivityMutation.data.results.azureOpenAI}
+                    />
+                    <ConnectivityResult
+                      name="Azure AI Search"
+                      result={testConnectivityMutation.data.results.azureSearch}
+                    />
+                    <ConnectivityResult
+                      name="Azure Blob Storage"
+                      result={testConnectivityMutation.data.results.azureStorage}
+                    />
+                  </div>
+                )}
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="agents-openai-key">OpenAI API Key</Label>
-                <Input
-                  id="agents-openai-key"
-                  data-testid="input-agents-openai-key"
-                  type="password"
-                  placeholder="sk-... or Azure key"
-                  value={getConfigValue("AGENTS_OPENAI_API_KEY")}
-                  onChange={(e) => setConfigValue("AGENTS_OPENAI_API_KEY", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Your OpenAI API key (regular OpenAI) or Azure OpenAI API key
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="agents-openai-deployment">Azure Deployment Name (Optional)</Label>
-                <Input
-                  id="agents-openai-deployment"
-                  data-testid="input-agents-openai-deployment"
-                  placeholder="gpt-4o"
-                  value={getConfigValue("AGENTS_OPENAI_DEPLOYMENT")}
-                  onChange={(e) => setConfigValue("AGENTS_OPENAI_DEPLOYMENT", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Required for Azure OpenAI only. Your deployment name (e.g., gpt-4o). Leave empty for regular OpenAI.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="agents-openai-api-version">Azure API Version (Optional)</Label>
-                <Input
-                  id="agents-openai-api-version"
-                  data-testid="input-agents-openai-api-version"
-                  placeholder="2024-08-01-preview"
-                  value={getConfigValue("AGENTS_OPENAI_API_VERSION")}
-                  onChange={(e) => setConfigValue("AGENTS_OPENAI_API_VERSION", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Required for Azure OpenAI only. Default: 2024-08-01-preview. Leave empty for regular OpenAI.
-                </p>
-              </div>
-
-              <Alert data-testid="alert-agents-info">
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription>
-                  <strong>Primary:</strong> Azure OpenAI (if endpoint contains 'azure' and deployment is set). <strong>Fallback:</strong> Regular OpenAI or environment variables. The 6 agents use GPT-4o for evaluation.
-                </AlertDescription>
-              </Alert>
-
-              <Button
-                onClick={saveAllAgentsOpenAI}
-                disabled={saveConfigMutation.isPending}
-                data-testid="button-save-agents-openai"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Agents OpenAI Configuration
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="azure-search">
-          <Card>
-            <CardHeader>
-              <CardTitle>Azure AI Search Configuration</CardTitle>
-              <CardDescription>
-                Configure your Azure AI Search service for vector database and hybrid search
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="azure-search-endpoint">Search Endpoint</Label>
-                <Input
-                  id="azure-search-endpoint"
-                  data-testid="input-azure-search-endpoint"
-                  placeholder="https://your-service.search.windows.net"
-                  value={getConfigValue("AZURE_SEARCH_ENDPOINT")}
-                  onChange={(e) => setConfigValue("AZURE_SEARCH_ENDPOINT", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Found in Azure Portal → AI Search → Overview
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="azure-search-key">Admin API Key</Label>
-                <Input
-                  id="azure-search-key"
-                  data-testid="input-azure-search-key"
-                  type="password"
-                  placeholder="Enter your admin API key"
-                  value={getConfigValue("AZURE_SEARCH_KEY")}
-                  onChange={(e) => setConfigValue("AZURE_SEARCH_KEY", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Found in Azure Portal → AI Search → Keys
-                </p>
-              </div>
-
-              <Button
-                onClick={saveAllAzureSearch}
-                disabled={saveConfigMutation.isPending}
-                data-testid="button-save-azure-search"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Azure AI Search Configuration
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="azure-storage">
-          <Card>
-            <CardHeader>
-              <CardTitle>Azure Blob Storage Configuration</CardTitle>
-              <CardDescription>
-                Configure Azure Blob Storage for document storage
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="azure-storage-connection">Connection String</Label>
-                <Input
-                  id="azure-storage-connection"
-                  data-testid="input-azure-storage-connection"
-                  type="password"
-                  placeholder="DefaultEndpointsProtocol=https;AccountName=..."
-                  value={getConfigValue("AZURE_STORAGE_CONNECTION_STRING")}
-                  onChange={(e) => setConfigValue("AZURE_STORAGE_CONNECTION_STRING", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Found in Azure Portal → Storage Account → Access keys
-                </p>
-              </div>
-
-              <Button
-                onClick={saveAllAzureStorage}
-                disabled={saveConfigMutation.isPending}
-                data-testid="button-save-azure-storage"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Azure Storage Configuration
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="azure-openai">
-          <Card>
-            <CardHeader>
-              <CardTitle>Azure OpenAI Configuration</CardTitle>
-              <CardDescription>
-                Configure Azure OpenAI for embeddings generation
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="azure-openai-endpoint">OpenAI Endpoint</Label>
-                <Input
-                  id="azure-openai-endpoint"
-                  data-testid="input-azure-openai-endpoint"
-                  placeholder="https://your-openai.openai.azure.com"
-                  value={getConfigValue("AZURE_OPENAI_ENDPOINT")}
-                  onChange={(e) => setConfigValue("AZURE_OPENAI_ENDPOINT", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Found in Azure Portal → Azure OpenAI → Overview
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="azure-openai-key">API Key</Label>
-                <Input
-                  id="azure-openai-key"
-                  data-testid="input-azure-openai-key"
-                  type="password"
-                  placeholder="Enter your API key"
-                  value={getConfigValue("AZURE_OPENAI_KEY")}
-                  onChange={(e) => setConfigValue("AZURE_OPENAI_KEY", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Found in Azure Portal → Azure OpenAI → Keys and Endpoint
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="azure-openai-deployment">Embedding Deployment Name</Label>
-                <Input
-                  id="azure-openai-deployment"
-                  data-testid="input-azure-openai-deployment"
-                  placeholder="text-embedding-ada-002"
-                  value={getConfigValue("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")}
-                  onChange={(e) => setConfigValue("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The deployment name you created for your embedding model
-                </p>
-              </div>
-
-              <Button
-                onClick={saveAllAzureOpenAI}
-                disabled={saveConfigMutation.isPending}
-                data-testid="button-save-azure-openai"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Azure OpenAI Configuration
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="rag-settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>RAG System Settings</CardTitle>
-              <CardDescription>
-                Configure RAG system behavior and performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert data-testid="alert-rag-coming-soon">
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription>
-                  RAG settings configuration coming soon. Additional settings for chunk size, overlap, retrieval count, and re-ranking will be available here.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Test Azure Connectivity</CardTitle>
-          <CardDescription>
-            Verify that Azure OpenAI and Azure AI Search are configured correctly and accessible
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => testConnectivityMutation.mutate()}
-            disabled={testConnectivityMutation.isPending}
-            data-testid="button-test-connectivity"
-            className="w-full"
-          >
-            {testConnectivityMutation.isPending ? "Testing..." : "Test Azure Connectivity"}
-          </Button>
-          <p className="text-sm text-muted-foreground mt-2">
-            This will test both Azure OpenAI embeddings and Azure AI Search services. Check the console for detailed results.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6 border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Dangerous Operations</CardTitle>
-          <CardDescription>
-            Irreversible actions that will permanently delete data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert variant="destructive" data-testid="alert-wipe-warning">
-            <AlertCircle className="w-4 h-4" />
-            <AlertDescription>
-              <strong>Warning:</strong> These operations will permanently delete data and cannot be undone.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardDescription>
+              Permanently delete all application data and Azure resources
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
+                  data-testid="button-wipe-data"
                   className="w-full"
-                  data-testid="button-wipe-all-data"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Wipe All Data (Database + Azure)
+                  Wipe All Data
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Wipe All Data?</AlertDialogTitle>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete:
+                    This action cannot be undone. This will permanently delete:
                     <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>All portfolios, projects, proposals, and evaluations</li>
-                      <li>All requirements, standards, and MCP connectors</li>
-                      <li>All RAG documents and embeddings</li>
-                      <li>All chat sessions, compliance gaps, and follow-up questions</li>
-                      <li>All comparison snapshots and executive briefings</li>
+                      <li>All portfolios, projects, RFTs, and proposals</li>
+                      <li>All vendor evaluations and shortlisting data</li>
                       <li>All documents from Azure Blob Storage</li>
-                      <li>All embeddings from Azure AI Search</li>
+                      <li>All indexed documents from Azure AI Search</li>
                     </ul>
-                    <p className="mt-4 font-semibold text-destructive">
-                      This action cannot be undone.
-                    </p>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -629,63 +197,54 @@ export default function AdminConfigPage() {
                   <AlertDialogAction
                     onClick={() => wipeDataMutation.mutate()}
                     disabled={wipeDataMutation.isPending}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     data-testid="button-confirm-wipe"
+                    className="bg-destructive hover:bg-destructive/90"
                   >
-                    {wipeDataMutation.isPending ? "Wiping..." : "Yes, Wipe All Data"}
+                    {wipeDataMutation.isPending ? "Wiping..." : "Yes, wipe everything"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  data-testid="button-wipe-azure-only"
-                >
-                  <Cloud className="w-4 h-4 mr-2" />
-                  Wipe Azure Resources Only
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Wipe Azure Resources Only?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>All documents from Azure Blob Storage</li>
-                      <li>All embeddings from Azure AI Search</li>
-                    </ul>
-                    <p className="mt-4 font-semibold">
-                      Your database data (portfolios, projects, evaluations, etc.) will remain intact.
-                    </p>
-                    <p className="mt-2 text-destructive">
-                      This action cannot be undone.
-                    </p>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel data-testid="button-cancel-wipe-azure">Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => wipeAzureMutation.mutate()}
-                    disabled={wipeAzureMutation.isPending}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    data-testid="button-confirm-wipe-azure"
-                  >
-                    {wipeAzureMutation.isPending ? "Wiping..." : "Yes, Wipe Azure Resources"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+function ConnectivityResult({ name, result }: { name: string; result: any }) {
+  const isConfigured = result?.configured !== false;
+  const isWorking = result?.working === true;
+
+  return (
+    <div className="flex items-start gap-2 p-3 rounded-lg border bg-card">
+      <div className="mt-0.5">
+        {isWorking ? (
+          <CheckCircle2 className="w-4 h-4 text-green-500" />
+        ) : (
+          <XCircle className="w-4 h-4 text-destructive" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm">{name}</div>
+        {!isConfigured && (
+          <div className="text-xs text-muted-foreground mt-1">
+            Not configured - please set environment variables in Replit Secrets
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            <strong>Tip:</strong> Use "Wipe Azure Resources Only" if you want to re-index documents with different settings, or "Wipe All Data" to start completely fresh.
-          </p>
-        </CardContent>
-      </Card>
+        )}
+        {isConfigured && !isWorking && result.error && (
+          <div className="text-xs text-destructive mt-1">
+            Error: {result.error}
+          </div>
+        )}
+        {isWorking && result.details && (
+          <div className="text-xs text-muted-foreground mt-1">
+            {result.details.embeddingDimensions && `Dimensions: ${result.details.embeddingDimensions}`}
+            {result.details.documentCount !== undefined && `Documents: ${result.details.documentCount}`}
+            {result.details.indexName && `Index: ${result.details.indexName}`}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
