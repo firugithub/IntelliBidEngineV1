@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test MCP connector
   app.post("/api/mcp-connectors/:id/test", async (req, res) => {
     try {
-      const { mcpConnectorService } = await import("./services/mcpConnectorService");
+      const { mcpConnectorService } = await import("./services/knowledgebase/mcpConnectorService");
       const { query } = req.body;
       
       console.log(`🧪 [MCP TEST] Testing connector ${req.params.id} with query: "${query}"`);
@@ -2240,7 +2240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check chatbot readiness (RAG + MCP status)
   app.get("/api/kb-chatbot/status", async (req, res) => {
     try {
-      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgebase/knowledgeBaseChatbotService");
       const status = await knowledgeBaseChatbotService.isReady();
       res.json(status);
     } catch (error) {
@@ -2252,7 +2252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Query knowledge base chatbot (non-streaming)
   app.post("/api/kb-chatbot/query", async (req, res) => {
     try {
-      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgebase/knowledgeBaseChatbotService");
       const { query, conversationHistory } = req.body;
 
       if (!query) {
@@ -2281,7 +2281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Query knowledge base chatbot (streaming)
   app.post("/api/kb-chatbot/query/stream", async (req, res) => {
     try {
-      const { knowledgeBaseChatbotService } = await import("./services/knowledgeBaseChatbotService");
+      const { knowledgeBaseChatbotService } = await import("./services/knowledgebase/knowledgeBaseChatbotService");
       const { query, conversationHistory } = req.body;
 
       if (!query) {
