@@ -1,4 +1,5 @@
 import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
+import { ConfigHelper } from "../core/configHelpers";
 
 // Helper function to sanitize metadata values for Azure Blob Storage
 // Azure metadata only allows ASCII characters
