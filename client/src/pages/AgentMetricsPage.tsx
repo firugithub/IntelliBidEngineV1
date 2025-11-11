@@ -40,6 +40,17 @@ interface AgentFailure {
   timestamp: string;
 }
 
+interface ProjectMetrics {
+  projectId: string;
+  projectName: string;
+  totalEvaluations: number;
+  totalAgentExecutions: number;
+  totalTokensUsed: number;
+  totalCostUsd: number;
+  successRate: number;
+  avgExecutionTimeMs: number;
+}
+
 export default function AgentMetricsPage() {
   const { data: summary, isLoading: summaryLoading } = useQuery<AgentMetricsSummary>({
     queryKey: ["/api/agent-metrics/summary"],
@@ -53,7 +64,11 @@ export default function AgentMetricsPage() {
     queryKey: ["/api/agent-metrics/failures"],
   });
 
-  if (summaryLoading || agentsLoading || failuresLoading) {
+  const { data: projectMetrics, isLoading: projectsLoading } = useQuery<ProjectMetrics[]>({
+    queryKey: ["/api/agent-metrics/projects"],
+  });
+
+  if (summaryLoading || agentsLoading || failuresLoading || projectsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading agent metrics...</p>
@@ -185,6 +200,67 @@ export default function AgentMetricsPage() {
               ))
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">No agent executions recorded yet</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project-Level Metrics */}
+      <Card data-testid="card-project-metrics">
+        <CardHeader>
+          <CardTitle>Performance by Project</CardTitle>
+          <CardDescription>Agent execution statistics grouped by evaluation project</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {projectMetrics && projectMetrics.length > 0 ? (
+              projectMetrics.map((project) => (
+                <div key={project.projectId} className="border-b pb-4 last:border-0" data-testid={`project-metrics-${project.projectId}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">{project.projectName}</h3>
+                    <div className="flex items-center gap-2">
+                      {project.successRate === 100 ? (
+                        <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
+                      ) : project.successRate > 0 ? (
+                        <AlertCircle className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
+                      )}
+                      <span className="text-sm text-muted-foreground">
+                        {project.successRate.toFixed(1)}% success
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Evaluations</p>
+                      <p className="font-medium">{project.totalEvaluations}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Agent Runs</p>
+                      <p className="font-medium">{project.totalAgentExecutions}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg Time</p>
+                      <p className="font-medium">{formatDuration(project.avgExecutionTimeMs)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Tokens</p>
+                      <p className="font-medium">{project.totalTokensUsed.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Cost</p>
+                      <p className="font-medium">{formatCost(project.totalCostUsd)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg Cost/Eval</p>
+                      <p className="font-medium">{formatCost(project.totalCostUsd / project.totalEvaluations)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No project metrics available yet</p>
             )}
           </div>
         </CardContent>

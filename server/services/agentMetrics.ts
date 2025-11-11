@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { agentMetrics } from "@shared/schema";
-import { eq, desc, and, gte, sql, count } from "drizzle-orm";
+import { eq, desc, and, gte, sql, count, inArray } from "drizzle-orm";
 
 // Agent execution metrics (matches database schema)
 export interface AgentExecutionMetric {
@@ -348,7 +348,7 @@ class AgentMetricsService {
         name: projects.name,
       })
       .from(projects)
-      .where(sql`${projects.id} = ANY(${projectIds})`);
+      .where(inArray(projects.id, projectIds));
     
     const projectNameMap = new Map(projectDetails.map(p => [p.id, p.name]));
     
