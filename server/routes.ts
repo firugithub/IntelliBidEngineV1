@@ -1384,7 +1384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import score calculator
       const { calculateExcelScoresForVendor, calculateHybridScore, mapExcelScoresToEvaluation } = 
-        await import("./services/excelScoreCalculator");
+        await import("./services/rft/excelScoreCalculator");
       
       // Create enriched results for all vendors (with or without evaluations)
       const enrichedEvaluations = await Promise.all(vendorNames.map(async (vendorName) => {
@@ -3482,7 +3482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Executive Summary
   app.get("/api/executive-summary/stats", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const stats = await executiveSummaryService.getGlobalStats();
       res.json(stats);
@@ -3494,7 +3494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/stage-distribution", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const distribution = await executiveSummaryService.getStageDistribution();
       res.json(distribution);
@@ -3506,7 +3506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/vendor-leaders", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const limit = parseInt(req.query.limit as string) || 5;
       const leaders = await executiveSummaryService.getVendorLeaders(limit);
@@ -3519,7 +3519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/recent-activity", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const limit = parseInt(req.query.limit as string) || 10;
       const activity = await executiveSummaryService.getRecentActivity(limit);
