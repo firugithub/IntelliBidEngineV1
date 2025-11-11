@@ -1,5 +1,5 @@
 import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import type { SystemConfig } from "@shared/schema";
 
 // Helper function to sanitize metadata values for Azure Blob Storage

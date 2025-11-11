@@ -1,4 +1,4 @@
-import { db } from "../db";
+import { db } from "../../db";
 import { agentMetrics } from "@shared/schema";
 import { eq, desc, and, gte, sql, count, inArray } from "drizzle-orm";
 

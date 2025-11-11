@@ -1,5 +1,5 @@
-import { storage } from "../storage";
-import { azureBlobStorageService } from "./azureBlobStorage";
+import { storage } from "../../storage";
+import { azureBlobStorageService } from "../azure/azureBlobStorage";
 import { generateQuestionnaireQuestions } from "./smartRftService";
 import { generateAllQuestionnaires } from "./excelGenerator";
 import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";

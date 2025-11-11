@@ -1,7 +1,7 @@
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import { ragRetrievalService } from "./ragRetrieval";
 import { mcpConnectorService } from "./mcpConnectorService";
-import { getOpenAIClient } from "./aiAnalysis";
+import { getOpenAIClient } from "../ai/aiAnalysis";
 
 /**
  * Knowledge Base Chatbot Service

@@ -1,9 +1,9 @@
 import type { RequirementAnalysis, ProposalAnalysis, VendorEvaluation, VendorContext } from "./aiAnalysis";
 import { getOpenAIClient } from "./aiAnalysis";
-import { ragRetrievalService } from "./ragRetrieval";
-import { mcpConnectorService, type ConnectorError } from "./mcpConnectorService";
-import { evaluationProgressService } from "./evaluationProgress";
-import { agentMetricsService } from "./agentMetrics";
+import { ragRetrievalService } from "../knowledgebase/ragRetrieval";
+import { mcpConnectorService, type ConnectorError } from "../knowledgebase/mcpConnectorService";
+import { evaluationProgressService } from "../core/evaluationProgress";
+import { agentMetricsService } from "../core/agentMetrics";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -17,7 +17,7 @@ type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "proc
 
 // Load agent prompts from MD files
 function loadAgentPrompt(role: AgentRole): { system: string; userTemplate: string } {
-  const promptPath = join(__dirname, "../prompts", `${role}-agent.md`);
+  const promptPath = join(__dirname, "../../prompts", `${role}-agent.md`);
   const content = readFileSync(promptPath, "utf-8");
   
   // Split by markdown headers

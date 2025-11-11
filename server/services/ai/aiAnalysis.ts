@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { evaluateProposalMultiAgent } from "./multiAgentEvaluator";
-import { storage } from "../storage";
-import { ConfigHelper } from "./configHelpers";
+import { storage } from "../../storage";
+import { ConfigHelper } from "../core/configHelpers";
 import type { SystemConfig } from "@shared/schema";
 
 // Lazy-initialized OpenAI client

@@ -1,4 +1,4 @@
-import { getOpenAIClient } from "./aiAnalysis";
+import { getOpenAIClient } from "../ai/aiAnalysis";
 
 export interface BusinessCaseInput {
   projectName: string;

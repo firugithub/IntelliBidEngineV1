@@ -1,4 +1,4 @@
-import type { IStorage } from "../storage";
+import type { IStorage } from "../../storage";
 
 export interface ExecutiveSummaryStats {
   totalPortfolios: number;

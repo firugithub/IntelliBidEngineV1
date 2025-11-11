@@ -1,5 +1,5 @@
-import { storage } from "../storage";
-import { generateCompletion, parseAIResponse, validateAIResponse } from "./aiOrchestrationService";
+import { storage } from "../../storage";
+import { generateCompletion, parseAIResponse, validateAIResponse } from "../ai/aiOrchestrationService";
 import type { ComplianceGap, InsertComplianceGap } from "@shared/schema";
 
 /**

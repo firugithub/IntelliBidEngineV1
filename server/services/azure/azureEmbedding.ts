@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { storage } from "../storage";
-import { ConfigHelper } from "./configHelpers";
+import { storage } from "../../storage";
+import { ConfigHelper } from "../core/configHelpers";
 
 interface EmbeddingResult {
   embedding: number[];

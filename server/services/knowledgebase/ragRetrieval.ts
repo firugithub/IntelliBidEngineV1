@@ -1,6 +1,6 @@
-import { azureEmbeddingService } from "./azureEmbedding";
-import { azureAISearchService } from "./azureAISearch";
-import { storage } from "../storage";
+import { azureEmbeddingService } from "../azure/azureEmbedding";
+import { azureAISearchService } from "../azure/azureAISearch";
+import { storage } from "../../storage";
 
 export interface RetrievedChunk {
   content: string;

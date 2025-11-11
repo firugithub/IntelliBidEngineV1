@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import { generateCompletion } from "./aiOrchestrationService";
 import type { ChatSession, ChatMessage, InsertChatSession, InsertChatMessage } from "@shared/schema";
 import { getOpenAIClient } from "./aiAnalysis";

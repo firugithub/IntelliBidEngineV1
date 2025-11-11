@@ -1,7 +1,7 @@
 import { type InsertGeneratedRft, type RftTemplate, type BusinessCase } from "@shared/schema";
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
-import { getOpenAIClient } from "./aiAnalysis";
+import { getOpenAIClient } from "../ai/aiAnalysis";
 
 interface RftSection {
   sectionId: string;
