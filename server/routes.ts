@@ -1590,7 +1590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
-      const { parseExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
+      const { parseExcelQuestionnaire } = await import("./services/rft/excelQuestionnaireHandler");
 
       // Download Excel file from Azure
       if (!proposal.blobUrl) {
@@ -1634,7 +1634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
-      const { createExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
+      const { createExcelQuestionnaire } = await import("./services/rft/excelQuestionnaireHandler");
 
       // Create updated Excel file
       const updatedExcelBuffer = await createExcelQuestionnaire(
