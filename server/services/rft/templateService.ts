@@ -1,0 +1,325 @@
+import { type InsertOrganizationTemplate, type OrganizationTemplate } from "@shared/schema";
+import { storage } from "../../storage";
+import { AzureBlobStorageService } from "../azure/azureBlobStorage";
+import Docxtemplater from "docxtemplater";
+import PizZip from "pizzip";
+
+const blobStorageService = new AzureBlobStorageService();
+
+interface PlaceholderInfo {
+  name: string;
+  type: "simple" | "loop" | "condition";
+  description?: string;
+  defaultValue?: string;
+}
+
+interface SectionMapping {
+  sectionId: string;
+  sectionName: string;
+  stakeholderRole: string;
+  tokens: string[];
+  description?: string;
+}
+
+interface TemplateUploadResult {
+  template: OrganizationTemplate;
+  placeholders: PlaceholderInfo[];
+}
+
+export class TemplateService {
+  async uploadTemplate(
+    file: Buffer,
+    fileName: string,
+    metadata: {
+      name: string;
+      description?: string;
+      category: string;
+      templateType: "docx" | "xlsx";
+      createdBy?: string;
+    }
+  ): Promise<TemplateUploadResult> {
+    const fileExtension = fileName.toLowerCase().endsWith(".docx")
+      ? "docx"
+      : fileName.toLowerCase().endsWith(".xlsx")
+      ? "xlsx"
+      : null;
+
+    if (!fileExtension) {
+      throw new Error("Invalid file type. Only DOCX and XLSX files are supported.");
+    }
+
+    if (fileExtension !== metadata.templateType) {
+      throw new Error(
+        `File extension ${fileExtension} does not match specified template type ${metadata.templateType}`
+      );
+    }
+
+    const placeholders = await this.extractPlaceholders(file, metadata.templateType);
+
+    const templateId = crypto.randomUUID();
+    const blobPath = `templates/${templateId}/${fileName}`;
+
+    const { blobUrl } = await blobStorageService.uploadDocument(
+      blobPath,
+      file,
+      {
+        templateId,
+        templateName: metadata.name,
+        category: metadata.category,
+        uploadedBy: metadata.createdBy || "system",
+      }
+    );
+
+    const templateData: InsertOrganizationTemplate = {
+      name: metadata.name,
+      description: metadata.description || null,
+      category: metadata.category,
+      templateType: metadata.templateType,
+      blobUrl,
+      placeholders: placeholders as any,
+      sectionMappings: null,
+      isActive: "true",
+      isDefault: "false",
+      metadata: {
+        originalFileName: fileName,
+        fileSize: file.length,
+        uploadedAt: new Date().toISOString(),
+      } as any,
+      createdBy: metadata.createdBy || "system",
+    };
+
+    const template = await storage.createOrganizationTemplate(templateData);
+
+    return {
+      template,
+      placeholders,
+    };
+  }
+
+  async extractPlaceholders(
+    fileBuffer: Buffer,
+    templateType: "docx" | "xlsx"
+  ): Promise<PlaceholderInfo[]> {
+    if (templateType === "docx") {
+      return this.extractDocxPlaceholders(fileBuffer);
+    } else {
+      return this.extractXlsxPlaceholders(fileBuffer);
+    }
+  }
+
+  private async extractDocxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {
+    try {
+      const zip = new PizZip(fileBuffer);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      const tags = doc.getFullText().match(/\{\{([^}]+)\}\}/g) || [];
+      const uniqueTags = Array.from(new Set(tags));
+
+      const placeholders: PlaceholderInfo[] = uniqueTags.map((tag) => {
+        const cleanTag = tag.replace(/[{}]/g, "").trim();
+        const isLoop = cleanTag.startsWith("#") || cleanTag.startsWith("/");
+        const isCondition = cleanTag.includes("?") || cleanTag.includes(":");
+
+        return {
+          name: cleanTag.replace(/^[#/]/, ""),
+          type: isLoop ? "loop" : isCondition ? "condition" : "simple",
+          description: this.generatePlaceholderDescription(cleanTag),
+        };
+      });
+
+      return placeholders;
+    } catch (error) {
+      console.error("Error extracting DOCX placeholders:", error);
+      throw new Error(
+        `Failed to extract placeholders from DOCX template: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  private async extractXlsxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {
+    const placeholders: PlaceholderInfo[] = [];
+    const text = fileBuffer.toString("utf8");
+    const matches = text.match(/\{\{([^}]+)\}\}/g) || [];
+    const uniqueTags = Array.from(new Set(matches));
+
+    uniqueTags.forEach((tag) => {
+      const cleanTag = tag.replace(/[{}]/g, "").trim();
+      placeholders.push({
+        name: cleanTag,
+        type: "simple",
+        description: this.generatePlaceholderDescription(cleanTag),
+      });
+    });
+
+    return placeholders;
+  }
+
+  private generatePlaceholderDescription(placeholderName: string): string {
+    const nameUpper = placeholderName.toUpperCase();
+
+    if (nameUpper.includes("PROJECT") && nameUpper.includes("NAME")) {
+      return "Project name or title";
+    }
+    if (nameUpper.includes("DATE")) {
+      return "Date value";
+    }
+    if (nameUpper.includes("BUDGET")) {
+      return "Budget or cost information";
+    }
+    if (nameUpper.includes("TIMELINE") || nameUpper.includes("SCHEDULE")) {
+      return "Timeline or schedule information";
+    }
+    if (nameUpper.includes("OBJECTIVE")) {
+      return "Project objective or goal";
+    }
+    if (nameUpper.includes("SCOPE")) {
+      return "Project scope information";
+    }
+    if (nameUpper.includes("REQUIREMENT")) {
+      return "Requirements information";
+    }
+    if (nameUpper.includes("AI_") || nameUpper.includes("GENERATED_")) {
+      return "AI-generated content section";
+    }
+
+    return `Placeholder for ${placeholderName}`;
+  }
+
+  async configureSectionMappings(
+    templateId: string,
+    sectionMappings: SectionMapping[]
+  ): Promise<OrganizationTemplate> {
+    const template = await storage.getOrganizationTemplate(templateId);
+    
+    if (!template) {
+      throw new Error(`Template with ID ${templateId} not found`);
+    }
+
+    await storage.updateOrganizationTemplate(templateId, {
+      sectionMappings: sectionMappings as any,
+    });
+
+    const updatedTemplate = await storage.getOrganizationTemplate(templateId);
+    if (!updatedTemplate) {
+      throw new Error(`Failed to retrieve updated template ${templateId}`);
+    }
+
+    return updatedTemplate;
+  }
+
+  async getAllTemplates(filters?: {
+    category?: string;
+    isActive?: boolean;
+  }): Promise<OrganizationTemplate[]> {
+    const allTemplates = await storage.getAllOrganizationTemplates();
+
+    if (!filters) {
+      return allTemplates;
+    }
+
+    return allTemplates.filter((template) => {
+      if (filters.category && template.category !== filters.category) {
+        return false;
+      }
+      if (filters.isActive !== undefined) {
+        const isActive = template.isActive === "true";
+        if (isActive !== filters.isActive) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  async getTemplateById(templateId: string): Promise<OrganizationTemplate | null> {
+    const template = await storage.getOrganizationTemplate(templateId);
+    return template || null;
+  }
+
+  async setDefaultTemplate(templateId: string): Promise<OrganizationTemplate> {
+    const allTemplates = await storage.getAllOrganizationTemplates();
+    
+    for (const template of allTemplates) {
+      if (template.isDefault === "true") {
+        await storage.updateOrganizationTemplate(template.id, {
+          isDefault: "false",
+        });
+      }
+    }
+
+    await storage.updateOrganizationTemplate(templateId, {
+      isDefault: "true",
+    });
+
+    const updatedTemplate = await storage.getOrganizationTemplate(templateId);
+    if (!updatedTemplate) {
+      throw new Error(`Failed to retrieve template ${templateId} after setting as default`);
+    }
+
+    return updatedTemplate;
+  }
+
+  async deactivateTemplate(templateId: string): Promise<OrganizationTemplate> {
+    await storage.updateOrganizationTemplate(templateId, {
+      isActive: "false",
+    });
+
+    const updatedTemplate = await storage.getOrganizationTemplate(templateId);
+    if (!updatedTemplate) {
+      throw new Error(`Failed to retrieve template ${templateId} after deactivation`);
+    }
+
+    return updatedTemplate;
+  }
+
+  async deleteTemplate(templateId: string): Promise<void> {
+    const template = await storage.getOrganizationTemplate(templateId);
+    
+    if (!template) {
+      throw new Error(`Template with ID ${templateId} not found`);
+    }
+
+    if (template.blobUrl) {
+      try {
+        const blobName = template.blobUrl.split("/").slice(-2).join("/");
+        await blobStorageService.deleteDocument(blobName);
+      } catch (error) {
+        console.warn(
+          `Failed to delete blob for template ${templateId}:`,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    }
+
+    await storage.deleteOrganizationTemplate(templateId);
+  }
+
+  async downloadTemplate(templateId: string): Promise<{ buffer: Buffer; fileName: string }> {
+    const template = await storage.getOrganizationTemplate(templateId);
+    
+    if (!template) {
+      throw new Error(`Template with ID ${templateId} not found`);
+    }
+
+    if (!template.blobUrl) {
+      throw new Error(`Template ${templateId} has no associated file`);
+    }
+
+    const blobName = template.blobUrl.split("/").slice(-2).join("/");
+    const buffer = await blobStorageService.downloadDocument(blobName);
+
+    const fileName =
+      template.metadata && typeof template.metadata === "object" && "originalFileName" in template.metadata
+        ? String(template.metadata.originalFileName)
+        : `${template.name}.${template.templateType}`;
+
+    return { buffer, fileName };
+  }
+}
+
+export const templateService = new TemplateService();
