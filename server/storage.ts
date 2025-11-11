@@ -422,6 +422,8 @@ export class MemStorage implements IStorage {
       initiativeName: insertProject.initiativeName || null,
       vendorList: insertProject.vendorList || null,
       status: insertProject.status || "analyzing",
+      businessCaseId: insertProject.businessCaseId || null,
+      generatedRftId: null,
       createdAt: new Date(),
     };
     this.projects.set(id, project);
@@ -492,6 +494,7 @@ export class MemStorage implements IStorage {
       extractedData: insertProposal.extractedData || null,
       standardId: insertProposal.standardId || null,
       taggedSections: insertProposal.taggedSections || null,
+      blobUrl: null,
       createdAt: new Date(),
     };
     this.proposals.set(id, proposal);
@@ -502,6 +505,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.proposals.values()).filter(
       (prop) => prop.projectId === projectId
     );
+  }
+
+  async getAllProposals(): Promise<Proposal[]> {
+    return Array.from(this.proposals.values());
   }
 
   async getProposal(id: string): Promise<Proposal | undefined> {

@@ -701,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use AI to extract compliance sections from the document
-      const { extractComplianceSections } = await import("./services/aiAnalysis");
+      const { extractComplianceSections } = await import("./services/ai/aiAnalysis");
       const sections = await extractComplianceSections(parsedDocument.text, name);
 
       // Parse tags from JSON string
@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // PHASE 3: Ingest document into RAG system (Azure Blob + AI Search)
       try {
-        const { documentIngestionService } = await import("./services/documentIngestion");
+        const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
         
         // Prepare document buffer
         let documentBuffer: Buffer;
@@ -1366,7 +1366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:id/evaluation-report.pdf", async (req, res) => {
     try {
       const projectId = req.params.id;
-      const { generateEvaluationReportPdf } = await import("./services/evaluationReportPdf");
+      const { generateEvaluationReportPdf } = await import("./services/features/evaluationReportPdf");
       
       const pdfBuffer = await generateEvaluationReportPdf(projectId, storage);
       
@@ -1709,7 +1709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/rag/documents/:id", async (req, res) => {
     try {
       // Import at runtime to avoid circular dependencies
-      const { documentIngestionService } = await import("./services/documentIngestion");
+      const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
       await documentIngestionService.deleteDocument(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -1726,7 +1726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Import at runtime to avoid circular dependencies
-      const { documentIngestionService } = await import("./services/documentIngestion");
+      const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
       const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       // Download the document from blob storage
@@ -1767,7 +1767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Compliance Gap Analysis
   app.post("/api/projects/:projectId/proposals/:proposalId/analyze-gaps", async (req, res) => {
     try {
-      const { complianceGapService } = await import("./services/complianceGapService");
+      const { complianceGapService } = await import("./services/features/complianceGapService");
       const { projectId, proposalId } = req.params;
 
       // Get proposal and requirements
@@ -1799,7 +1799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:projectId/compliance-gaps", async (req, res) => {
     try {
-      const { complianceGapService } = await import("./services/complianceGapService");
+      const { complianceGapService } = await import("./services/features/complianceGapService");
       const gaps = await complianceGapService.getProjectComplianceGaps(req.params.projectId);
       const summary = await complianceGapService.getGapSummary(req.params.projectId);
       res.json({ gaps, summary });
@@ -1811,7 +1811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/proposals/:proposalId/compliance-gaps", async (req, res) => {
     try {
-      const { complianceGapService } = await import("./services/complianceGapService");
+      const { complianceGapService } = await import("./services/features/complianceGapService");
       const gaps = await complianceGapService.getProposalComplianceGaps(req.params.proposalId);
       res.json(gaps);
     } catch (error) {
@@ -1822,7 +1822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/compliance-gaps/:id/resolve", async (req, res) => {
     try {
-      const { complianceGapService } = await import("./services/complianceGapService");
+      const { complianceGapService } = await import("./services/features/complianceGapService");
       await complianceGapService.resolveComplianceGap(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -1834,7 +1834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Follow-up Question Generation
   app.post("/api/projects/:projectId/proposals/:proposalId/generate-questions", async (req, res) => {
     try {
-      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { followupQuestionService } = await import("./services/features/followupQuestionService");
       const { projectId, proposalId } = req.params;
 
       // Get proposal and requirements
@@ -1866,7 +1866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:projectId/followup-questions", async (req, res) => {
     try {
-      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { followupQuestionService } = await import("./services/features/followupQuestionService");
       const questions = await followupQuestionService.getProjectFollowupQuestions(req.params.projectId);
       const summary = await followupQuestionService.getQuestionSummary(req.params.projectId);
       res.json({ questions, summary });
@@ -1878,7 +1878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/proposals/:proposalId/followup-questions", async (req, res) => {
     try {
-      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { followupQuestionService } = await import("./services/features/followupQuestionService");
       const questions = await followupQuestionService.getProposalFollowupQuestions(req.params.proposalId);
       res.json(questions);
     } catch (error) {
@@ -1889,7 +1889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/followup-questions/:id/answer", async (req, res) => {
     try {
-      const { followupQuestionService } = await import("./services/followupQuestionService");
+      const { followupQuestionService } = await import("./services/features/followupQuestionService");
       const { answer } = req.body;
       if (!answer) {
         return res.status(400).json({ error: "Answer is required" });
@@ -1905,7 +1905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Vendor Comparison Matrix
   app.post("/api/projects/:projectId/comparisons", async (req, res) => {
     try {
-      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { vendorComparisonService } = await import("./services/features/vendorComparisonService");
       const { projectId } = req.params;
       const { proposalIds, comparisonFocus } = req.body;
 
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:projectId/comparisons", async (req, res) => {
     try {
-      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { vendorComparisonService } = await import("./services/features/vendorComparisonService");
       const comparisons = await vendorComparisonService.getProjectComparisons(req.params.projectId);
       res.json(comparisons);
     } catch (error) {
@@ -1960,7 +1960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/comparisons/:id", async (req, res) => {
     try {
-      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { vendorComparisonService } = await import("./services/features/vendorComparisonService");
       const comparison = await vendorComparisonService.getComparison(req.params.id);
       if (!comparison) {
         return res.status(404).json({ error: "Comparison not found" });
@@ -1974,7 +1974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/comparisons/:id", async (req, res) => {
     try {
-      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { vendorComparisonService } = await import("./services/features/vendorComparisonService");
       await vendorComparisonService.deleteComparison(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -1985,7 +1985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/comparisons/:id/export/:format", async (req, res) => {
     try {
-      const { vendorComparisonService } = await import("./services/vendorComparisonService");
+      const { vendorComparisonService } = await import("./services/features/vendorComparisonService");
       const { id, format } = req.params;
       
       const comparison = await vendorComparisonService.getComparison(id);
@@ -2016,7 +2016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Executive Briefing
   app.post("/api/projects/:projectId/briefings", async (req, res) => {
     try {
-      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { executiveBriefingService } = await import("./services/features/executiveBriefingService");
       const { projectId } = req.params;
       const { stakeholderRole } = req.body;
 
@@ -2051,7 +2051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:projectId/briefings", async (req, res) => {
     try {
-      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { executiveBriefingService } = await import("./services/features/executiveBriefingService");
       const { role } = req.query;
       
       let briefings;
@@ -2070,7 +2070,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/briefings/:id", async (req, res) => {
     try {
-      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { executiveBriefingService } = await import("./services/features/executiveBriefingService");
       const briefing = await executiveBriefingService.getBriefing(req.params.id);
       if (!briefing) {
         return res.status(404).json({ error: "Briefing not found" });
@@ -2084,7 +2084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/briefings/:id", async (req, res) => {
     try {
-      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { executiveBriefingService } = await import("./services/features/executiveBriefingService");
       await executiveBriefingService.deleteBriefing(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -2095,7 +2095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/briefings/:id/markdown", async (req, res) => {
     try {
-      const { executiveBriefingService } = await import("./services/executiveBriefingService");
+      const { executiveBriefingService } = await import("./services/features/executiveBriefingService");
       const briefing = await executiveBriefingService.getBriefing(req.params.id);
       if (!briefing) {
         return res.status(404).json({ error: "Briefing not found" });
@@ -2113,7 +2113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Conversational AI Assistant
   app.post("/api/projects/:projectId/chat/sessions", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const { projectId } = req.params;
 
       const session = await conversationalAIService.createChatSession(projectId);
@@ -2126,7 +2126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:projectId/chat/sessions", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const sessions = await conversationalAIService.getProjectChatSessions(req.params.projectId);
       res.json(sessions);
     } catch (error) {
@@ -2137,7 +2137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/chat/sessions/:sessionId", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const session = await conversationalAIService.getChatSession(req.params.sessionId);
       if (!session) {
         return res.status(404).json({ error: "Chat session not found" });
@@ -2151,7 +2151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/chat/sessions/:sessionId/messages", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const messages = await conversationalAIService.getSessionMessages(req.params.sessionId);
       res.json(messages);
     } catch (error) {
@@ -2162,7 +2162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/chat/sessions/:sessionId", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const { title } = req.body;
       if (!title) {
         return res.status(400).json({ error: "Title is required" });
@@ -2177,7 +2177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/chat/sessions/:sessionId", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       await conversationalAIService.deleteChatSession(req.params.sessionId);
       res.json({ success: true });
     } catch (error) {
@@ -2188,7 +2188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/chat/sessions/:sessionId/messages", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const { sessionId } = req.params;
       const { message, context } = req.body;
 
@@ -2211,7 +2211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/chat/sessions/:sessionId/messages/stream", async (req, res) => {
     try {
-      const { conversationalAIService } = await import("./services/conversationalAIService");
+      const { conversationalAIService } = await import("./services/ai/conversationalAIService");
       const { sessionId } = req.params;
       const { message, context } = req.body;
 
@@ -2399,7 +2399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate lean business case with AI
-      const { generateLeanBusinessCase } = await import("./services/businessCaseGenerator");
+      const { generateLeanBusinessCase } = await import("./services/rft/businessCaseGenerator");
       const generatedContent = await generateLeanBusinessCase({
         projectName: name,
         projectObjective,
@@ -2558,7 +2558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Step 3: Generate all 4 questionnaires with proper question counts
       console.log("📊 Generating questionnaires...");
-      const { generateQuestionnaireQuestions } = await import("./services/smartRftService");
+      const { generateQuestionnaireQuestions } = await import("./services/rft/smartRftService");
       
       const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
         generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
@@ -2687,7 +2687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📤 Publishing RFT ${req.params.id} - uploading files to Azure...`);
 
       // Upload all files to Azure Blob Storage
-      const { publishRftFilesToAzure } = await import("./services/smartRftService");
+      const { publishRftFilesToAzure } = await import("./services/rft/smartRftService");
       const azureUrls = await publishRftFilesToAzure(req.params.id);
 
       console.log(`✅ Files uploaded successfully to Azure Blob Storage`);
@@ -2860,7 +2860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`⚠️ Generating DOCX on-the-fly (RFT not yet published)`);
 
       // Generate DOC file
-      const { generateDocxDocument } = await import("./services/documentGenerator");
+      const { generateDocxDocument } = await import("./services/rft/documentGenerator");
       const outputPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}.docx`);
       
       await generateDocxDocument({
@@ -2915,7 +2915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`⚠️ Generating PDF on-the-fly (RFT not yet published)`);
 
       // Generate PDF file
-      const { generatePdfDocument } = await import("./services/documentGenerator");
+      const { generatePdfDocument } = await import("./services/rft/documentGenerator");
       const outputPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}.pdf`);
       
       await generatePdfDocument({
@@ -2976,7 +2976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tempFiles: string[] = [];
       
       if (sections.length > 0) {
-        const { generateDocxDocument, generatePdfDocument } = await import("./services/documentGenerator");
+        const { generateDocxDocument, generatePdfDocument } = await import("./services/rft/documentGenerator");
         
         // Generate DOCX
         const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
@@ -3232,7 +3232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Synchronize vendor shortlisting stages after evaluations complete
       try {
-        const { synchronizeVendorStages } = await import("./services/vendorStageService");
+        const { synchronizeVendorStages } = await import("./services/features/vendorStageService");
         const result = await synchronizeVendorStages(storage, projectId, { evaluatedStage: 7 });
         console.log(`✓ Vendor stages synchronized: ${result.created} created, ${result.updated} updated (${result.vendors.join(', ')})`);
       } catch (stageError) {
