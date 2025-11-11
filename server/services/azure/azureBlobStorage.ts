@@ -1,6 +1,4 @@
 import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
-import { storage } from "../../storage";
-import type { SystemConfig } from "@shared/schema";
 
 // Helper function to sanitize metadata values for Azure Blob Storage
 // Azure metadata only allows ASCII characters
@@ -25,14 +23,8 @@ export class AzureBlobStorageService {
   private containerName = "intellibid-documents";
 
   async initialize(): Promise<void> {
-    const configs = await storage.getAllSystemConfig();
-    const connectionString = 
-      configs.find((c: SystemConfig) => c.key === "AZURE_STORAGE_CONNECTION_STRING")?.value ||
-      process.env.AZURE_STORAGE_CONNECTION_STRING;
-
-    if (!connectionString) {
-      throw new Error("Azure Storage connection string not configured. Please configure in Admin Config page or set AZURE_STORAGE_CONNECTION_STRING environment variable.");
-    }
+    // Use ConfigHelper to get configuration from environment variables
+    const { connectionString } = ConfigHelper.getAzureStorageConfig();
 
     try {
       this.client = BlobServiceClient.fromConnectionString(connectionString);
@@ -44,8 +36,7 @@ export class AzureBlobStorageService {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(
         `Failed to initialize Azure Blob Storage: ${errorMessage}. ` +
-        `Please verify your connection string is correct and has proper permissions. ` +
-        `Configure in Admin Config page or check AZURE_STORAGE_CONNECTION_STRING environment variable.`
+        `Please verify your connection string is correct and has proper permissions in Replit Secrets.`
       );
     }
   }

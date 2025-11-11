@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { storage } from "../../storage";
 import { ConfigHelper } from "../core/configHelpers";
 
 interface EmbeddingResult {
@@ -18,10 +17,8 @@ export class AzureEmbeddingService {
   private deploymentName: string | null = null;
 
   async initialize(): Promise<void> {
-    const configs = await storage.getAllSystemConfig();
-    
-    // Use ConfigHelper with automatic fallback to environment variables
-    const { endpoint, apiKey, deployment, apiVersion } = ConfigHelper.getAzureOpenAIConfig(configs);
+    // Use ConfigHelper to get configuration from environment variables
+    const { endpoint, apiKey, deployment, apiVersion } = ConfigHelper.getAzureOpenAIConfig();
 
     // OpenAI SDK supports Azure endpoints natively
     // For Azure, the deployment is in the URL, but we still pass it as model parameter

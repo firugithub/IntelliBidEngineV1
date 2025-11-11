@@ -1,29 +1,24 @@
 import OpenAI from "openai";
 import { evaluateProposalMultiAgent } from "./multiAgentEvaluator";
-import { storage } from "../../storage";
 import { ConfigHelper } from "../core/configHelpers";
-import type { SystemConfig } from "@shared/schema";
 
 // Lazy-initialized OpenAI client
 let openaiClient: OpenAI | null = null;
 let cachedConfigHash: string | null = null;
 
 // Helper function to create a hash of the current config for cache invalidation
-function getConfigHash(configs: SystemConfig[]): string {
-  // Include both DB and env values in hash to detect any config changes
-  const endpoint = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_ENDPOINT", "AZURE_OPENAI_ENDPOINT") || "";
-  const deployment = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_DEPLOYMENT", "AZURE_OPENAI_DEPLOYMENT") || "";
-  const apiVersion = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_API_VERSION") || "";
-  const openaiKey = ConfigHelper.getConfigValue(configs, "OPENAI_API_KEY") || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
+function getConfigHash(): string {
+  // Include env values in hash to detect any config changes
+  const endpoint = ConfigHelper.getConfigValue("AZURE_OPENAI_ENDPOINT") || "";
+  const deployment = ConfigHelper.getConfigValue("AZURE_OPENAI_DEPLOYMENT") || "";
+  const apiVersion = ConfigHelper.getConfigValue("AZURE_OPENAI_API_VERSION") || "";
+  const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
   return `${endpoint}:${deployment}:${apiVersion}:${openaiKey.slice(0, 8)}`;
 }
 
 export async function getOpenAIClient(): Promise<OpenAI> {
-  // Try to get config from database first to check if cache is still valid
-  let configs: SystemConfig[] = [];
   try {
-    configs = await storage.getAllSystemConfig();
-    const currentHash = getConfigHash(configs);
+    const currentHash = getConfigHash();
     
     // Invalidate cache if config has changed
     if (openaiClient && cachedConfigHash !== currentHash) {
@@ -40,14 +35,14 @@ export async function getOpenAIClient(): Promise<OpenAI> {
     // Store current hash for future comparisons
     cachedConfigHash = currentHash;
     
-    // Use ConfigHelper to get config with automatic environment variable fallback
-    const config = ConfigHelper.getAgentsOpenAIConfig(configs);
+    // Use ConfigHelper to get config from environment variables
+    const config = ConfigHelper.getAgentsOpenAIConfig();
     
     if (config.useAzure) {
       // Azure OpenAI configuration
       const cleanEndpoint = config.azureEndpoint!.replace(/\/$/, '');
       
-      console.log("Using Azure OpenAI config for agents (from database or environment)");
+      console.log("Using Azure OpenAI config for agents (from environment variables)");
       console.log(`  Endpoint: ${cleanEndpoint}`);
       console.log(`  Deployment: ${config.azureDeployment}`);
       console.log(`  API Version: ${config.azureApiVersion}`);
@@ -61,7 +56,7 @@ export async function getOpenAIClient(): Promise<OpenAI> {
       });
     } else {
       // Regular OpenAI configuration
-      console.log("Using regular OpenAI config for agents (from database or environment)");
+      console.log("Using regular OpenAI config for agents (from environment variables)");
       openaiClient = new OpenAI({
         apiKey: config.apiKey,
         baseURL: config.baseUrl,

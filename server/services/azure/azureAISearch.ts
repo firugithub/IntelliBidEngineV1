@@ -1,6 +1,5 @@
 import { SearchClient, SearchIndexClient, AzureKeyCredential } from "@azure/search-documents";
-import { storage } from "../../storage";
-import type { SystemConfig } from "@shared/schema";
+import { ConfigHelper } from "../core/configHelpers";
 
 interface SearchDocument {
   id: string;
@@ -20,18 +19,8 @@ export class AzureAISearchService {
   private indexName = "intellibid-rag";
 
   async initialize(): Promise<void> {
-    const configs = await storage.getAllSystemConfig();
-    
-    const endpoint = 
-      configs.find((c: SystemConfig) => c.key === "AZURE_SEARCH_ENDPOINT")?.value ||
-      process.env.AZURE_SEARCH_ENDPOINT;
-    const apiKey = 
-      configs.find((c: SystemConfig) => c.key === "AZURE_SEARCH_KEY")?.value ||
-      process.env.AZURE_SEARCH_KEY;
-
-    if (!endpoint || !apiKey) {
-      throw new Error("Azure AI Search credentials not configured. Please configure in Admin Config page or set AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KEY environment variables.");
-    }
+    // Use ConfigHelper to get configuration from environment variables
+    const { endpoint, apiKey } = ConfigHelper.getAzureSearchConfig();
 
     const credential = new AzureKeyCredential(apiKey);
     this.searchClient = new SearchClient<SearchDocument>(endpoint, this.indexName, credential);
