@@ -1203,7 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Vendor name is required" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       const proposals = [];
       for (const file of files) {
@@ -1589,7 +1589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "File is not an Excel file" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       const { parseExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
 
       // Download Excel file from Azure
@@ -1633,7 +1633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Proposal not found" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       const { createExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
 
       // Create updated Excel file
@@ -1717,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Import at runtime to avoid circular dependencies
       const { documentIngestionService } = await import("./services/documentIngestion");
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       // Download the document from blob storage
       if (!ragDoc.blobName) {
@@ -3305,7 +3305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Upload files to Azure Blob Storage and create proposals
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       let uploadedVendorCount = 0;
       const failedUploads: string[] = [];
 
@@ -3766,7 +3766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Diagnostic endpoint for Azure Blob Storage connectivity
   app.get("/api/health/azure-storage", async (req, res) => {
     try {
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       // Test initialization
       await azureBlobStorageService.initialize();
