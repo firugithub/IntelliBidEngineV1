@@ -3604,6 +3604,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/agent-metrics/projects", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const projectMetrics = await agentMetricsService.getProjectMetrics();
+      res.json(projectMetrics);
+    } catch (error) {
+      console.error("Error fetching project metrics:", error);
+      res.status(500).json({ error: "Failed to fetch project metrics" });
+    }
+  });
+
   // Vendor Shortlisting Stages
   app.get("/api/projects/:projectId/vendor-stages", async (req, res) => {
     try {
