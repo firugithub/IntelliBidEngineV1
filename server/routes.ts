@@ -3533,7 +3533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Agent Metrics & Observability
   app.get("/api/agent-metrics/summary", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const summary = await agentMetricsService.getSummaryStats();
       res.json(summary);
     } catch (error) {
@@ -3544,7 +3544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/agents", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const stats = await agentMetricsService.getAllAgentStats();
       res.json(stats);
     } catch (error) {
@@ -3555,7 +3555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/agent/:role", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const { role } = req.params;
       const stats = await agentMetricsService.getAgentStats(role);
       if (!stats) {
@@ -3570,7 +3570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/failures", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const limit = parseInt(req.query.limit as string) || 10;
       const failures = await agentMetricsService.getRecentFailures(limit);
       res.json(failures);
@@ -3582,7 +3582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/timeseries", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const limit = parseInt(req.query.limit as string) || 50;
       const data = await agentMetricsService.getTimeSeriesData(limit);
       res.json(data);
@@ -3594,7 +3594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/evaluation/:evaluationId", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const { evaluationId } = req.params;
       const metrics = await agentMetricsService.getEvaluationMetrics(evaluationId);
       res.json(metrics);
@@ -3606,7 +3606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/agent-metrics/projects", async (req, res) => {
     try {
-      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { agentMetricsService } = await import("./services/core/agentMetrics");
       const projectMetrics = await agentMetricsService.getProjectMetrics();
       res.json(projectMetrics);
     } catch (error) {
