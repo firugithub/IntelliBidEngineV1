@@ -1,6 +1,8 @@
-import { storage } from "../storage";
+import { db } from "../db";
+import { agentMetrics } from "@shared/schema";
+import { eq, desc, and, gte, sql, count } from "drizzle-orm";
 
-// Agent execution metrics
+// Agent execution metrics (matches database schema)
 export interface AgentExecutionMetric {
   evaluationId: string;
   projectId: string;
@@ -37,38 +39,41 @@ const TOKEN_COSTS = {
 };
 
 class AgentMetricsService {
-  private metrics: AgentExecutionMetric[] = [];
   private readonly RETENTION_DAYS = 7;
-  private lastPruneTime: Date = new Date();
   
   /**
-   * Track a single agent execution
+   * Track a single agent execution (saves to database)
    */
-  trackExecution(metric: AgentExecutionMetric): void {
-    this.metrics.push(metric);
-    
-    // Log structured data for monitoring
-    console.log(JSON.stringify({
-      level: metric.success ? 'info' : 'error',
-      type: 'agent_execution',
-      agentRole: metric.agentRole,
-      vendorName: metric.vendorName,
-      executionTimeMs: metric.executionTimeMs,
-      tokenUsage: metric.tokenUsage,
-      estimatedCostUsd: metric.estimatedCostUsd,
-      success: metric.success,
-      errorType: metric.errorType,
-      timestamp: metric.timestamp.toISOString()
-    }));
-    
-    // Automatically prune old metrics once per hour to prevent unbounded growth
-    const hoursSinceLastPrune = (Date.now() - this.lastPruneTime.getTime()) / (1000 * 60 * 60);
-    if (hoursSinceLastPrune >= 1) {
-      const prunedCount = this.clearOldMetrics(this.RETENTION_DAYS);
-      if (prunedCount > 0) {
-        console.log(`[AgentMetrics] Pruned ${prunedCount} old metrics (>${this.RETENTION_DAYS} days)`);
-      }
-      this.lastPruneTime = new Date();
+  async trackExecution(metric: AgentExecutionMetric): Promise<void> {
+    try {
+      await db.insert(agentMetrics).values({
+        evaluationId: metric.evaluationId,
+        projectId: metric.projectId,
+        agentRole: metric.agentRole,
+        vendorName: metric.vendorName,
+        executionTimeMs: metric.executionTimeMs,
+        tokenUsage: metric.tokenUsage,
+        estimatedCostUsd: metric.estimatedCostUsd.toString(),
+        success: metric.success,
+        errorType: metric.errorType || null,
+        errorMessage: metric.errorMessage || null,
+      });
+      
+      // Log structured data for monitoring
+      console.log(JSON.stringify({
+        level: metric.success ? 'info' : 'error',
+        type: 'agent_execution',
+        agentRole: metric.agentRole,
+        vendorName: metric.vendorName,
+        executionTimeMs: metric.executionTimeMs,
+        tokenUsage: metric.tokenUsage,
+        estimatedCostUsd: metric.estimatedCostUsd,
+        success: metric.success,
+        errorType: metric.errorType,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('[AgentMetrics] Failed to save metric:', error);
     }
   }
   
@@ -90,54 +95,74 @@ class AgentMetricsService {
   /**
    * Get performance statistics for a specific agent role
    */
-  getAgentStats(agentRole: string): AgentPerformanceStats | null {
-    const agentMetrics = this.metrics.filter(m => m.agentRole === agentRole);
+  async getAgentStats(agentRole: string): Promise<AgentPerformanceStats | null> {
+    const cutoffDate = this.getCutoffDate();
     
-    if (agentMetrics.length === 0) {
+    const metrics = await db
+      .select()
+      .from(agentMetrics)
+      .where(and(
+        eq(agentMetrics.agentRole, agentRole),
+        gte(agentMetrics.timestamp, cutoffDate)
+      ))
+      .orderBy(desc(agentMetrics.timestamp));
+    
+    if (metrics.length === 0) {
       return null;
     }
     
-    const successCount = agentMetrics.filter(m => m.success).length;
-    const failureCount = agentMetrics.length - successCount;
-    const totalTokens = agentMetrics.reduce((sum, m) => sum + m.tokenUsage, 0);
-    const totalCost = agentMetrics.reduce((sum, m) => sum + m.estimatedCostUsd, 0);
-    const totalTime = agentMetrics.reduce((sum, m) => sum + m.executionTimeMs, 0);
+    const successCount = metrics.filter(m => m.success).length;
+    const failureCount = metrics.length - successCount;
+    const totalTokens = metrics.reduce((sum, m) => sum + m.tokenUsage, 0);
+    const totalCost = metrics.reduce((sum, m) => sum + parseFloat(m.estimatedCostUsd), 0);
+    const totalTime = metrics.reduce((sum, m) => sum + m.executionTimeMs, 0);
     
     return {
       agentRole,
-      totalExecutions: agentMetrics.length,
+      totalExecutions: metrics.length,
       successCount,
       failureCount,
-      successRate: parseFloat(((successCount / agentMetrics.length) * 100).toFixed(2)),
-      avgExecutionTimeMs: Math.round(totalTime / agentMetrics.length),
+      successRate: parseFloat(((successCount / metrics.length) * 100).toFixed(2)),
+      avgExecutionTimeMs: Math.round(totalTime / metrics.length),
       totalTokensUsed: totalTokens,
       totalCostUsd: parseFloat(totalCost.toFixed(6)),
-      avgTokensPerExecution: Math.round(totalTokens / agentMetrics.length),
-      avgCostPerExecution: parseFloat((totalCost / agentMetrics.length).toFixed(6)),
-      lastExecuted: agentMetrics[agentMetrics.length - 1]?.timestamp
+      avgTokensPerExecution: Math.round(totalTokens / metrics.length),
+      avgCostPerExecution: parseFloat((totalCost / metrics.length).toFixed(6)),
+      lastExecuted: metrics[0]?.timestamp
     };
   }
   
   /**
    * Get stats for all agents
    */
-  getAllAgentStats(): AgentPerformanceStats[] {
-    const roles = Array.from(new Set(this.metrics.map(m => m.agentRole)));
-    return roles.map(role => this.getAgentStats(role)).filter(Boolean) as AgentPerformanceStats[];
+  async getAllAgentStats(): Promise<AgentPerformanceStats[]> {
+    const cutoffDate = this.getCutoffDate();
+    
+    const metrics = await db
+      .select()
+      .from(agentMetrics)
+      .where(gte(agentMetrics.timestamp, cutoffDate));
+    
+    const roles = Array.from(new Set(metrics.map(m => m.agentRole)));
+    const stats = await Promise.all(roles.map(role => this.getAgentStats(role)));
+    return stats.filter(Boolean) as AgentPerformanceStats[];
   }
   
   /**
    * Get evaluation-level metrics
    */
-  getEvaluationMetrics(evaluationId: string): {
+  async getEvaluationMetrics(evaluationId: string): Promise<{
     totalExecutionTimeMs: number;
     totalTokensUsed: number;
     totalCostUsd: number;
     agentsSucceeded: number;
     agentsFailed: number;
     agentBreakdown: Record<string, { success: boolean; timeMs: number; tokens: number; costUsd: number }>;
-  } {
-    const evalMetrics = this.metrics.filter(m => m.evaluationId === evaluationId);
+  }> {
+    const evalMetrics = await db
+      .select()
+      .from(agentMetrics)
+      .where(eq(agentMetrics.evaluationId, evaluationId));
     
     const agentBreakdown: Record<string, any> = {};
     evalMetrics.forEach(m => {
@@ -145,14 +170,14 @@ class AgentMetricsService {
         success: m.success,
         timeMs: m.executionTimeMs,
         tokens: m.tokenUsage,
-        costUsd: m.estimatedCostUsd
+        costUsd: parseFloat(m.estimatedCostUsd)
       };
     });
     
     return {
       totalExecutionTimeMs: evalMetrics.reduce((sum, m) => sum + m.executionTimeMs, 0),
       totalTokensUsed: evalMetrics.reduce((sum, m) => sum + m.tokenUsage, 0),
-      totalCostUsd: parseFloat(evalMetrics.reduce((sum, m) => sum + m.estimatedCostUsd, 0).toFixed(6)),
+      totalCostUsd: parseFloat(evalMetrics.reduce((sum, m) => sum + parseFloat(m.estimatedCostUsd), 0).toFixed(6)),
       agentsSucceeded: evalMetrics.filter(m => m.success).length,
       agentsFailed: evalMetrics.filter(m => !m.success).length,
       agentBreakdown
@@ -162,83 +187,126 @@ class AgentMetricsService {
   /**
    * Get recent failures for debugging
    */
-  getRecentFailures(limit: number = 10): AgentExecutionMetric[] {
-    return this.metrics
-      .filter(m => !m.success)
-      .slice(-limit)
-      .reverse();
+  async getRecentFailures(limit: number = 10): Promise<AgentExecutionMetric[]> {
+    const failures = await db
+      .select()
+      .from(agentMetrics)
+      .where(eq(agentMetrics.success, false))
+      .orderBy(desc(agentMetrics.timestamp))
+      .limit(limit);
+    
+    return failures.map(f => ({
+      evaluationId: f.evaluationId,
+      projectId: f.projectId,
+      vendorName: f.vendorName,
+      agentRole: f.agentRole,
+      executionTimeMs: f.executionTimeMs,
+      tokenUsage: f.tokenUsage,
+      estimatedCostUsd: parseFloat(f.estimatedCostUsd),
+      success: f.success,
+      errorType: f.errorType || undefined,
+      errorMessage: f.errorMessage || undefined,
+      timestamp: f.timestamp
+    }));
   }
   
   /**
    * Get time-series data for charting (last N evaluations)
    */
-  getTimeSeriesData(limit: number = 50): {
+  async getTimeSeriesData(limit: number = 50): Promise<{
     timestamp: Date;
     totalCost: number;
     totalTokens: number;
     executionTime: number;
     successRate: number;
-  }[] {
-    // Group by evaluation
-    const evaluationGroups = new Map<string, AgentExecutionMetric[]>();
+  }[]> {
+    const cutoffDate = this.getCutoffDate();
     
-    this.metrics.slice(-limit * 6).forEach(m => {
+    const metrics = await db
+      .select()
+      .from(agentMetrics)
+      .where(gte(agentMetrics.timestamp, cutoffDate))
+      .orderBy(desc(agentMetrics.timestamp));
+    
+    // Group by evaluation
+    const evaluationGroups = new Map<string, typeof metrics>();
+    
+    metrics.forEach(m => {
       if (!evaluationGroups.has(m.evaluationId)) {
         evaluationGroups.set(m.evaluationId, []);
       }
       evaluationGroups.get(m.evaluationId)!.push(m);
     });
     
-    return Array.from(evaluationGroups.values()).map(metrics => {
-      const successCount = metrics.filter(m => m.success).length;
+    return Array.from(evaluationGroups.values()).map(evalMetrics => {
+      const successCount = evalMetrics.filter(m => m.success).length;
       return {
-        timestamp: metrics[0].timestamp,
-        totalCost: parseFloat(metrics.reduce((sum, m) => sum + m.estimatedCostUsd, 0).toFixed(6)),
-        totalTokens: metrics.reduce((sum, m) => sum + m.tokenUsage, 0),
-        executionTime: Math.max(...metrics.map(m => m.executionTimeMs)),
-        successRate: parseFloat(((successCount / metrics.length) * 100).toFixed(2))
+        timestamp: evalMetrics[0].timestamp,
+        totalCost: parseFloat(evalMetrics.reduce((sum, m) => sum + parseFloat(m.estimatedCostUsd), 0).toFixed(6)),
+        totalTokens: evalMetrics.reduce((sum, m) => sum + m.tokenUsage, 0),
+        executionTime: Math.max(...evalMetrics.map(m => m.executionTimeMs)),
+        successRate: parseFloat(((successCount / evalMetrics.length) * 100).toFixed(2))
       };
-    }).slice(-limit);
+    }).slice(0, limit);
   }
   
   /**
    * Clear old metrics (keep last N days)
    */
-  clearOldMetrics(daysToKeep: number = 7): number {
+  async clearOldMetrics(daysToKeep: number = 7): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
     
-    const before = this.metrics.length;
-    this.metrics = this.metrics.filter(m => m.timestamp >= cutoffDate);
-    return before - this.metrics.length;
+    const result = await db
+      .delete(agentMetrics)
+      .where(sql`${agentMetrics.timestamp} < ${cutoffDate}`)
+      .returning({ id: agentMetrics.id });
+    
+    return result.length;
   }
   
   /**
    * Get summary statistics
    */
-  getSummaryStats(): {
+  async getSummaryStats(): Promise<{
     totalEvaluations: number;
     totalAgentExecutions: number;
     totalTokensUsed: number;
     totalCostUsd: number;
     overallSuccessRate: number;
     avgExecutionTimeMs: number;
-  } {
-    const uniqueEvaluations = new Set(this.metrics.map(m => m.evaluationId));
-    const successCount = this.metrics.filter(m => m.success).length;
+  }> {
+    const cutoffDate = this.getCutoffDate();
+    
+    const metrics = await db
+      .select()
+      .from(agentMetrics)
+      .where(gte(agentMetrics.timestamp, cutoffDate));
+    
+    const uniqueEvaluations = new Set(metrics.map(m => m.evaluationId));
+    const successCount = metrics.filter(m => m.success).length;
     
     return {
       totalEvaluations: uniqueEvaluations.size,
-      totalAgentExecutions: this.metrics.length,
-      totalTokensUsed: this.metrics.reduce((sum, m) => sum + m.tokenUsage, 0),
-      totalCostUsd: parseFloat(this.metrics.reduce((sum, m) => sum + m.estimatedCostUsd, 0).toFixed(6)),
-      overallSuccessRate: this.metrics.length > 0 
-        ? parseFloat(((successCount / this.metrics.length) * 100).toFixed(2))
+      totalAgentExecutions: metrics.length,
+      totalTokensUsed: metrics.reduce((sum, m) => sum + m.tokenUsage, 0),
+      totalCostUsd: parseFloat(metrics.reduce((sum, m) => sum + parseFloat(m.estimatedCostUsd), 0).toFixed(6)),
+      overallSuccessRate: metrics.length > 0 
+        ? parseFloat(((successCount / metrics.length) * 100).toFixed(2))
         : 0,
-      avgExecutionTimeMs: this.metrics.length > 0
-        ? Math.round(this.metrics.reduce((sum, m) => sum + m.executionTimeMs, 0) / this.metrics.length)
+      avgExecutionTimeMs: metrics.length > 0
+        ? Math.round(metrics.reduce((sum, m) => sum + m.executionTimeMs, 0) / metrics.length)
         : 0
     };
+  }
+  
+  /**
+   * Get cutoff date for retention policy (7 days by default)
+   */
+  private getCutoffDate(): Date {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.RETENTION_DAYS);
+    return cutoffDate;
   }
 }
 

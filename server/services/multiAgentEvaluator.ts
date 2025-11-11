@@ -254,7 +254,7 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
     // Track metrics for successful execution
     const tokenUsage = response.usage?.total_tokens || 0;
     if (vendorContext) {
-      agentMetricsService.trackExecution({
+      await agentMetricsService.trackExecution({
         evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
         projectId: vendorContext.projectId,
         vendorName: vendorContext.vendorName,
@@ -308,7 +308,7 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
     
     // Track metrics for failed execution
     if (vendorContext) {
-      agentMetricsService.trackExecution({
+      await agentMetricsService.trackExecution({
         evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
         projectId: vendorContext.projectId,
         vendorName: vendorContext.vendorName,

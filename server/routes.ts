@@ -3515,7 +3515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/agent-metrics/summary", async (req, res) => {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
-      const summary = agentMetricsService.getSummaryStats();
+      const summary = await agentMetricsService.getSummaryStats();
       res.json(summary);
     } catch (error) {
       console.error("Error fetching agent metrics summary:", error);
@@ -3526,7 +3526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/agent-metrics/agents", async (req, res) => {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
-      const stats = agentMetricsService.getAllAgentStats();
+      const stats = await agentMetricsService.getAllAgentStats();
       res.json(stats);
     } catch (error) {
       console.error("Error fetching agent stats:", error);
@@ -3538,7 +3538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
       const { role } = req.params;
-      const stats = agentMetricsService.getAgentStats(role);
+      const stats = await agentMetricsService.getAgentStats(role);
       if (!stats) {
         return res.status(404).json({ error: "No metrics found for this agent" });
       }
@@ -3553,7 +3553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
       const limit = parseInt(req.query.limit as string) || 10;
-      const failures = agentMetricsService.getRecentFailures(limit);
+      const failures = await agentMetricsService.getRecentFailures(limit);
       res.json(failures);
     } catch (error) {
       console.error("Error fetching recent failures:", error);
@@ -3565,7 +3565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
       const limit = parseInt(req.query.limit as string) || 50;
-      const data = agentMetricsService.getTimeSeriesData(limit);
+      const data = await agentMetricsService.getTimeSeriesData(limit);
       res.json(data);
     } catch (error) {
       console.error("Error fetching time series data:", error);
@@ -3577,7 +3577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { agentMetricsService } = await import("./services/agentMetrics");
       const { evaluationId } = req.params;
-      const metrics = agentMetricsService.getEvaluationMetrics(evaluationId);
+      const metrics = await agentMetricsService.getEvaluationMetrics(evaluationId);
       res.json(metrics);
     } catch (error) {
       console.error("Error fetching evaluation metrics:", error);
