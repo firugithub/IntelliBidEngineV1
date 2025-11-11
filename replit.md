@@ -49,6 +49,76 @@ IntelliBid includes 5 production-ready AI features: Compliance Gap Analysis, Aut
 **Generate Mock Data Page:** Dedicated page for creating persistent RFT scenarios with pre-defined airline industry topics, generating RFTs, RFT packs, vendor responses, and complete evaluation reports. Includes a one-click "Download All Mock Data" feature.
 **Azure Blob Storage Integration:** All generated documents are organized in structured project-specific folders.
 
+## Configuration Management
+
+### Overview
+IntelliBid uses a centralized configuration system for managing AI service credentials (OpenAI, Azure OpenAI, Azure Search, Azure Storage). All AI services access credentials through shared helper functions that implement a consistent fallback hierarchy, ensuring reliable operation in both database-configured and environment-variable-only deployments.
+
+### Configuration Hierarchy
+The system follows a strict priority order for credential retrieval:
+1. **Database First (system_config table):** Credentials configured via Admin Config page are checked first
+2. **Environment Variables Fallback:** If database config is unavailable, automatically falls back to environment variables
+3. **Clear Error Messages:** If neither source provides required credentials, descriptive error messages guide configuration via Admin Config or environment setup
+
+### Shared Client Usage
+All AI services use centralized client factories to ensure consistent configuration:
+- **getOpenAIClient()** (server/services/aiAnalysis.ts): Provides Azure OpenAI or regular OpenAI client with automatic config fallback, used by all agent evaluation, conversational AI, Smart RFT generation, business case generation, and knowledge base chatbot services
+- **getAzureOpenAIConfig()** (server/services/configHelpers.ts): Provides Azure OpenAI configuration for embedding service with automatic fallback
+- **ConfigHelper utility** (server/services/configHelpers.ts): Core helper providing getConfigValue() for unified credential lookup across all services
+
+### Configuration Caching & Invalidation
+- OpenAI client instances are cached for performance
+- Configuration hash automatically computed from current DB and environment values
+- Cache invalidated when configuration changes detected (logged as "OpenAI config changed, invalidating cache")
+- Cold starts and config changes trigger automatic client re-initialization
+
+### Credential Configuration Paths
+
+#### Via Admin Config Page (Database)
+Navigate to Admin Config → System Configuration to set:
+- **For Azure OpenAI Agents:**
+  - AGENTS_OPENAI_ENDPOINT (Azure endpoint URL)
+  - AGENTS_OPENAI_KEY (Azure API key)
+  - AGENTS_OPENAI_DEPLOYMENT (Azure deployment name)
+  - AGENTS_OPENAI_API_VERSION (e.g., "2024-08-01-preview")
+- **For Azure OpenAI Embeddings:**
+  - AZURE_OPENAI_ENDPOINT
+  - AZURE_OPENAI_KEY
+  - AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+- **For Azure AI Search:**
+  - AZURE_SEARCH_ENDPOINT
+  - AZURE_SEARCH_KEY
+- **For Azure Blob Storage:**
+  - AZURE_STORAGE_CONNECTION_STRING
+- **For Regular OpenAI:**
+  - OPENAI_API_KEY (falls back to AI_INTEGRATIONS_OPENAI_API_KEY from environment)
+
+#### Via Environment Variables (Fallback)
+Set these environment variables as fallback or for environment-only deployments:
+- AI_INTEGRATIONS_OPENAI_API_KEY (regular OpenAI)
+- AI_INTEGRATIONS_OPENAI_BASE_URL (optional, for proxied endpoints)
+- AZURE_OPENAI_ENDPOINT
+- AZURE_OPENAI_KEY
+- AZURE_OPENAI_DEPLOYMENT
+- AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+- AZURE_OPENAI_API_VERSION
+- AZURE_SEARCH_ENDPOINT
+- AZURE_SEARCH_KEY
+- AZURE_STORAGE_CONNECTION_STRING
+
+### Deployment Considerations
+
+#### Replit Deployment
+- Configure credentials via Admin Config page for production
+- Environment variables (AI_INTEGRATIONS_*) automatically available for regular OpenAI
+- Azure credentials must be added via Admin Config or Replit Secrets
+
+#### External Deployment (Azure VMs, Standard Servers)
+- Set all required environment variables in deployment environment
+- Admin Config page can still be used for runtime credential updates
+- Ensure database connectivity for system_config table access
+- Configuration automatically falls back to environment variables if database is unavailable
+
 ## External Dependencies
 
 ### Third-Party Services
