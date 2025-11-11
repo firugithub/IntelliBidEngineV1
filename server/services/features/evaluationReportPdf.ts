@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import type { IStorage } from '../storage';
+import type { IStorage } from '../../storage';
 
 interface EvaluationData {
   id: string;

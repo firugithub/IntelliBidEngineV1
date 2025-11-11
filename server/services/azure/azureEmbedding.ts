@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { storage } from "../storage";
-import type { SystemConfig } from "@shared/schema";
+import { storage } from "../../storage";
+import { ConfigHelper } from "../core/configHelpers";
 
 interface EmbeddingResult {
   embedding: number[];
@@ -20,13 +20,8 @@ export class AzureEmbeddingService {
   async initialize(): Promise<void> {
     const configs = await storage.getAllSystemConfig();
     
-    const endpoint = configs.find((c: SystemConfig) => c.key === "AZURE_OPENAI_ENDPOINT")?.value;
-    const apiKey = configs.find((c: SystemConfig) => c.key === "AZURE_OPENAI_KEY")?.value;
-    const deployment = configs.find((c: SystemConfig) => c.key === "AZURE_OPENAI_EMBEDDING_DEPLOYMENT")?.value;
-
-    if (!endpoint || !apiKey || !deployment) {
-      throw new Error("Azure OpenAI credentials not configured. Please configure in Admin Config page.");
-    }
+    // Use ConfigHelper with automatic fallback to environment variables
+    const { endpoint, apiKey, deployment, apiVersion } = ConfigHelper.getAzureOpenAIConfig(configs);
 
     // OpenAI SDK supports Azure endpoints natively
     // For Azure, the deployment is in the URL, but we still pass it as model parameter
@@ -34,7 +29,7 @@ export class AzureEmbeddingService {
     this.client = new OpenAI({
       baseURL: `${endpoint}/openai/deployments/${deployment}`,
       apiKey,
-      defaultQuery: { "api-version": "2024-02-01" },
+      defaultQuery: { "api-version": apiVersion },
       defaultHeaders: { "api-key": apiKey },
     });
     // Use the deployment name in model parameter (Azure ignores it but SDK requires it)

@@ -1,5 +1,5 @@
 import { SearchClient, SearchIndexClient, AzureKeyCredential } from "@azure/search-documents";
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import type { SystemConfig } from "@shared/schema";
 
 interface SearchDocument {

@@ -1,8 +1,8 @@
-import { azureBlobStorageService } from "./azureBlobStorage";
-import { azureAISearchService } from "./azureAISearch";
-import { azureEmbeddingService } from "./azureEmbedding";
+import { azureBlobStorageService } from "../azure/azureBlobStorage";
+import { azureAISearchService } from "../azure/azureAISearch";
+import { azureEmbeddingService } from "../azure/azureEmbedding";
 import { chunkDocument } from "./chunkingService";
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import type { InsertRagDocument, InsertRagChunk } from "@shared/schema";
 import { randomUUID } from "crypto";
 

@@ -1,0 +1,49 @@
+ GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Azure AI Services Key —————————————————————————————
+remote:        locations:
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:486
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:1602
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/firugithub/IntelliBidEngine/security/secret-scanning/unblock-secret/35KEQorAjl5QmGhVli9eg4o2Wma
+remote:     
+remote:     
+remote:       —— Azure Storage Account Access Key ——————————————————
+remote:        locations:
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:487
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:1603
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/firugithub/IntelliBidEngine/security/secret-scanning/unblock-secret/35KEQt3x7BmOHSdDi1aYRlElSFu
+remote:     
+remote:     
+remote:       —— Azure Search Admin Key ————————————————————————————
+remote:        locations:
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:489
+remote:          - commit: b99d97a0fa526f498638a0eb3dfa248f9520846f
+remote:            path: intellibid_dump.sql:1605
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/firugithub/IntelliBidEngine/security/secret-scanning/unblock-secret/35KEQtBiRp5pFaQUFeDGf4ZCwBY
+remote:     
+remote: 
+remote: 
+To https://github.com/firugithub/IntelliBidEngine.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/firugithub/IntelliBidEngine.git'
+~/workspace$ 

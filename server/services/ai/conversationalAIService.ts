@@ -1,7 +1,7 @@
-import { storage } from "../storage";
+import { storage } from "../../storage";
 import { generateCompletion } from "./aiOrchestrationService";
 import type { ChatSession, ChatMessage, InsertChatSession, InsertChatMessage } from "@shared/schema";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./aiAnalysis";
 
 /**
  * Conversational AI Assistant Service
@@ -194,11 +194,8 @@ export async function* generateStreamingChatResponse(
     // Build context
     const contextString = buildContextString(context);
 
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
-    });
+    // Get OpenAI client with database config fallback to environment variables
+    const openai = await getOpenAIClient();
 
     // Generate streaming AI response
     let fullResponse = "";

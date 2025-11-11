@@ -184,7 +184,7 @@ export function mapNFRToCharacteristics(
 export async function calculateExcelScoresForVendor(
   vendorDocuments: Array<{ fileName: string; blobUrl: string; documentType: string; blobName?: string }>
 ): Promise<VendorExcelScores> {
-  const { AzureBlobStorageService } = await import('./azureBlobStorage');
+  const { AzureBlobStorageService } = await import('../azure/azureBlobStorage');
   const azureService = new AzureBlobStorageService();
   
   const scores: VendorExcelScores = {

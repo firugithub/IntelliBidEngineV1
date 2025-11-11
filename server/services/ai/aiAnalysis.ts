@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { evaluateProposalMultiAgent } from "./multiAgentEvaluator";
-import { storage } from "../storage";
+import { storage } from "../../storage";
+import { ConfigHelper } from "../core/configHelpers";
 import type { SystemConfig } from "@shared/schema";
 
 // Lazy-initialized OpenAI client
@@ -9,10 +10,12 @@ let cachedConfigHash: string | null = null;
 
 // Helper function to create a hash of the current config for cache invalidation
 function getConfigHash(configs: SystemConfig[]): string {
-  const endpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value || "";
-  const deployment = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_DEPLOYMENT")?.value || "";
-  const apiVersion = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_VERSION")?.value || "";
-  return `${endpoint}:${deployment}:${apiVersion}`;
+  // Include both DB and env values in hash to detect any config changes
+  const endpoint = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_ENDPOINT", "AZURE_OPENAI_ENDPOINT") || "";
+  const deployment = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_DEPLOYMENT", "AZURE_OPENAI_DEPLOYMENT") || "";
+  const apiVersion = ConfigHelper.getConfigValue(configs, "AGENTS_OPENAI_API_VERSION") || "";
+  const openaiKey = ConfigHelper.getConfigValue(configs, "OPENAI_API_KEY") || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
+  return `${endpoint}:${deployment}:${apiVersion}:${openaiKey.slice(0, 8)}`;
 }
 
 export async function getOpenAIClient(): Promise<OpenAI> {
@@ -37,62 +40,40 @@ export async function getOpenAIClient(): Promise<OpenAI> {
     // Store current hash for future comparisons
     cachedConfigHash = currentHash;
     
-    // Option 1: Try Azure OpenAI configuration (primary)
-    const azureEndpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
-    const azureDeployment = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_DEPLOYMENT")?.value;
-    const azureApiVersion = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_VERSION")?.value || "2024-08-01-preview";
-    const azureApiKey = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_KEY")?.value;
-
-    // If Azure OpenAI is configured (endpoint contains 'azure' and has deployment), use Azure
-    if (azureEndpoint && azureDeployment && azureApiKey && azureEndpoint.includes('azure')) {
-      // Remove trailing slash from endpoint
-      const cleanEndpoint = azureEndpoint.replace(/\/$/, '');
+    // Use ConfigHelper to get config with automatic environment variable fallback
+    const config = ConfigHelper.getAgentsOpenAIConfig(configs);
+    
+    if (config.useAzure) {
+      // Azure OpenAI configuration
+      const cleanEndpoint = config.azureEndpoint!.replace(/\/$/, '');
       
-      console.log("Using Azure OpenAI config from database for agents");
+      console.log("Using Azure OpenAI config for agents (from database or environment)");
       console.log(`  Endpoint: ${cleanEndpoint}`);
-      console.log(`  Deployment: ${azureDeployment}`);
-      console.log(`  API Version: ${azureApiVersion}`);
-      console.log(`  Final URL: ${cleanEndpoint}/openai/deployments/${azureDeployment}`);
+      console.log(`  Deployment: ${config.azureDeployment}`);
+      console.log(`  API Version: ${config.azureApiVersion}`);
+      console.log(`  Final URL: ${cleanEndpoint}/openai/deployments/${config.azureDeployment}`);
       
       openaiClient = new OpenAI({
-        baseURL: `${cleanEndpoint}/openai/deployments/${azureDeployment}`,
-        apiKey: azureApiKey,
-        defaultQuery: { "api-version": azureApiVersion },
-        defaultHeaders: { "api-key": azureApiKey },
+        baseURL: `${cleanEndpoint}/openai/deployments/${config.azureDeployment}`,
+        apiKey: config.apiKey,
+        defaultQuery: { "api-version": config.azureApiVersion },
+        defaultHeaders: { "api-key": config.apiKey },
       });
-      return openaiClient;
+    } else {
+      // Regular OpenAI configuration
+      console.log("Using regular OpenAI config for agents (from database or environment)");
+      openaiClient = new OpenAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl,
+      });
     }
     
-    // Option 2: Try regular OpenAI configuration from database (fallback)
-    const endpoint = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_ENDPOINT")?.value;
-    const apiKey = configs.find((c: SystemConfig) => c.key === "AGENTS_OPENAI_API_KEY")?.value;
-
-    if (endpoint && apiKey && !endpoint.includes('azure')) {
-      console.log("Using regular OpenAI config from database for agents");
-      openaiClient = new OpenAI({
-        apiKey,
-        baseURL: endpoint,
-      });
-      return openaiClient;
-    }
+    return openaiClient;
   } catch (error) {
-    console.warn("Failed to load OpenAI config from database, falling back to environment variables:", error);
+    console.error("Failed to initialize OpenAI client:", error);
+    throw error;
   }
-
-  // Option 3: Fall back to environment variables (regular OpenAI)
-  console.log("Using OpenAI config from environment variables for agents");
-  openaiClient = new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  });
-  return openaiClient;
 }
-
-// Legacy compatibility: Create a default client for immediate use
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
 
 // Feature flag for multiagent evaluation
 const USE_MULTIAGENT = process.env.USE_MULTIAGENT !== "false"; // Enabled by default
@@ -433,6 +414,7 @@ export interface VendorContext {
   vendorName: string;
   vendorIndex: number;
   totalVendors: number;
+  evaluationId?: string;
 }
 
 // Main evaluation function with multiagent support

@@ -13,6 +13,7 @@ import UploadPage from "@/pages/UploadPage";
 import DashboardPage from "@/pages/DashboardPage";
 import StandardsPage from "@/pages/StandardsPage";
 import AdminConfigPage from "@/pages/AdminConfigPage";
+import AgentMetricsPage from "@/pages/AgentMetricsPage";
 import DeepDivePage from "@/pages/DeepDivePage";
 import AIFeaturesPage from "@/pages/AIFeaturesPage";
 import SmartRftBuilderPage from "@/pages/SmartRftBuilderPage";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/executive-summary" component={ExecutiveSummaryPage} />
       <Route path="/admin-config" component={AdminConfigPage} />
+      <Route path="/agent-metrics" component={AgentMetricsPage} />
       <Route path="/standards" component={StandardsPage} />
       <Route path="/portfolio/:id" component={PortfolioPage} />
       <Route path="/portfolio/:id/new-project" component={NewProjectPage} />

@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../../storage";
 
 const PORTFOLIOS = [
   { name: "Flight Operations", description: "Flight planning, crew management, and operational excellence" },

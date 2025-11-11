@@ -1,4 +1,4 @@
-import type { IStorage } from "../storage";
+import type { IStorage } from "../../storage";
 
 interface SyncVendorStagesOptions {
   evaluatedStage?: number; // Default 7 (RFT Evaluation Completed)

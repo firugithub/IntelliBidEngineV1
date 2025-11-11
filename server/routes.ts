@@ -2,16 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
-import { parseDocument } from "./services/documentParser";
-import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/aiAnalysis";
-import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/sampleData";
-import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/smartRftService";
-import { generateAllQuestionnaires } from "./services/excelGenerator";
-import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rftMockDataGenerator";
-import { azureEmbeddingService } from "./services/azureEmbedding";
-import { azureAISearchService } from "./services/azureAISearch";
-import { azureBlobStorageService } from "./services/azureBlobStorage";
-import { evaluationProgressService } from "./services/evaluationProgress";
+import { parseDocument } from "./services/knowledgebase/documentParser";
+import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/ai/aiAnalysis";
+import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/core/sampleData";
+import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/rft/smartRftService";
+import { generateAllQuestionnaires } from "./services/rft/excelGenerator";
+import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rft/rftMockDataGenerator";
+import { azureEmbeddingService } from "./services/azure/azureEmbedding";
+import { azureAISearchService } from "./services/azure/azureAISearch";
+import { azureBlobStorageService } from "./services/azure/azureBlobStorage";
+import { evaluationProgressService } from "./services/core/evaluationProgress";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import fs from "fs";
@@ -1203,7 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Vendor name is required" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       const proposals = [];
       for (const file of files) {
@@ -1384,7 +1384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import score calculator
       const { calculateExcelScoresForVendor, calculateHybridScore, mapExcelScoresToEvaluation } = 
-        await import("./services/excelScoreCalculator");
+        await import("./services/rft/excelScoreCalculator");
       
       // Create enriched results for all vendors (with or without evaluations)
       const enrichedEvaluations = await Promise.all(vendorNames.map(async (vendorName) => {
@@ -1589,8 +1589,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "File is not an Excel file" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
-      const { parseExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+      const { parseExcelQuestionnaire } = await import("./services/rft/excelQuestionnaireHandler");
 
       // Download Excel file from Azure
       if (!proposal.blobUrl) {
@@ -1633,8 +1633,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Proposal not found" });
       }
 
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
-      const { createExcelQuestionnaire } = await import("./services/excelQuestionnaireHandler");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+      const { createExcelQuestionnaire } = await import("./services/rft/excelQuestionnaireHandler");
 
       // Create updated Excel file
       const updatedExcelBuffer = await createExcelQuestionnaire(
@@ -1717,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Import at runtime to avoid circular dependencies
       const { documentIngestionService } = await import("./services/documentIngestion");
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       // Download the document from blob storage
       if (!ragDoc.blobName) {
@@ -3159,12 +3159,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData = requirementStandardData;
         }
         
-        // Emit progress for this vendor
+        // Create placeholder evaluation record BEFORE multi-agent execution
+        // This allows metrics to save with a valid foreign key
+        const placeholderEvaluation = await storage.createEvaluation({
+          projectId,
+          proposalId: proposal.id,
+          overallScore: 0,
+          functionalFit: 0,
+          technicalFit: 0,
+          deliveryRisk: 0,
+          cost: "0",
+          compliance: 0,
+          status: "in_progress",
+          aiRationale: null,
+          roleInsights: null,
+          detailedScores: null,
+          sectionCompliance: null,
+          agentDiagnostics: null,
+        });
+        
+        // Emit progress for this vendor with evaluation ID
         const vendorContext = {
           projectId,
           vendorName: proposal.vendorName,
           vendorIndex: i,
           totalVendors: proposals.length,
+          evaluationId: placeholderEvaluation.id,
         };
         
         const { evaluation, diagnostics } = await evaluateProposal(
@@ -3174,9 +3194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vendorContext
         );
 
-        await storage.createEvaluation({
-          projectId,
-          proposalId: proposal.id,
+        // Update evaluation record with final results
+        await storage.updateEvaluation(placeholderEvaluation.id, {
           overallScore: evaluation.overallScore,
           functionalFit: evaluation.functionalFit,
           technicalFit: evaluation.technicalFit,
@@ -3286,7 +3305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Upload files to Azure Blob Storage and create proposals
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       let uploadedVendorCount = 0;
       const failedUploads: string[] = [];
 
@@ -3463,7 +3482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Executive Summary
   app.get("/api/executive-summary/stats", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const stats = await executiveSummaryService.getGlobalStats();
       res.json(stats);
@@ -3475,7 +3494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/stage-distribution", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const distribution = await executiveSummaryService.getStageDistribution();
       res.json(distribution);
@@ -3487,7 +3506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/vendor-leaders", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const limit = parseInt(req.query.limit as string) || 5;
       const leaders = await executiveSummaryService.getVendorLeaders(limit);
@@ -3500,7 +3519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/executive-summary/recent-activity", async (req, res) => {
     try {
-      const { createExecutiveSummaryService } = await import("./services/executiveSummaryService");
+      const { createExecutiveSummaryService } = await import("./services/features/executiveSummaryService");
       const executiveSummaryService = createExecutiveSummaryService(storage);
       const limit = parseInt(req.query.limit as string) || 10;
       const activity = await executiveSummaryService.getRecentActivity(limit);
@@ -3508,6 +3527,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching recent activity:", error);
       res.status(500).json({ error: "Failed to fetch recent activity" });
+    }
+  });
+
+  // Agent Metrics & Observability
+  app.get("/api/agent-metrics/summary", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const summary = await agentMetricsService.getSummaryStats();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching agent metrics summary:", error);
+      res.status(500).json({ error: "Failed to fetch agent metrics summary" });
+    }
+  });
+
+  app.get("/api/agent-metrics/agents", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const stats = await agentMetricsService.getAllAgentStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching agent stats:", error);
+      res.status(500).json({ error: "Failed to fetch agent stats" });
+    }
+  });
+
+  app.get("/api/agent-metrics/agent/:role", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { role } = req.params;
+      const stats = await agentMetricsService.getAgentStats(role);
+      if (!stats) {
+        return res.status(404).json({ error: "No metrics found for this agent" });
+      }
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching agent stats:", error);
+      res.status(500).json({ error: "Failed to fetch agent stats" });
+    }
+  });
+
+  app.get("/api/agent-metrics/failures", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const limit = parseInt(req.query.limit as string) || 10;
+      const failures = await agentMetricsService.getRecentFailures(limit);
+      res.json(failures);
+    } catch (error) {
+      console.error("Error fetching recent failures:", error);
+      res.status(500).json({ error: "Failed to fetch recent failures" });
+    }
+  });
+
+  app.get("/api/agent-metrics/timeseries", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const limit = parseInt(req.query.limit as string) || 50;
+      const data = await agentMetricsService.getTimeSeriesData(limit);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching time series data:", error);
+      res.status(500).json({ error: "Failed to fetch time series data" });
+    }
+  });
+
+  app.get("/api/agent-metrics/evaluation/:evaluationId", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { evaluationId } = req.params;
+      const metrics = await agentMetricsService.getEvaluationMetrics(evaluationId);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching evaluation metrics:", error);
+      res.status(500).json({ error: "Failed to fetch evaluation metrics" });
+    }
+  });
+
+  app.get("/api/agent-metrics/projects", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const projectMetrics = await agentMetricsService.getProjectMetrics();
+      res.json(projectMetrics);
+    } catch (error) {
+      console.error("Error fetching project metrics:", error);
+      res.status(500).json({ error: "Failed to fetch project metrics" });
     }
   });
 
@@ -3662,7 +3766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Diagnostic endpoint for Azure Blob Storage connectivity
   app.get("/api/health/azure-storage", async (req, res) => {
     try {
-      const { azureBlobStorageService } = await import("./services/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       // Test initialization
       await azureBlobStorageService.initialize();

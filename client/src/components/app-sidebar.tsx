@@ -1,4 +1,4 @@
-import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon, BarChart3, LucideIcon } from "lucide-react";
+import { Home, FolderKanban, BookOpen, Settings, Database, Trash2, Wand2, Bot, Sparkles as SparklesIcon, BarChart3, Activity, LucideIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -64,6 +64,11 @@ const allNavigationItems: NavigationItem[] = [
     title: "Admin Config",
     url: "/admin-config",
     icon: Settings,
+  },
+  {
+    title: "Agent Metrics",
+    url: "/agent-metrics",
+    icon: Activity,
   },
 ];
 
