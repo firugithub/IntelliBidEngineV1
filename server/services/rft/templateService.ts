@@ -54,6 +54,15 @@ export class TemplateService {
       );
     }
 
+    if (metadata.templateType === "xlsx") {
+      throw new Error(
+        "XLSX template support is not available in this release. " +
+        "Please use DOCX templates for token substitution. " +
+        "XLSX support requires SheetJS integration and will be added in a future update. " +
+        "Current implementation supports Emirates-style DOCX RFT templates with {{TOKEN}} placeholders."
+      );
+    }
+
     const placeholders = await this.extractPlaceholders(file, metadata.templateType);
 
     const templateId = crypto.randomUUID();
@@ -142,21 +151,10 @@ export class TemplateService {
   }
 
   private async extractXlsxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {
-    const placeholders: PlaceholderInfo[] = [];
-    const text = fileBuffer.toString("utf8");
-    const matches = text.match(/\{\{([^}]+)\}\}/g) || [];
-    const uniqueTags = Array.from(new Set(matches));
-
-    uniqueTags.forEach((tag) => {
-      const cleanTag = tag.replace(/[{}]/g, "").trim();
-      placeholders.push({
-        name: cleanTag,
-        type: "simple",
-        description: this.generatePlaceholderDescription(cleanTag),
-      });
-    });
-
-    return placeholders;
+    console.warn("XLSX placeholder extraction requires proper XLSX parsing library (e.g., SheetJS)");
+    console.warn("Current implementation is limited. For production use, integrate SheetJS for accurate extraction.");
+    
+    return [];
   }
 
   private generatePlaceholderDescription(placeholderName: string): string {
@@ -200,6 +198,13 @@ export class TemplateService {
       throw new Error(`Template with ID ${templateId} not found`);
     }
 
+    if (template.templateType !== "docx") {
+      throw new Error(
+        `Cannot configure section mappings for ${template.templateType} template. ` +
+        `Only DOCX templates are supported in this release.`
+      );
+    }
+
     await storage.updateOrganizationTemplate(templateId, {
       sectionMappings: sectionMappings as any,
     });
@@ -218,11 +223,13 @@ export class TemplateService {
   }): Promise<OrganizationTemplate[]> {
     const allTemplates = await storage.getAllOrganizationTemplates();
 
+    let filtered = allTemplates.filter((template) => template.templateType === "docx");
+
     if (!filters) {
-      return allTemplates;
+      return filtered;
     }
 
-    return allTemplates.filter((template) => {
+    return filtered.filter((template) => {
       if (filters.category && template.category !== filters.category) {
         return false;
       }
@@ -242,11 +249,23 @@ export class TemplateService {
   }
 
   async setDefaultTemplate(templateId: string): Promise<OrganizationTemplate> {
+    const template = await storage.getOrganizationTemplate(templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+
+    if (template.templateType !== "docx") {
+      throw new Error(
+        `Cannot set ${template.templateType} template as default. ` +
+        `Only DOCX templates are supported in this release.`
+      );
+    }
+
     const allTemplates = await storage.getAllOrganizationTemplates();
     
-    for (const template of allTemplates) {
-      if (template.isDefault === "true") {
-        await storage.updateOrganizationTemplate(template.id, {
+    for (const t of allTemplates) {
+      if (t.isDefault === "true") {
+        await storage.updateOrganizationTemplate(t.id, {
           isDefault: "false",
         });
       }
@@ -286,7 +305,7 @@ export class TemplateService {
 
     if (template.blobUrl) {
       try {
-        const blobName = template.blobUrl.split("/").slice(-2).join("/");
+        const blobName = this.extractBlobName(template.blobUrl);
         await blobStorageService.deleteDocument(blobName);
       } catch (error) {
         console.warn(
@@ -297,6 +316,17 @@ export class TemplateService {
     }
 
     await storage.deleteOrganizationTemplate(templateId);
+  }
+
+  private extractBlobName(blobUrl: string): string {
+    const urlParts = blobUrl.split("/");
+    const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
+    
+    if (containerIndex === -1 || containerIndex >= urlParts.length - 1) {
+      throw new Error(`Invalid blob URL format: ${blobUrl}`);
+    }
+
+    return urlParts.slice(containerIndex + 1).join("/");
   }
 
   async downloadTemplate(templateId: string): Promise<{ buffer: Buffer; fileName: string }> {
@@ -310,7 +340,7 @@ export class TemplateService {
       throw new Error(`Template ${templateId} has no associated file`);
     }
 
-    const blobName = template.blobUrl.split("/").slice(-2).join("/");
+    const blobName = this.extractBlobName(template.blobUrl);
     const buffer = await blobStorageService.downloadDocument(blobName);
 
     const fileName =
