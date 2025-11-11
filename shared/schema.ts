@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, boolean, numeric, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -125,6 +125,27 @@ export const vendorShortlistingStages = pgTable("vendor_shortlisting_stages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const agentMetrics = pgTable("agent_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  evaluationId: varchar("evaluation_id").notNull().references(() => evaluations.id, { onDelete: 'cascade' }),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: 'restrict' }),
+  agentRole: text("agent_role").notNull(), // 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security'
+  vendorName: text("vendor_name").notNull(),
+  executionTimeMs: integer("execution_time_ms").notNull(),
+  tokenUsage: integer("token_usage").notNull(),
+  estimatedCostUsd: numeric("estimated_cost_usd", { precision: 10, scale: 6 }).notNull(), // Up to $9,999.999999
+  success: boolean("success").notNull(),
+  errorType: text("error_type"), // 'timeout', 'execution_error', null if success
+  errorMessage: text("error_message"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  evaluationIdx: index("agent_metrics_evaluation_idx").on(table.evaluationId),
+  projectIdx: index("agent_metrics_project_idx").on(table.projectId),
+  agentRoleIdx: index("agent_metrics_agent_role_idx").on(table.agentRole),
+  timestampIdx: index("agent_metrics_timestamp_idx").on(table.timestamp.desc()),
+  timeseriesIdx: index("agent_metrics_timeseries_idx").on(table.projectId, table.agentRole, table.timestamp.desc()),
+}));
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -421,6 +442,11 @@ export const insertVendorShortlistingStageSchema = createInsertSchema(vendorShor
   updatedAt: true,
 });
 
+export const insertAgentMetricSchema = createInsertSchema(agentMetrics).omit({
+  id: true,
+  timestamp: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -483,3 +509,6 @@ export type GeneratedRft = typeof generatedRfts.$inferSelect;
 
 export type InsertVendorShortlistingStage = z.infer<typeof insertVendorShortlistingStageSchema>;
 export type VendorShortlistingStage = typeof vendorShortlistingStages.$inferSelect;
+
+export type InsertAgentMetric = z.infer<typeof insertAgentMetricSchema>;
+export type AgentMetric = typeof agentMetrics.$inferSelect;
