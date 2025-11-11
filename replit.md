@@ -18,6 +18,13 @@ Preferred communication style: Simple, everyday language.
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
 **Data Storage:** PostgreSQL database (Neon serverless) for core entities, requirements, proposals, evaluations, vendor_shortlisting_stages, and RAG documents. The `vendor_shortlisting_stages` table tracks vendor progress through a 10-stage procurement workflow.
 **API Structure:** RESTful endpoints for managing core entities, file uploads, sample data seeding, system configuration, and RAG document management.
+**Service Organization:** Backend services are organized into logical modules for better maintainability:
+- `server/services/ai/` - Core AI services (aiAnalysis, multiAgentEvaluator, aiOrchestration, conversationalAI)
+- `server/services/azure/` - Azure integrations (azureEmbedding, azureBlobStorage, azureAISearch)
+- `server/services/knowledgebase/` - RAG & document management (ragRetrieval, chatbot, MCP connector, chunking, ingestion, parsing, cache)
+- `server/services/rft/` - RFT generation features (smartRft, businessCase, mockData, excel generators, document generators)
+- `server/services/features/` - Advanced AI features (compliance gaps, followup questions, executive briefing, vendor comparison, summary, vendor stages, report PDF)
+- `server/services/core/` - Configuration & utilities (configHelpers, agentMetrics, evaluationProgress, sampleData)
 
 ### AI Analysis Pipeline
 **Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Cybersecurity & Compliance) for objective vendor proposal evaluation. Agent prompts are externalized to Markdown files for easy updates.
