@@ -225,6 +225,22 @@ export interface IStorage {
   updateGeneratedRft(id: string, updates: Partial<InsertGeneratedRft>): Promise<void>;
   deleteGeneratedRft(id: string): Promise<void>;
 
+  // Organization Templates
+  createOrganizationTemplate(template: InsertOrganizationTemplate): Promise<OrganizationTemplate>;
+  getOrganizationTemplate(id: string): Promise<OrganizationTemplate | undefined>;
+  getAllOrganizationTemplates(): Promise<OrganizationTemplate[]>;
+  getActiveOrganizationTemplates(): Promise<OrganizationTemplate[]>;
+  getOrganizationTemplatesByCategory(category: string): Promise<OrganizationTemplate[]>;
+  updateOrganizationTemplate(id: string, updates: Partial<InsertOrganizationTemplate>): Promise<void>;
+  deleteOrganizationTemplate(id: string): Promise<void>;
+
+  // RFT Generation Drafts
+  createRftGenerationDraft(draft: InsertRftGenerationDraft): Promise<RftGenerationDraft>;
+  getRftGenerationDraft(id: string): Promise<RftGenerationDraft | undefined>;
+  getRftGenerationDraftsByRft(rftId: string): Promise<RftGenerationDraft[]>;
+  updateRftGenerationDraft(id: string, updates: Partial<InsertRftGenerationDraft>): Promise<void>;
+  deleteRftGenerationDraft(id: string): Promise<void>;
+
   // Vendor Shortlisting Stages
   createVendorStage(stage: InsertVendorShortlistingStage): Promise<VendorShortlistingStage>;
   getVendorStagesByProject(projectId: string): Promise<VendorShortlistingStage[]>;
@@ -255,6 +271,9 @@ export class MemStorage implements IStorage {
   private businessCases: Map<string, BusinessCase>;
   private rftTemplates: Map<string, RftTemplate>;
   private generatedRfts: Map<string, GeneratedRft>;
+  private organizationTemplates: Map<string, OrganizationTemplate>;
+  private rftGenerationDrafts: Map<string, RftGenerationDraft>;
+  private vendorStages: Map<string, VendorShortlistingStage>;
 
   constructor() {
     this.portfolios = new Map();
@@ -277,6 +296,9 @@ export class MemStorage implements IStorage {
     this.businessCases = new Map();
     this.rftTemplates = new Map();
     this.generatedRfts = new Map();
+    this.organizationTemplates = new Map();
+    this.rftGenerationDrafts = new Map();
+    this.vendorStages = new Map();
   }
 
   async createPortfolio(insertPortfolio: InsertPortfolio): Promise<Portfolio> {
@@ -1191,6 +1213,101 @@ export class MemStorage implements IStorage {
     };
   }
 
+  // Organization Templates
+  async createOrganizationTemplate(insertTemplate: InsertOrganizationTemplate): Promise<OrganizationTemplate> {
+    const id = randomUUID();
+    const template: OrganizationTemplate = normalizeNullables<OrganizationTemplate>({
+      id,
+      ...insertTemplate,
+      isActive: insertTemplate.isActive ?? "true",
+      createdBy: insertTemplate.createdBy ?? "system",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    this.organizationTemplates.set(id, template);
+    return template;
+  }
+
+  async getOrganizationTemplate(id: string): Promise<OrganizationTemplate | undefined> {
+    return this.organizationTemplates.get(id);
+  }
+
+  async getAllOrganizationTemplates(): Promise<OrganizationTemplate[]> {
+    return Array.from(this.organizationTemplates.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
+  }
+
+  async getActiveOrganizationTemplates(): Promise<OrganizationTemplate[]> {
+    return Array.from(this.organizationTemplates.values()).filter(
+      (template) => template.isActive === "true"
+    );
+  }
+
+  async getOrganizationTemplatesByCategory(category: string): Promise<OrganizationTemplate[]> {
+    return Array.from(this.organizationTemplates.values()).filter(
+      (template) => template.category === category
+    );
+  }
+
+  async updateOrganizationTemplate(id: string, updates: Partial<InsertOrganizationTemplate>): Promise<void> {
+    const template = this.organizationTemplates.get(id);
+    if (template) {
+      const updated: OrganizationTemplate = {
+        ...template,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.organizationTemplates.set(id, updated);
+    }
+  }
+
+  async deleteOrganizationTemplate(id: string): Promise<void> {
+    this.organizationTemplates.delete(id);
+  }
+
+  // RFT Generation Drafts
+  async createRftGenerationDraft(insertDraft: InsertRftGenerationDraft): Promise<RftGenerationDraft> {
+    const id = randomUUID();
+    const draft: RftGenerationDraft = normalizeNullables<RftGenerationDraft>({
+      id,
+      ...insertDraft,
+      status: insertDraft.status ?? "draft",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    this.rftGenerationDrafts.set(id, draft);
+    return draft;
+  }
+
+  async getRftGenerationDraft(id: string): Promise<RftGenerationDraft | undefined> {
+    return this.rftGenerationDrafts.get(id);
+  }
+
+  async getRftGenerationDraftsByRft(rftId: string): Promise<RftGenerationDraft[]> {
+    return Array.from(this.rftGenerationDrafts.values()).filter(
+      (draft) => draft.rftId === rftId
+    ).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
+  }
+
+  async updateRftGenerationDraft(id: string, updates: Partial<InsertRftGenerationDraft>): Promise<void> {
+    const draft = this.rftGenerationDrafts.get(id);
+    if (draft) {
+      const updated: RftGenerationDraft = {
+        ...draft,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.rftGenerationDrafts.set(id, updated);
+    }
+  }
+
+  async deleteRftGenerationDraft(id: string): Promise<void> {
+    this.rftGenerationDrafts.delete(id);
+  }
+
   async createVendorStage(stage: InsertVendorShortlistingStage): Promise<VendorShortlistingStage> {
     throw new Error("createVendorStage not implemented in MemStorage - PostgreSQL override required");
   }
@@ -1568,6 +1685,75 @@ storage.updateGeneratedRft = async function(id: string, updates: Partial<InsertG
 
 storage.deleteGeneratedRft = async function(id: string): Promise<void> {
   await db.delete(generatedRfts).where(eq(generatedRfts.id, id));
+};
+
+// Override organization template methods to use PostgreSQL
+storage.createOrganizationTemplate = async function(insertTemplate: InsertOrganizationTemplate): Promise<OrganizationTemplate> {
+  const created = await db.insert(organizationTemplates)
+    .values({
+      ...insertTemplate,
+      isActive: insertTemplate.isActive ?? "true",
+      createdBy: insertTemplate.createdBy ?? "system",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getOrganizationTemplate = async function(id: string): Promise<OrganizationTemplate | undefined> {
+  const results = await db.select().from(organizationTemplates).where(eq(organizationTemplates.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getAllOrganizationTemplates = async function(): Promise<OrganizationTemplate[]> {
+  return await db.select().from(organizationTemplates).orderBy(desc(organizationTemplates.createdAt));
+};
+
+storage.getActiveOrganizationTemplates = async function(): Promise<OrganizationTemplate[]> {
+  return await db.select().from(organizationTemplates).where(eq(organizationTemplates.isActive, "true"));
+};
+
+storage.getOrganizationTemplatesByCategory = async function(category: string): Promise<OrganizationTemplate[]> {
+  return await db.select().from(organizationTemplates).where(eq(organizationTemplates.category, category));
+};
+
+storage.updateOrganizationTemplate = async function(id: string, updates: Partial<InsertOrganizationTemplate>): Promise<void> {
+  await db.update(organizationTemplates)
+    .set(updates)
+    .where(eq(organizationTemplates.id, id));
+};
+
+storage.deleteOrganizationTemplate = async function(id: string): Promise<void> {
+  await db.delete(organizationTemplates).where(eq(organizationTemplates.id, id));
+};
+
+// Override RFT generation draft methods to use PostgreSQL
+storage.createRftGenerationDraft = async function(insertDraft: InsertRftGenerationDraft): Promise<RftGenerationDraft> {
+  const created = await db.insert(rftGenerationDrafts)
+    .values({
+      ...insertDraft,
+      status: insertDraft.status ?? "draft",
+    })
+    .returning();
+  return created[0]!;
+};
+
+storage.getRftGenerationDraft = async function(id: string): Promise<RftGenerationDraft | undefined> {
+  const results = await db.select().from(rftGenerationDrafts).where(eq(rftGenerationDrafts.id, id)).limit(1);
+  return results[0];
+};
+
+storage.getRftGenerationDraftsByRft = async function(rftId: string): Promise<RftGenerationDraft[]> {
+  return await db.select().from(rftGenerationDrafts).where(eq(rftGenerationDrafts.rftId, rftId)).orderBy(desc(rftGenerationDrafts.createdAt));
+};
+
+storage.updateRftGenerationDraft = async function(id: string, updates: Partial<InsertRftGenerationDraft>): Promise<void> {
+  await db.update(rftGenerationDrafts)
+    .set(updates)
+    .where(eq(rftGenerationDrafts.id, id));
+};
+
+storage.deleteRftGenerationDraft = async function(id: string): Promise<void> {
+  await db.delete(rftGenerationDrafts).where(eq(rftGenerationDrafts.id, id));
 };
 
 storage.getGeneratedRftsByPortfolio = async function(portfolioId: string): Promise<GeneratedRft[]> {
