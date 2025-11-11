@@ -301,6 +301,80 @@ class AgentMetricsService {
   }
   
   /**
+   * Get metrics grouped by project
+   */
+  async getProjectMetrics(): Promise<Array<{
+    projectId: string;
+    projectName: string;
+    totalEvaluations: number;
+    totalAgentExecutions: number;
+    totalTokensUsed: number;
+    totalCostUsd: number;
+    successRate: number;
+    avgExecutionTimeMs: number;
+  }>> {
+    const cutoffDate = this.getCutoffDate();
+    
+    // Get metrics with project information
+    const metrics = await db
+      .select({
+        projectId: agentMetrics.projectId,
+        evaluationId: agentMetrics.evaluationId,
+        tokenUsage: agentMetrics.tokenUsage,
+        estimatedCostUsd: agentMetrics.estimatedCostUsd,
+        executionTimeMs: agentMetrics.executionTimeMs,
+        success: agentMetrics.success,
+      })
+      .from(agentMetrics)
+      .where(gte(agentMetrics.timestamp, cutoffDate));
+    
+    // Import projects table for project names
+    const { projects } = await import("@shared/schema");
+    
+    // Group by project
+    const projectGroups = new Map<string, typeof metrics>();
+    metrics.forEach(m => {
+      if (!projectGroups.has(m.projectId)) {
+        projectGroups.set(m.projectId, []);
+      }
+      projectGroups.get(m.projectId)!.push(m);
+    });
+    
+    // Get project details
+    const projectIds = Array.from(projectGroups.keys());
+    const projectDetails = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+      })
+      .from(projects)
+      .where(sql`${projects.id} = ANY(${projectIds})`);
+    
+    const projectNameMap = new Map(projectDetails.map(p => [p.id, p.name]));
+    
+    // Calculate stats per project
+    return Array.from(projectGroups.entries()).map(([projectId, metrics]) => {
+      const uniqueEvaluations = new Set(metrics.map(m => m.evaluationId));
+      const successCount = metrics.filter(m => m.success).length;
+      
+      return {
+        projectId,
+        projectName: projectNameMap.get(projectId) || 'Unknown Project',
+        totalEvaluations: uniqueEvaluations.size,
+        totalAgentExecutions: metrics.length,
+        totalTokensUsed: metrics.reduce((sum, m) => sum + m.tokenUsage, 0),
+        totalCostUsd: parseFloat(metrics.reduce((sum, m) => sum + parseFloat(m.estimatedCostUsd), 0).toFixed(6)),
+        successRate: metrics.length > 0 
+          ? parseFloat(((successCount / metrics.length) * 100).toFixed(2))
+          : 0,
+        avgExecutionTimeMs: metrics.length > 0
+          ? Math.round(metrics.reduce((sum, m) => sum + m.executionTimeMs, 0) / metrics.length)
+          : 0
+      };
+    }).sort((a, b) => b.totalAgentExecutions - a.totalAgentExecutions); // Sort by most active projects first
+  }
+  
+  /**
    * Get cutoff date for retention policy (7 days by default)
    */
   private getCutoffDate(): Date {
