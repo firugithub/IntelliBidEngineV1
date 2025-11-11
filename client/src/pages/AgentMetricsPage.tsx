@@ -217,7 +217,10 @@ export default function AgentMetricsPage() {
               projectMetrics.map((project) => (
                 <div key={project.projectId} className="border-b pb-4 last:border-0" data-testid={`project-metrics-${project.projectId}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">{project.projectName}</h3>
+                    <div>
+                      <h3 className="font-semibold">{project.projectId}</h3>
+                      <p className="text-sm text-muted-foreground">{project.projectName}</p>
+                    </div>
                     <div className="flex items-center gap-2">
                       {project.successRate === 100 ? (
                         <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
