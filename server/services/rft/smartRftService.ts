@@ -757,7 +757,7 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
   const fs = await import("fs");
   const path = await import("path");
   const { generateDocxDocument, generatePdfDocument } = await import("./documentGenerator");
-  const { azureBlobStorageService } = await import("./azureBlobStorage");
+  const { azureBlobStorageService } = await import("../azure/azureBlobStorage");
 
   // Extract sections from RFT
   const sections = (rft.sections as any)?.sections || [];
