@@ -59,72 +59,65 @@ IntelliBid includes 5 production-ready AI features: Compliance Gap Analysis, Aut
 ## Configuration Management
 
 ### Overview
-IntelliBid uses a centralized configuration system for managing AI service credentials (OpenAI, Azure OpenAI, Azure Search, Azure Storage). All AI services access credentials through shared helper functions that implement a consistent fallback hierarchy, ensuring reliable operation in both database-configured and environment-variable-only deployments.
+IntelliBid uses environment variables exclusively for managing AI service credentials (OpenAI, Azure OpenAI, Azure Search, Azure Storage). All AI services access credentials through the `ConfigHelper` utility in `server/services/core/configHelpers.ts`, which provides a simple interface for retrieving environment variables.
 
-### Configuration Hierarchy
-The system follows a strict priority order for credential retrieval:
-1. **Database First (system_config table):** Credentials configured via Admin Config page are checked first
-2. **Environment Variables Fallback:** If database config is unavailable, automatically falls back to environment variables
-3. **Clear Error Messages:** If neither source provides required credentials, descriptive error messages guide configuration via Admin Config or environment setup
+### Configuration System
+All credentials are managed through Replit Secrets (environment variables). The database configuration system has been removed for security and simplicity. All AI services use the centralized `ConfigHelper.getConfigValue(key)` method to retrieve credentials from environment variables.
 
 ### Shared Client Usage
 All AI services use centralized client factories to ensure consistent configuration:
-- **getOpenAIClient()** (server/services/aiAnalysis.ts): Provides Azure OpenAI or regular OpenAI client with automatic config fallback, used by all agent evaluation, conversational AI, Smart RFT generation, business case generation, and knowledge base chatbot services
-- **getAzureOpenAIConfig()** (server/services/configHelpers.ts): Provides Azure OpenAI configuration for embedding service with automatic fallback
-- **ConfigHelper utility** (server/services/configHelpers.ts): Core helper providing getConfigValue() for unified credential lookup across all services
+- **getOpenAIClient()** (server/services/ai/aiAnalysis.ts): Provides Azure OpenAI or regular OpenAI client using environment variables, used by all agent evaluation, conversational AI, Smart RFT generation, business case generation, and knowledge base chatbot services
+- **getAzureOpenAIConfig()** (server/services/core/configHelpers.ts): Provides Azure OpenAI configuration for embedding service using environment variables
+- **ConfigHelper utility** (server/services/core/configHelpers.ts): Core helper providing `getConfigValue(key)` for unified credential lookup across all services
 
 ### Configuration Caching & Invalidation
 - OpenAI client instances are cached for performance
-- Configuration hash automatically computed from current DB and environment values
+- Configuration hash automatically computed from current environment values
 - Cache invalidated when configuration changes detected (logged as "OpenAI config changed, invalidating cache")
 - Cold starts and config changes trigger automatic client re-initialization
 
-### Credential Configuration Paths
+### Required Environment Variables
 
-#### Via Admin Config Page (Database)
-Navigate to Admin Config → System Configuration to set:
-- **For Azure OpenAI Agents:**
-  - AGENTS_OPENAI_ENDPOINT (Azure endpoint URL)
-  - AGENTS_OPENAI_KEY (Azure API key)
-  - AGENTS_OPENAI_DEPLOYMENT (Azure deployment name)
-  - AGENTS_OPENAI_API_VERSION (e.g., "2024-08-01-preview")
-- **For Azure OpenAI Embeddings:**
-  - AZURE_OPENAI_ENDPOINT
-  - AZURE_OPENAI_KEY
-  - AZURE_OPENAI_EMBEDDING_DEPLOYMENT
-- **For Azure AI Search:**
-  - AZURE_SEARCH_ENDPOINT
-  - AZURE_SEARCH_KEY
-- **For Azure Blob Storage:**
-  - AZURE_STORAGE_CONNECTION_STRING
-- **For Regular OpenAI:**
-  - OPENAI_API_KEY (falls back to AI_INTEGRATIONS_OPENAI_API_KEY from environment)
+Set these environment variables in Replit Secrets (Tools → Secrets):
 
-#### Via Environment Variables (Fallback)
-Set these environment variables as fallback or for environment-only deployments:
-- AI_INTEGRATIONS_OPENAI_API_KEY (regular OpenAI)
-- AI_INTEGRATIONS_OPENAI_BASE_URL (optional, for proxied endpoints)
-- AZURE_OPENAI_ENDPOINT
-- AZURE_OPENAI_KEY
-- AZURE_OPENAI_DEPLOYMENT
-- AZURE_OPENAI_EMBEDDING_DEPLOYMENT
-- AZURE_OPENAI_API_VERSION
-- AZURE_SEARCH_ENDPOINT
-- AZURE_SEARCH_KEY
-- AZURE_STORAGE_CONNECTION_STRING
+#### For Azure OpenAI (Embeddings)
+- `AZURE_OPENAI_ENDPOINT` - Azure OpenAI service endpoint URL
+- `AZURE_OPENAI_KEY` - Azure OpenAI API key
+- `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` - Embedding model deployment name
+- `AZURE_OPENAI_API_VERSION` - API version (e.g., "2024-08-01-preview")
+
+#### For Azure OpenAI (Multi-Agent Evaluation) - Optional if using regular OpenAI
+- `AZURE_OPENAI_DEPLOYMENT` - Azure OpenAI deployment name for agent evaluation
+
+#### For Azure AI Search
+- `AZURE_SEARCH_ENDPOINT` - Azure AI Search service endpoint
+- `AZURE_SEARCH_KEY` - Azure AI Search admin API key
+
+#### For Azure Blob Storage
+- `AZURE_STORAGE_CONNECTION_STRING` - Azure Blob Storage connection string
+
+#### For Regular OpenAI (Alternative to Azure)
+- `AI_INTEGRATIONS_OPENAI_API_KEY` - OpenAI API key (automatically set by Replit OpenAI integration)
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` - Optional, for proxied endpoints
+
+### Admin Config Page
+The Admin Config page provides:
+- **Azure Connectivity Test**: Verifies all Azure services are properly configured and accessible
+- **Wipe Data**: Permanently deletes all application data and Azure resources
+- **Configuration Instructions**: Displays the required environment variables and how to set them in Replit Secrets
 
 ### Deployment Considerations
 
 #### Replit Deployment
-- Configure credentials via Admin Config page for production
-- Environment variables (AI_INTEGRATIONS_*) automatically available for regular OpenAI
-- Azure credentials must be added via Admin Config or Replit Secrets
+1. Add all required environment variables to Replit Secrets (Tools → Secrets)
+2. The application will automatically use these credentials on startup
+3. Use the Admin Config page to test Azure connectivity and verify configuration
 
 #### External Deployment (Azure VMs, Standard Servers)
-- Set all required environment variables in deployment environment
-- Admin Config page can still be used for runtime credential updates
-- Ensure database connectivity for system_config table access
-- Configuration automatically falls back to environment variables if database is unavailable
+1. Set all required environment variables in your deployment environment
+2. Ensure environment variables are available to the Node.js process
+3. The application will automatically detect and use these credentials
+4. No database setup required for configuration management
 
 ## External Dependencies
 
