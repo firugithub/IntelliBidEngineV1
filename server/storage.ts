@@ -41,6 +41,10 @@ import {
   type InsertGeneratedRft,
   type VendorShortlistingStage,
   type InsertVendorShortlistingStage,
+  type OrganizationTemplate,
+  type InsertOrganizationTemplate,
+  type RftGenerationDraft,
+  type InsertRftGenerationDraft,
   systemConfig,
   standards,
   ragDocuments,
@@ -54,9 +58,21 @@ import {
   proposals,
   evaluations,
   vendorShortlistingStages,
+  organizationTemplates,
+  rftGenerationDrafts,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { encryptApiKey, decryptApiKey } from "./utils/encryption";
+
+function normalizeNullables<T extends Record<string, any>>(
+  record: Record<string, any>
+): T {
+  const normalized: Record<string, any> = {};
+  for (const key in record) {
+    normalized[key] = record[key] === undefined ? null : record[key];
+  }
+  return normalized as T;
+}
 
 export interface IStorage {
   // Portfolios
@@ -983,12 +999,13 @@ export class MemStorage implements IStorage {
   // Business Cases
   async createBusinessCase(insertBusinessCase: InsertBusinessCase): Promise<BusinessCase> {
     const id = randomUUID();
-    const businessCase: BusinessCase = {
+    const businessCase: BusinessCase = normalizeNullables<BusinessCase>({
       id,
       ...insertBusinessCase,
+      status: insertBusinessCase.status ?? "uploaded",
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    });
     this.businessCases.set(id, businessCase);
     return businessCase;
   }
@@ -1026,12 +1043,14 @@ export class MemStorage implements IStorage {
   // RFT Templates
   async createRftTemplate(insertTemplate: InsertRftTemplate): Promise<RftTemplate> {
     const id = randomUUID();
-    const template: RftTemplate = {
+    const template: RftTemplate = normalizeNullables<RftTemplate>({
       id,
       ...insertTemplate,
+      isActive: insertTemplate.isActive ?? "true",
+      createdBy: insertTemplate.createdBy ?? "system",
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    });
     this.rftTemplates.set(id, template);
     return template;
   }
@@ -1075,13 +1094,15 @@ export class MemStorage implements IStorage {
   // Generated RFTs
   async createGeneratedRft(insertRft: InsertGeneratedRft): Promise<GeneratedRft> {
     const id = randomUUID();
-    const rft: GeneratedRft = {
+    const rft: GeneratedRft = normalizeNullables<GeneratedRft>({
       id,
-      publishedAt: null,
       ...insertRft,
+      status: insertRft.status ?? "draft",
+      version: insertRft.version ?? 1,
+      publishedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    });
     this.generatedRfts.set(id, rft);
     return rft;
   }
@@ -1482,14 +1503,8 @@ storage.deleteProject = async function(id: string): Promise<void> {
 storage.createBusinessCase = async function(insertBusinessCase: InsertBusinessCase): Promise<BusinessCase> {
   const created = await db.insert(businessCases)
     .values({
-      portfolioId: insertBusinessCase.portfolioId,
-      name: insertBusinessCase.name,
-      description: insertBusinessCase.description || null,
-      fileName: insertBusinessCase.fileName || null,
-      documentContent: insertBusinessCase.documentContent || null,
-      extractedData: insertBusinessCase.extractedData || null,
-      ragDocumentId: insertBusinessCase.ragDocumentId || null,
-      status: insertBusinessCase.status || "pending",
+      ...insertBusinessCase,
+      status: insertBusinessCase.status ?? "uploaded",
     })
     .returning();
   return created[0]!;

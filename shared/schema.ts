@@ -313,6 +313,37 @@ export const generatedRfts = pgTable("generated_rfts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const organizationTemplates = pgTable("organization_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  category: text("category").notNull(), // 'RFT', 'RFI', 'RFP', 'Custom'
+  templateType: text("template_type").notNull().default("docx"), // 'docx', 'xlsx'
+  blobUrl: text("blob_url").notNull(), // Azure Blob Storage URL for template file
+  placeholders: jsonb("placeholders").notNull(), // List of detected placeholders: [{name: "PROJECT_NAME", type: "simple", description: "..."}]
+  sectionMappings: jsonb("section_mappings"), // Maps sections to stakeholder roles: [{sectionId: "functional_req", stakeholderRole: "Technical PM", tokens: ["AI_FUNCTIONAL_REQUIREMENTS"]}]
+  isActive: text("is_active").notNull().default("true"),
+  isDefault: text("is_default").notNull().default("false"), // Organization-wide default template
+  metadata: jsonb("metadata"), // Additional metadata like file size, original filename
+  createdBy: text("created_by").notNull().default("system"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rftGenerationDrafts = pgTable("rft_generation_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull(),
+  businessCaseId: varchar("business_case_id").notNull(),
+  templateId: varchar("template_id"), // References organizationTemplates.id or rftTemplates.id
+  generationMode: text("generation_mode").notNull(), // 'ai_generation' or 'template_merge'
+  generatedSections: jsonb("generated_sections").notNull(), // [{sectionId: "objective", content: "...", assignedTo: "Technical PM", reviewStatus: "pending", approvedBy: null, approvedAt: null}]
+  status: text("status").notNull().default("draft"), // 'draft', 'in_review', 'approved', 'finalized'
+  approvalProgress: jsonb("approval_progress"), // {totalSections: 10, approvedSections: 3, pendingSections: 7}
+  metadata: jsonb("metadata"), // Generation parameters, AI models used
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Document categories for Knowledge Base
 export const documentCategories = [
   "architecture",
@@ -447,6 +478,18 @@ export const insertAgentMetricSchema = createInsertSchema(agentMetrics).omit({
   timestamp: true,
 });
 
+export const insertOrganizationTemplateSchema = createInsertSchema(organizationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRftGenerationDraftSchema = createInsertSchema(rftGenerationDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertStandard = z.infer<typeof insertStandardSchema>;
 export type Standard = typeof standards.$inferSelect;
 
@@ -512,3 +555,9 @@ export type VendorShortlistingStage = typeof vendorShortlistingStages.$inferSele
 
 export type InsertAgentMetric = z.infer<typeof insertAgentMetricSchema>;
 export type AgentMetric = typeof agentMetrics.$inferSelect;
+
+export type InsertOrganizationTemplate = z.infer<typeof insertOrganizationTemplateSchema>;
+export type OrganizationTemplate = typeof organizationTemplates.$inferSelect;
+
+export type InsertRftGenerationDraft = z.infer<typeof insertRftGenerationDraftSchema>;
+export type RftGenerationDraft = typeof rftGenerationDrafts.$inferSelect;
