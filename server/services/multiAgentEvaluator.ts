@@ -3,6 +3,7 @@ import { getOpenAIClient } from "./aiAnalysis";
 import { ragRetrievalService } from "./ragRetrieval";
 import { mcpConnectorService, type ConnectorError } from "./mcpConnectorService";
 import { evaluationProgressService } from "./evaluationProgress";
+import { agentMetricsService } from "./agentMetrics";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -250,6 +251,22 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
       }
     }
 
+    // Track metrics for successful execution
+    const tokenUsage = response.usage?.total_tokens || 0;
+    if (vendorContext) {
+      agentMetricsService.trackExecution({
+        evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
+        projectId: vendorContext.projectId,
+        vendorName: vendorContext.vendorName,
+        agentRole: role,
+        executionTimeMs: executionTime,
+        tokenUsage,
+        estimatedCostUsd: agentMetricsService.estimateCost(tokenUsage),
+        success: true,
+        timestamp: new Date()
+      });
+    }
+    
     // Emit progress: agent completed successfully
     if (vendorContext) {
       const roleLabels: Record<AgentRole, string> = {
@@ -279,12 +296,32 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
       rationale: result.rationale || "",
       status: result.status || calculatedStatus,
       executionTime,
-      tokenUsage: response.usage?.total_tokens || 0,
+      tokenUsage,
       succeeded: true,
     };
   } catch (error) {
     const executionTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorType = error instanceof Error && error.message.includes('timeout') ? 'timeout' : 'execution_error';
+    
     console.error(`Agent ${role} failed:`, error);
+    
+    // Track metrics for failed execution
+    if (vendorContext) {
+      agentMetricsService.trackExecution({
+        evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
+        projectId: vendorContext.projectId,
+        vendorName: vendorContext.vendorName,
+        agentRole: role,
+        executionTimeMs: executionTime,
+        tokenUsage: 0,
+        estimatedCostUsd: 0,
+        success: false,
+        errorType,
+        errorMessage,
+        timestamp: new Date()
+      });
+    }
     
     // Emit progress: agent failed
     if (vendorContext) {

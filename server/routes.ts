@@ -3511,6 +3511,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent Metrics & Observability
+  app.get("/api/agent-metrics/summary", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const summary = agentMetricsService.getSummaryStats();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching agent metrics summary:", error);
+      res.status(500).json({ error: "Failed to fetch agent metrics summary" });
+    }
+  });
+
+  app.get("/api/agent-metrics/agents", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const stats = agentMetricsService.getAllAgentStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching agent stats:", error);
+      res.status(500).json({ error: "Failed to fetch agent stats" });
+    }
+  });
+
+  app.get("/api/agent-metrics/agent/:role", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { role } = req.params;
+      const stats = agentMetricsService.getAgentStats(role);
+      if (!stats) {
+        return res.status(404).json({ error: "No metrics found for this agent" });
+      }
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching agent stats:", error);
+      res.status(500).json({ error: "Failed to fetch agent stats" });
+    }
+  });
+
+  app.get("/api/agent-metrics/failures", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const limit = parseInt(req.query.limit as string) || 10;
+      const failures = agentMetricsService.getRecentFailures(limit);
+      res.json(failures);
+    } catch (error) {
+      console.error("Error fetching recent failures:", error);
+      res.status(500).json({ error: "Failed to fetch recent failures" });
+    }
+  });
+
+  app.get("/api/agent-metrics/timeseries", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const limit = parseInt(req.query.limit as string) || 50;
+      const data = agentMetricsService.getTimeSeriesData(limit);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching time series data:", error);
+      res.status(500).json({ error: "Failed to fetch time series data" });
+    }
+  });
+
+  app.get("/api/agent-metrics/evaluation/:evaluationId", async (req, res) => {
+    try {
+      const { agentMetricsService } = await import("./services/agentMetrics");
+      const { evaluationId } = req.params;
+      const metrics = agentMetricsService.getEvaluationMetrics(evaluationId);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching evaluation metrics:", error);
+      res.status(500).json({ error: "Failed to fetch evaluation metrics" });
+    }
+  });
+
   // Vendor Shortlisting Stages
   app.get("/api/projects/:projectId/vendor-stages", async (req, res) => {
     try {
