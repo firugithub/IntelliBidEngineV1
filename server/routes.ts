@@ -3159,12 +3159,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData = requirementStandardData;
         }
         
-        // Emit progress for this vendor
+        // Create placeholder evaluation record BEFORE multi-agent execution
+        // This allows metrics to save with a valid foreign key
+        const placeholderEvaluation = await storage.createEvaluation({
+          projectId,
+          proposalId: proposal.id,
+          overallScore: 0,
+          functionalFit: 0,
+          technicalFit: 0,
+          deliveryRisk: 0,
+          cost: "0",
+          compliance: 0,
+          status: "in_progress",
+          aiRationale: null,
+          roleInsights: null,
+          detailedScores: null,
+          sectionCompliance: null,
+          agentDiagnostics: null,
+        });
+        
+        // Emit progress for this vendor with evaluation ID
         const vendorContext = {
           projectId,
           vendorName: proposal.vendorName,
           vendorIndex: i,
           totalVendors: proposals.length,
+          evaluationId: placeholderEvaluation.id,
         };
         
         const { evaluation, diagnostics } = await evaluateProposal(
@@ -3174,9 +3194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vendorContext
         );
 
-        await storage.createEvaluation({
-          projectId,
-          proposalId: proposal.id,
+        // Update evaluation record with final results
+        await storage.updateEvaluation(placeholderEvaluation.id, {
           overallScore: evaluation.overallScore,
           functionalFit: evaluation.functionalFit,
           technicalFit: evaluation.technicalFit,

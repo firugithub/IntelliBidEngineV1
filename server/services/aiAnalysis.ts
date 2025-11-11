@@ -433,6 +433,7 @@ export interface VendorContext {
   vendorName: string;
   vendorIndex: number;
   totalVendors: number;
+  evaluationId?: string;
 }
 
 // Main evaluation function with multiagent support

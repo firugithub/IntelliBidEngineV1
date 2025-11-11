@@ -253,9 +253,9 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
 
     // Track metrics for successful execution
     const tokenUsage = response.usage?.total_tokens || 0;
-    if (vendorContext) {
+    if (vendorContext && vendorContext.evaluationId) {
       await agentMetricsService.trackExecution({
-        evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
+        evaluationId: vendorContext.evaluationId,
         projectId: vendorContext.projectId,
         vendorName: vendorContext.vendorName,
         agentRole: role,
