@@ -1,12 +1,7 @@
 import { type InsertGeneratedRft, type RftTemplate, type BusinessCase } from "@shared/schema";
-import { OpenAI } from "openai";
 import { storage } from "../storage";
 import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+import { getOpenAIClient } from "./aiAnalysis";
 
 interface RftSection {
   sectionId: string;
@@ -188,6 +183,7 @@ Return JSON array (MUST include all 10 sections):
 ]`;
 
   try {
+    const openai = await getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -262,6 +258,7 @@ ${businessCaseContent.substring(0, 8000)}
 Return ONLY valid JSON, no additional text.`;
 
   try {
+    const openai = await getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -462,6 +459,7 @@ Generate exactly ${count} questions. Number them sequentially from 1 to ${count}
   console.log(`📝 First requirement: ${businessCaseExtract.keyRequirements?.[0] || "None"}`);
 
   try {
+    const openai = await getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -535,6 +533,7 @@ Example format:
 Generate ONLY the content for this section, well-formatted in markdown.`;
 
   try {
+    const openai = await getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

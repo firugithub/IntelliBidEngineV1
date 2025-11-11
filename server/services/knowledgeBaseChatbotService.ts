@@ -1,7 +1,7 @@
 import { storage } from "../storage";
 import { ragRetrievalService } from "./ragRetrieval";
 import { mcpConnectorService } from "./mcpConnectorService";
-import OpenAI from "openai";
+import { getOpenAIClient } from "./aiAnalysis";
 
 /**
  * Knowledge Base Chatbot Service
@@ -28,33 +28,8 @@ export interface ChatbotResponse {
 }
 
 class KnowledgeBaseChatbotService {
-  private openai: OpenAI | null = null;
-
   constructor() {
-    // Don't throw in constructor - allow lazy initialization
-  }
-
-  /**
-   * Lazy-load OpenAI client
-   */
-  private getOpenAI(): OpenAI {
-    if (this.openai) {
-      return this.openai;
-    }
-
-    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-    const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-
-    if (!apiKey) {
-      throw new Error("OpenAI API key not configured. Please add AI_INTEGRATIONS_OPENAI_API_KEY to your environment.");
-    }
-
-    this.openai = new OpenAI({
-      apiKey,
-      baseURL: baseURL || undefined,
-    });
-
-    return this.openai;
+    // Use shared OpenAI client with automatic config fallback
   }
 
   /**
@@ -153,7 +128,7 @@ class KnowledgeBaseChatbotService {
 
     // Step 6: Generate response
     console.log("[Knowledge Base Chatbot] Generating AI response...");
-    const openai = this.getOpenAI();
+    const openai = await getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
@@ -283,7 +258,7 @@ class KnowledgeBaseChatbotService {
     });
 
     // Step 5: Stream response
-    const openai = this.getOpenAI();
+    const openai = await getOpenAIClient();
     const stream = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,

@@ -1,9 +1,4 @@
-import { OpenAI } from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+import { getOpenAIClient } from "./aiAnalysis";
 
 export interface BusinessCaseInput {
   projectName: string;
@@ -94,6 +89,7 @@ Create a structured Lean Business Case document with the following sections:
 Format the document in clear, professional language suitable for executive review. Use proper headings, bullet points, and structured content. Make it comprehensive and aviation industry-focused.`;
 
   try {
+    const openai = await getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
