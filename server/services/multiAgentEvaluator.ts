@@ -4,7 +4,12 @@ import { ragRetrievalService } from "./ragRetrieval";
 import { mcpConnectorService, type ConnectorError } from "./mcpConnectorService";
 import { evaluationProgressService } from "./evaluationProgress";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// ES module path resolution
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
