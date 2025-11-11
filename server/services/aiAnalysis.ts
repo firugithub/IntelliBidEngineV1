@@ -75,12 +75,6 @@ export async function getOpenAIClient(): Promise<OpenAI> {
   }
 }
 
-// Legacy compatibility: Create a default client for immediate use
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
-
 // Feature flag for multiagent evaluation
 const USE_MULTIAGENT = process.env.USE_MULTIAGENT !== "false"; // Enabled by default
 
