@@ -1024,24 +1024,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       azureStorage: { configured: false, working: false, error: null, details: null },
     };
 
-    // Test Azure OpenAI Embeddings
+    // Test Azure OpenAI Embeddings (optional - gracefully handle missing credentials)
     try {
-      console.log("[Test] Initializing Azure OpenAI embedding service...");
-      await azureEmbeddingService.initialize();
-      results.azureOpenAI.configured = true;
-
-      console.log("[Test] Testing embedding generation...");
-      const testResult = await azureEmbeddingService.generateEmbedding("test");
+      // Check if required credentials are present before testing
+      const hasAzureOpenAI = process.env.AZURE_OPENAI_ENDPOINT && 
+                             process.env.AZURE_OPENAI_KEY && 
+                             process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT;
       
-      results.azureOpenAI.working = true;
-      results.azureOpenAI.details = {
-        embeddingDimensions: testResult.embedding.length,
-        tokenCount: testResult.tokenCount,
-        testText: "test",
-      };
-      console.log("[Test] Azure OpenAI test successful!");
+      if (!hasAzureOpenAI) {
+        console.log("[Test] Azure OpenAI not configured (optional) - skipping test");
+        results.azureOpenAI.error = "Azure OpenAI credentials not configured (optional for embeddings)";
+      } else {
+        console.log("[Test] Initializing Azure OpenAI embedding service...");
+        await azureEmbeddingService.initialize();
+        results.azureOpenAI.configured = true;
+
+        console.log("[Test] Testing embedding generation...");
+        const testResult = await azureEmbeddingService.generateEmbedding("test");
+        
+        results.azureOpenAI.working = true;
+        results.azureOpenAI.details = {
+          embeddingDimensions: testResult.embedding.length,
+          tokenCount: testResult.tokenCount,
+          testText: "test",
+        };
+        console.log("[Test] Azure OpenAI test successful!");
+      }
     } catch (error: any) {
-      console.error("[Test] Azure OpenAI test failed:", error);
+      console.error("[Test] Azure OpenAI test failed unexpectedly:", error);
       results.azureOpenAI.error = error.message || String(error);
     }
 
