@@ -38,6 +38,8 @@ const TOKEN_COSTS = {
 
 class AgentMetricsService {
   private metrics: AgentExecutionMetric[] = [];
+  private readonly RETENTION_DAYS = 7;
+  private lastPruneTime: Date = new Date();
   
   /**
    * Track a single agent execution
@@ -58,15 +60,26 @@ class AgentMetricsService {
       errorType: metric.errorType,
       timestamp: metric.timestamp.toISOString()
     }));
+    
+    // Automatically prune old metrics once per hour to prevent unbounded growth
+    const hoursSinceLastPrune = (Date.now() - this.lastPruneTime.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLastPrune >= 1) {
+      const prunedCount = this.clearOldMetrics(this.RETENTION_DAYS);
+      if (prunedCount > 0) {
+        console.log(`[AgentMetrics] Pruned ${prunedCount} old metrics (>${this.RETENTION_DAYS} days)`);
+      }
+      this.lastPruneTime = new Date();
+    }
   }
   
   /**
    * Estimate cost based on token usage
    * Assumes 70% input tokens, 30% output tokens (typical for evaluation tasks)
+   * Uses floating-point arithmetic to maintain accuracy for low-token executions
    */
   estimateCost(totalTokens: number): number {
-    const inputTokens = Math.floor(totalTokens * 0.7);
-    const outputTokens = Math.floor(totalTokens * 0.3);
+    const inputTokens = totalTokens * 0.7;
+    const outputTokens = totalTokens * 0.3;
     
     const inputCost = (inputTokens / 1_000_000) * TOKEN_COSTS.inputPerMillion;
     const outputCost = (outputTokens / 1_000_000) * TOKEN_COSTS.outputPerMillion;

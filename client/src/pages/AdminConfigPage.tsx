@@ -31,23 +31,26 @@ interface SystemConfig {
 }
 
 interface AgentMetricsSummary {
-  totalExecutions: number;
-  successfulExecutions: number;
-  failedExecutions: number;
-  successRate: number;
-  avgExecutionTime: number;
-  totalTokens: number;
-  totalCost: number;
+  totalEvaluations: number;
+  totalAgentExecutions: number;
+  totalTokensUsed: number;
+  totalCostUsd: number;
+  overallSuccessRate: number;
+  avgExecutionTimeMs: number;
 }
 
 interface AgentStats {
+  agentRole: string;
   totalExecutions: number;
-  successfulExecutions: number;
-  failedExecutions: number;
+  successCount: number;
+  failureCount: number;
   successRate: number;
-  avgExecutionTime: number;
-  totalTokens: number;
-  totalCost: number;
+  avgExecutionTimeMs: number;
+  totalTokensUsed: number;
+  totalCostUsd: number;
+  avgTokensPerExecution: number;
+  avgCostPerExecution: number;
+  lastExecuted?: string;
 }
 
 interface AgentFailure {
@@ -738,7 +741,7 @@ function AgentMetricsTab() {
     queryKey: ["/api/agent-metrics/summary"],
   });
 
-  const { data: agentStats, isLoading: agentsLoading } = useQuery<Record<string, AgentStats>>({
+  const { data: agentStats, isLoading: agentsLoading } = useQuery<AgentStats[]>({
     queryKey: ["/api/agent-metrics/agents"],
   });
 
@@ -773,8 +776,8 @@ function AgentMetricsTab() {
             <Activity className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalExecutions || 0}</div>
-            <p className="text-xs text-muted-foreground">All agent evaluations</p>
+            <div className="text-2xl font-bold">{summary?.totalAgentExecutions || 0}</div>
+            <p className="text-xs text-muted-foreground">{summary?.totalEvaluations || 0} evaluations</p>
           </CardContent>
         </Card>
 
@@ -785,10 +788,10 @@ function AgentMetricsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary?.successRate ? `${summary.successRate.toFixed(1)}%` : "0%"}
+              {summary?.overallSuccessRate ? `${summary.overallSuccessRate.toFixed(1)}%` : "0%"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {summary?.successfulExecutions || 0} successful
+              Across all agents
             </p>
           </CardContent>
         </Card>
@@ -800,7 +803,7 @@ function AgentMetricsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary?.avgExecutionTime ? formatDuration(summary.avgExecutionTime) : "0ms"}
+              {summary?.avgExecutionTimeMs ? formatDuration(summary.avgExecutionTimeMs) : "0ms"}
             </div>
             <p className="text-xs text-muted-foreground">Per agent</p>
           </CardContent>
@@ -813,10 +816,10 @@ function AgentMetricsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary?.totalCost ? formatCost(summary.totalCost) : "$0.00"}
+              {summary?.totalCostUsd ? formatCost(summary.totalCostUsd) : "$0.00"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {summary?.totalTokens?.toLocaleString() || 0} tokens
+              {summary?.totalTokensUsed?.toLocaleString() || 0} tokens
             </p>
           </CardContent>
         </Card>
@@ -830,43 +833,47 @@ function AgentMetricsTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {agentStats && Object.entries(agentStats).map(([role, stats]: [string, any]) => (
-              <div key={role} className="border-b pb-4 last:border-0" data-testid={`agent-stats-${role}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold capitalize">{role} Agent</h3>
-                  <div className="flex items-center gap-2">
-                    {stats.successRate === 100 ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : stats.successRate > 0 ? (
-                      <AlertCircle className="w-4 h-4 text-yellow-500" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
-                    )}
-                    <span className="text-sm text-muted-foreground">
-                      {stats.successRate.toFixed(1)}% success
-                    </span>
+            {agentStats && agentStats.length > 0 ? (
+              agentStats.map((stats) => (
+                <div key={stats.agentRole} className="border-b pb-4 last:border-0" data-testid={`agent-stats-${stats.agentRole}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold capitalize">{stats.agentRole} Agent</h3>
+                    <div className="flex items-center gap-2">
+                      {stats.successRate === 100 ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : stats.successRate > 0 ? (
+                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      )}
+                      <span className="text-sm text-muted-foreground">
+                        {stats.successRate.toFixed(1)}% success
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Executions</p>
+                      <p className="font-medium">{stats.totalExecutions}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg Time</p>
+                      <p className="font-medium">{formatDuration(stats.avgExecutionTimeMs)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Tokens</p>
+                      <p className="font-medium">{stats.totalTokensUsed.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Cost</p>
+                      <p className="font-medium">{formatCost(stats.totalCostUsd)}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Executions</p>
-                    <p className="font-medium">{stats.totalExecutions}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Avg Time</p>
-                    <p className="font-medium">{formatDuration(stats.avgExecutionTime)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Tokens</p>
-                    <p className="font-medium">{stats.totalTokens.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Cost</p>
-                    <p className="font-medium">{formatCost(stats.totalCost)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No agent executions recorded yet</p>
+            )}
           </div>
         </CardContent>
       </Card>
