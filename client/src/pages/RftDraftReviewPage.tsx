@@ -59,8 +59,6 @@ export default function RftDraftReviewPage() {
   const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
-  const [approvingSection, setApprovingSection] = useState<DraftSection | null>(null);
-  const [approverRole, setApproverRole] = useState<string>("");
 
   // Fetch all drafts
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
@@ -104,22 +102,6 @@ export default function RftDraftReviewPage() {
     }
   });
 
-  // Approve section mutation
-  const approveSectionMutation = useMutation({
-    mutationFn: async ({ sectionId, approvedBy }: { sectionId: string; approvedBy: string }) => {
-      return await apiRequest("POST", `/api/rft/drafts/${selectedDraftId}/sections/${sectionId}/approve`, { approvedBy });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
-      toast({ title: "Section approved successfully" });
-      setApprovingSection(null);
-      setApproverRole("");
-    },
-    onError: () => {
-      toast({ title: "Failed to approve section", variant: "destructive" });
-    }
-  });
 
   // Finalize draft mutation
   const finalizeDraftMutation = useMutation({
@@ -150,22 +132,6 @@ export default function RftDraftReviewPage() {
     updateSectionMutation.mutate({ sectionId: editingSectionId, content: editedContent });
   };
 
-  const handleApproveClick = (section: DraftSection) => {
-    setApprovingSection(section);
-    // Pre-select the section's assigned role
-    setApproverRole(section.assignedTo);
-  };
-
-  const handleConfirmApproval = () => {
-    if (!approvingSection || !approverRole) {
-      toast({ title: "Please select your role", variant: "destructive" });
-      return;
-    }
-    approveSectionMutation.mutate({ 
-      sectionId: approvingSection.sectionId, 
-      approvedBy: approverRole 
-    });
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -422,29 +388,9 @@ export default function RftDraftReviewPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditSection(section)}
-                          disabled={section.reviewStatus === "approved"}
                           data-testid={`button-edit-${section.sectionId}`}
                         >
                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={section.reviewStatus === "approved" ? "default" : "outline"}
-                          onClick={() => handleApproveClick(section)}
-                          disabled={section.reviewStatus === "approved"}
-                          data-testid={`button-approve-${section.sectionId}`}
-                        >
-                          {section.reviewStatus === "approved" ? (
-                            <>
-                              <Check className="h-4 w-4 mr-1" />
-                              Approved
-                            </>
-                          ) : (
-                            <>
-                              <Check className="h-4 w-4 mr-1" />
-                              Approve
-                            </>
-                          )}
                         </Button>
                       </div>
                     </div>
@@ -453,17 +399,6 @@ export default function RftDraftReviewPage() {
                     <div className="prose dark:prose-invert max-w-none">
                       <p className="text-sm whitespace-pre-wrap">{section.content}</p>
                     </div>
-                    {section.approvedBy && section.approvedAt && (
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span>
-                            Approved by <strong>{section.approvedBy}</strong> on{" "}
-                            {new Date(section.approvedAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -478,7 +413,7 @@ export default function RftDraftReviewPage() {
           <DialogHeader>
             <DialogTitle>Edit Section Content</DialogTitle>
             <DialogDescription>
-              Make changes to the section content. This will reset the approval status.
+              Make changes to the section content below.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -511,60 +446,6 @@ export default function RftDraftReviewPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Approve Section Dialog */}
-      <Dialog open={approvingSection !== null} onOpenChange={(open) => !open && setApprovingSection(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve Section</DialogTitle>
-            <DialogDescription>
-              Confirm approval for: <strong>{approvingSection?.sectionTitle}</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Your Role</label>
-              <p className="text-xs text-muted-foreground">
-                Select your stakeholder role to approve this section. Only the assigned stakeholder ({getRoleName(approvingSection?.assignedTo || "")}) can approve.
-              </p>
-              <Select value={approverRole} onValueChange={setApproverRole}>
-                <SelectTrigger data-testid="select-approver-role">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAKEHOLDER_ROLES.filter(r => r.id !== "all").map((role) => (
-                    <SelectItem key={role.id} value={role.id} data-testid={`select-role-${role.id}`}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: role.color }}
-                        />
-                        <span>{role.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setApprovingSection(null)}
-              data-testid="button-cancel-approve"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmApproval}
-              disabled={approveSectionMutation.isPending || !approverRole}
-              data-testid="button-confirm-approve"
-            >
-              <Check className="h-4 w-4 mr-2" />
-              {approveSectionMutation.isPending ? "Approving..." : "Approve"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
