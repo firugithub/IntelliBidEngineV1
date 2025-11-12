@@ -43,7 +43,9 @@ export default function SmartRftBuilderPage() {
   const [projectScope, setProjectScope] = useState("");
   const [timeline, setTimeline] = useState("");
   const [budget, setBudget] = useState("");
-  const [keyRequirements, setKeyRequirements] = useState("");
+  const [functionalRequirements, setFunctionalRequirements] = useState("");
+  const [nonFunctionalRequirements, setNonFunctionalRequirements] = useState("");
+  const [keyRequirements, setKeyRequirements] = useState(""); // Deprecated, kept for backward compatibility
   const [successCriteria, setSuccessCriteria] = useState("");
   
   // RFT Document Edit Dialog
@@ -100,7 +102,9 @@ export default function SmartRftBuilderPage() {
         projectScope,
         timeline,
         budget,
-        keyRequirements,
+        functionalRequirements,
+        nonFunctionalRequirements,
+        keyRequirements, // Deprecated, kept for backward compatibility
         successCriteria,
       });
     },
@@ -698,15 +702,33 @@ export default function SmartRftBuilderPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Key Requirements</Label>
+                  <Label htmlFor="functional-requirements">Functional Requirements *</Label>
                   <Textarea
-                    id="requirements"
-                    value={keyRequirements}
-                    onChange={(e) => setKeyRequirements(e.target.value)}
-                    placeholder="e.g., Offline mode, push notifications, biometric login"
-                    data-testid="textarea-requirements"
-                    className="min-h-20"
+                    id="functional-requirements"
+                    value={functionalRequirements}
+                    onChange={(e) => setFunctionalRequirements(e.target.value)}
+                    placeholder="e.g., Booking system, seat selection, payment processing, boarding pass generation, flight status updates, baggage tracking"
+                    data-testid="textarea-functional-requirements"
+                    className="min-h-24"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Describe what the system must do - features, functions, and capabilities
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="non-functional-requirements">Non-functional Requirements</Label>
+                  <Textarea
+                    id="non-functional-requirements"
+                    value={nonFunctionalRequirements}
+                    onChange={(e) => setNonFunctionalRequirements(e.target.value)}
+                    placeholder="e.g., 99.99% uptime, <2s response time, PCI-DSS compliance, GDPR compliance, support 100K concurrent users, mobile responsive"
+                    data-testid="textarea-non-functional-requirements"
+                    className="min-h-24"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Describe quality attributes - performance, security, reliability, scalability
+                  </p>
                 </div>
 
                 <div className="space-y-2">

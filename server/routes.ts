@@ -269,6 +269,8 @@ Project: ${businessCaseData.name || "N/A"}
 Description: ${(businessCaseData.description || "N/A").substring(0, 500)}
 Budget: ${businessCaseData.extractedData?.budget || "TBD"}
 Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
+Functional Requirements: ${(businessCaseData.extractedData?.functionalRequirements || "").substring(0, 400)}
+Non-functional Requirements: ${(businessCaseData.extractedData?.nonFunctionalRequirements || "").substring(0, 400)}
 Industry: Aviation/Airline (Nujum Air)
 
 TASK: Expand this section into comprehensive, detailed requirements with MINIMUM 20 specific requirements.
@@ -311,7 +313,8 @@ Project: ${businessCaseData.name || "N/A"}
 Description: ${(businessCaseData.description || "N/A").substring(0, 500)}
 Budget: ${businessCaseData.extractedData?.budget || "TBD"}
 Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
-Requirements: ${(businessCaseData.extractedData?.requirements || businessCaseData.description || "").substring(0, 400)}
+Functional Requirements: ${(businessCaseData.extractedData?.functionalRequirements || "").substring(0, 400)}
+Non-functional Requirements: ${(businessCaseData.extractedData?.nonFunctionalRequirements || "").substring(0, 400)}
 Industry: Aviation/Airline (Nujum Air)
 
 TASK: Expand this section into comprehensive, professional content that provides detailed context and clarity.
@@ -2983,7 +2986,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           DESCRIPTION: businessCase.description || extractedData?.projectObjective || extractedData?.description || "",
           BUDGET: extractedData?.budget || "TBD",
           TIMELINE: extractedData?.timeline || "TBD",
-          REQUIREMENTS: extractedData?.keyRequirements || extractedData?.requirements || businessCase.description || "",
+          FUNCTIONAL_REQUIREMENTS: extractedData?.functionalRequirements || extractedData?.keyRequirements || extractedData?.requirements || "",
+          NON_FUNCTIONAL_REQUIREMENTS: extractedData?.nonFunctionalRequirements || "",
+          REQUIREMENTS: extractedData?.requirements || 
+            (extractedData?.functionalRequirements && extractedData?.nonFunctionalRequirements 
+              ? `Functional Requirements:\n${extractedData.functionalRequirements}\n\nNon-functional Requirements:\n${extractedData.nonFunctionalRequirements}`
+              : extractedData?.functionalRequirements || extractedData?.nonFunctionalRequirements || extractedData?.keyRequirements || ""),
           DEADLINE: extractedData?.successCriteria || extractedData?.deadline || "TBD",
         };
 
@@ -3547,7 +3555,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectScope,
         timeline,
         budget,
-        keyRequirements,
+        functionalRequirements,
+        nonFunctionalRequirements,
+        keyRequirements, // Legacy field for backward compatibility
         successCriteria,
       } = req.body;
 
@@ -3557,6 +3567,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Normalize requirements with backward compatibility
+      // If new fields provided, use them; otherwise fall back to legacy keyRequirements
+      const normalizedFunctionalReqs = functionalRequirements || keyRequirements || "";
+      const normalizedNonFunctionalReqs = nonFunctionalRequirements || "";
+      
+      // Combined requirements for legacy consumers and AI generation
+      const combinedRequirements = normalizedFunctionalReqs && normalizedNonFunctionalReqs
+        ? `Functional Requirements:\n${normalizedFunctionalReqs}\n\nNon-functional Requirements:\n${normalizedNonFunctionalReqs}`
+        : normalizedFunctionalReqs || normalizedNonFunctionalReqs || keyRequirements || "";
+
       // Generate lean business case with AI
       const { generateLeanBusinessCase } = await import("./services/rft/businessCaseGenerator");
       const generatedContent = await generateLeanBusinessCase({
@@ -3565,7 +3585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectScope,
         timeline,
         budget,
-        keyRequirements,
+        keyRequirements: combinedRequirements, // Pass combined requirements to generator
         successCriteria,
       });
 
@@ -3584,7 +3604,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectScope,
           timeline,
           budget,
-          keyRequirements,
+          functionalRequirements: normalizedFunctionalReqs,
+          nonFunctionalRequirements: normalizedNonFunctionalReqs,
+          requirements: combinedRequirements, // Combined for backward compatibility
+          keyRequirements, // Keep legacy field if provided
           successCriteria,
         },
         ragDocumentId: null,
