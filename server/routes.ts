@@ -218,21 +218,33 @@ async function enhanceSectionWithAI(
     };
   }
   
-  // Determine if this section needs enhancement based on title and category
-  const needsDetailedRequirements = 
-    sectionTitle.toUpperCase().includes("SCOPE") || 
-    sectionTitle.toUpperCase().includes("WORK") ||
-    sectionTitle.toUpperCase().includes("REQUIREMENT") ||
-    category === "technical";
+  // Skip enhancement only for purely administrative/boilerplate sections
+  // All dynamic content sections should be enhanced (Executive Summary, Background, Scope, Requirements, etc.)
+  const titleUpper = sectionTitle.toUpperCase();
+  const isAdministrativeSection = 
+    titleUpper.includes("CONTACT") ||
+    titleUpper.includes("TERMS") && titleUpper.includes("CONDITION") ||
+    titleUpper.includes("LEGAL") && titleUpper.includes("NOTICE");
   
-  if (!needsDetailedRequirements) {
-    // For non-requirement sections, return as-is
+  if (isAdministrativeSection) {
+    // Skip administrative/boilerplate sections
     return {
       content: extractedContent,
       enhanced: false,
-      status: "skipped_non_requirement_section"
+      status: "skipped_administrative_section"
     };
   }
+  
+  // Check if this is a requirements/technical section that needs structured requirements
+  const needsStructuredRequirements = 
+    titleUpper.includes("SCOPE") || 
+    titleUpper.includes("WORK") ||
+    titleUpper.includes("REQUIREMENT") ||
+    titleUpper.includes("TECHNICAL") ||
+    titleUpper.includes("SECURITY") ||
+    titleUpper.includes("COMPLIANCE") ||
+    category === "technical" ||
+    category === "security";
   
   // Truncate input content to prevent token overflow (estimate ~4 chars per token)
   const maxInputChars = 2000; // ~500 tokens for input
@@ -242,7 +254,12 @@ async function enhanceSectionWithAI(
   
   console.log(`🤖 AI enhancing section: ${sectionTitle} (input: ${truncatedContent.length} chars, max output: ${maxTokens} tokens)`);
   
-  const enhancementPrompt = `You are enhancing a "${sectionTitle}" section from an RFT template.
+  // Create adaptive prompt based on section type
+  let enhancementPrompt: string;
+  
+  if (needsStructuredRequirements) {
+    // Prompt for requirements/technical sections - structured with acceptance criteria
+    enhancementPrompt = `You are enhancing a "${sectionTitle}" section from an RFT template.
 
 ORIGINAL TEMPLATE CONTENT:
 ${truncatedContent}
@@ -254,7 +271,7 @@ Budget: ${businessCaseData.extractedData?.budget || "TBD"}
 Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
 Industry: Aviation/Airline (Nujum Air)
 
-TASK: Expand this section into a comprehensive, detailed Scope of Work with MINIMUM 20 specific requirements.
+TASK: Expand this section into comprehensive, detailed requirements with MINIMUM 20 specific requirements.
 
 For each requirement, provide:
 - Requirement ID and Title (REQ-001, REQ-002, etc.)
@@ -265,7 +282,7 @@ For each requirement, provide:
 - Dependencies
 - Priority level (Critical/High/Medium/Low)
 
-Organize into categories: Functional, Technical, Integration, Data Migration, Training, Documentation.
+Organize into relevant categories (e.g., Functional, Technical, Integration, Data Migration, Security, Compliance, Training, Documentation).
 
 FORMAT EACH REQUIREMENT AS:
 REQ-[ID]: [Title]
@@ -279,9 +296,37 @@ Acceptance Criteria:
 Dependencies: [Other requirements or systems]
 Priority: [Critical/High/Medium/Low]
 
-Include a timeline table mapping requirements to phases.
+Include a timeline table mapping requirements to project phases.
 
 Generate the enhanced section content now:`;
+  } else {
+    // Prompt for narrative sections (Executive Summary, Background, Evaluation Criteria, etc.)
+    enhancementPrompt = `You are enhancing a "${sectionTitle}" section from an RFT template.
+
+ORIGINAL TEMPLATE CONTENT:
+${truncatedContent}
+
+BUSINESS CASE CONTEXT:
+Project: ${businessCaseData.name || "N/A"}
+Description: ${(businessCaseData.description || "N/A").substring(0, 500)}
+Budget: ${businessCaseData.extractedData?.budget || "TBD"}
+Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
+Requirements: ${(businessCaseData.extractedData?.requirements || businessCaseData.description || "").substring(0, 400)}
+Industry: Aviation/Airline (Nujum Air)
+
+TASK: Expand this section into comprehensive, professional content that provides detailed context and clarity.
+
+Guidelines:
+- Maintain a professional, authoritative tone suitable for airline industry RFTs
+- Expand the original template content with specific details from the business case
+- Include relevant aviation industry context and standards where appropriate
+- Make the content substantial and informative (aim for 300-500 words minimum)
+- Use clear structure with headings, paragraphs, and bullet points as appropriate
+- Be specific and concrete - avoid generic statements
+- Ensure all information aligns with the project context and requirements
+
+Generate the enhanced section content now:`;
+  }
 
   try {
     const client = await getOpenAIClient();
