@@ -121,28 +121,37 @@ export class TemplateService {
       
       let text = "";
       try {
+        // Try using docxtemplater WITHOUT the delimiters that might cause parsing issues
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
+          delimiters: { start: '{{', end: '}}' },
         });
         text = doc.getFullText();
-      } catch (docxtemplaterError) {
-        console.warn("Docxtemplater failed, falling back to direct XML extraction:", docxtemplaterError);
+      } catch (docxtemplaterError: any) {
+        console.warn("Docxtemplater getFullText failed, falling back to direct XML extraction");
+        console.warn("Error details:", docxtemplaterError.message);
         
         // Fallback: Extract text directly from document.xml
         try {
           const documentXml = zip.file("word/document.xml")?.asText();
           if (documentXml) {
-            text = documentXml;
+            // Strip XML tags to get plain text
+            text = documentXml
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            console.log("Successfully extracted text via XML fallback");
           }
         } catch (xmlError) {
-          console.warn("Direct XML extraction failed:", xmlError);
+          console.warn("Direct XML extraction also failed:", xmlError);
           // Return empty array instead of throwing - template can still be used
           console.log("Template uploaded without placeholder extraction - manual configuration required");
           return [];
         }
       }
 
+      // Extract placeholders using regex - more robust than docxtemplater parsing
       const tags = text.match(/\{\{([^}]+)\}\}/g) || [];
       const uniqueTags = Array.from(new Set(tags));
 
@@ -177,14 +186,23 @@ export class TemplateService {
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
+          delimiters: { start: '{{', end: '}}' },
         });
         text = doc.getFullText();
-      } catch (docxtemplaterError) {
+      } catch (docxtemplaterError: any) {
+        console.warn("Docxtemplater failed for section extraction, using XML fallback");
+        console.warn("Error details:", docxtemplaterError.message);
+        
         // Fallback to XML extraction
         try {
           const documentXml = zip.file("word/document.xml")?.asText();
           if (documentXml) {
-            text = documentXml;
+            // Strip XML tags for better heading detection
+            text = documentXml
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            console.log("Using XML fallback for section extraction");
           }
         } catch (xmlError) {
           console.log("Section extraction failed - template will require manual configuration");

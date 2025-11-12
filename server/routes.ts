@@ -2619,9 +2619,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
       } else {
-        // template_merge mode - placeholder for future implementation
-        return res.status(501).json({
-          error: "template_merge mode not yet implemented. Use ai_generation mode.",
+        // template_merge mode - merge business case data with template
+        
+        // Fetch template
+        template = await templateService.getTemplateById(templateId);
+        if (!template) {
+          return res.status(404).json({ error: "Template not found" });
+        }
+
+        // Check if template has section mappings
+        if (!template.sectionMappings || template.sectionMappings.length === 0) {
+          return res.status(400).json({
+            error: "Template does not have section mappings configured. Please configure stakeholder assignments first.",
+          });
+        }
+
+        // Fetch business case
+        const businessCase = await storage.getBusinessCase(businessCaseId);
+        if (!businessCase) {
+          return res.status(404).json({ error: "Business case not found" });
+        }
+
+        // Download template from blob storage
+        const { buffer: templateBuffer } = await templateService.downloadTemplate(templateId);
+
+        // Prepare merge data from business case
+        // Extract additional data from extractedData JSONB field if available
+        const extractedData = businessCase.extractedData as any;
+        
+        const mergeData: any = {
+          PROJECT_NAME: businessCase.name || "Untitled Project",
+          AIRLINE_NAME: extractedData?.airline || "Nujum Air",
+          DESCRIPTION: businessCase.description || extractedData?.description || "",
+          BUDGET: extractedData?.budget || "TBD",
+          TIMELINE: extractedData?.timeline || "TBD",
+          REQUIREMENTS: businessCase.description || extractedData?.requirements || "",
+          DEADLINE: extractedData?.deadline || "TBD",
+        };
+
+        // Merge template with business case data using docxtemplater
+        const PizZip = (await import("pizzip")).default;
+        const Docxtemplater = (await import("docxtemplater")).default;
+
+        const zip = new PizZip(templateBuffer);
+        const doc = new Docxtemplater(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+          nullGetter: (part: any) => {
+            console.warn(`Missing placeholder data for: ${part.value}`);
+            return `[${part.value}]`;
+          },
+        });
+
+        // Render template with merge data
+        doc.render(mergeData);
+
+        console.log(`✅ Template merged successfully with business case data`);
+
+        // Extract the complete merged text content
+        const mergedText = doc.getFullText();
+        console.log(`📄 Extracted ${mergedText.length} characters of merged content`);
+
+        // Generate merged DOCX buffer for download/backup
+        const mergedBuffer = doc.getZip().generate({
+          type: "nodebuffer",
+          compression: "DEFLATE",
+        });
+
+        // Save merged document to blob storage as backup
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const mergedFileName = `merged_template_${timestamp}.docx`;
+        const blobPath = `projects/${projectId}/drafts/${mergedFileName}`;
+
+        const { blobUrl } = await azureBlobStorageService.uploadDocument(blobPath, mergedBuffer, {
+          projectId,
+          templateId,
+          businessCaseId,
+          mergedAt: new Date().toISOString(),
+        });
+
+        console.log(`📥 Merged document backup saved to: ${blobUrl}`);
+
+        // Create sections with the full merged content
+        // Each stakeholder can see complete document and edit their assigned portion
+        const sectionMappings = template.sectionMappings as any[];
+
+        generatedSections = sectionMappings.map((mapping: any, index: number) => {
+          // Include section marker and the full merged text
+          const content = `=== SECTION ${index + 1}: ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+            `✅ Template merged with business case: ${businessCase.name}\n` +
+            `📝 Review and edit the content below for your section\n` +
+            `⬇️ All placeholders have been replaced with actual values\n\n` +
+            `--- COMPLETE MERGED DOCUMENT ---\n\n` +
+            `${mergedText}\n\n` +
+            `--- END OF DOCUMENT ---\n\n` +
+            `💡 Instructions:\n` +
+            `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
+            `• Edit this content to include only your section's final text\n` +
+            `• Remove other sections and these instructions\n` +
+            `• Approve when ready\n\n` +
+            `📥 Download full DOCX: ${blobUrl}`;
+
+          return {
+            sectionId: mapping.sectionId,
+            title: mapping.sectionTitle,
+            content,
+            assignedTo: mapping.defaultAssignee,
+            reviewStatus: "pending",
+            approvedBy: null,
+            approvedAt: null,
+          };
         });
       }
 
