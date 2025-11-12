@@ -2,7 +2,7 @@ import { type InsertGeneratedRft, type RftTemplate, type BusinessCase } from "@s
 import { storage } from "../../storage";
 import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
 import { getOpenAIClient } from "../ai/aiAnalysis";
-import { getDefaultAssignee, getStakeholderRole, type SectionMapping } from "./stakeholderConfig";
+import { getSectionMapping, STAKEHOLDER_ROLES, type SectionMapping } from "./stakeholderConfig";
 
 interface RftSection {
   sectionId: string;
@@ -28,46 +28,122 @@ interface BusinessCaseExtract {
 /**
  * Enrich AI-generated sections with stakeholder metadata
  * Maps section IDs to suggested assignees and categories
+ * Recursively enriches subsections to maintain consistent metadata throughout the tree
+ * Priority: template-specific mappings > DEFAULT_SECTION_MAPPINGS > defaults
+ * @param sections - Array of sections to enrich
+ * @param template - Optional template with custom sectionMappings to override defaults
  */
-function enrichSectionsWithStakeholderMetadata(sections: any[]): RftSection[] {
-  const sectionIdMappings: Record<string, { assignee: string; category: SectionMapping["category"] }> = {
-    "section-1": { assignee: "technical_pm", category: "business" },
-    "section-2": { assignee: "technical_pm", category: "business" },
-    "section-3": { assignee: "product_owner", category: "business" },
-    "section-4": { assignee: "procurement_specialist", category: "procurement" },
-    "section-5": { assignee: "procurement_specialist", category: "procurement" },
-    "section-6": { assignee: "procurement_specialist", category: "procurement" },
-    "section-7": { assignee: "solution_architect", category: "technical" },
-    "section-8": { assignee: "technical_pm", category: "business" },
-    "section-9": { assignee: "procurement_specialist", category: "procurement" },
-    "section-10": { assignee: "technical_pm", category: "other" },
-  };
-
-  return sections.map((section: any) => {
-    const mapping = sectionIdMappings[section.sectionId];
+function enrichSectionsWithStakeholderMetadata(sections: any[], template?: RftTemplate | null): RftSection[] {
+  /**
+   * Translate legacy display names to role IDs using robust lookup
+   * Handles exact matches, case-insensitive matches, and variations
+   */
+  function translateDisplayNameToRoleId(displayName: string): string | null {
+    if (!displayName) return null;
     
-    // Use mapping if found, otherwise try to infer from sectionId or default to technical_pm
-    const suggestedAssignee = mapping?.assignee || getDefaultAssignee(section.sectionId);
-    const category = mapping?.category || "other" as SectionMapping["category"];
+    // Normalize for comparison
+    const normalized = displayName.trim().toLowerCase();
+    
+    // Try exact match against STAKEHOLDER_ROLES
+    const exactMatch = STAKEHOLDER_ROLES.find(
+      role => role.id === normalized || role.id === displayName
+    );
+    if (exactMatch) return exactMatch.id;
+    
+    // Try case-insensitive match against role names
+    const nameMatch = STAKEHOLDER_ROLES.find(
+      role => role.name.toLowerCase() === normalized
+    );
+    if (nameMatch) return nameMatch.id;
+    
+    // Try partial/fuzzy matches for common variations
+    const partialMatch = STAKEHOLDER_ROLES.find(role => {
+      const roleName = role.name.toLowerCase();
+      return roleName.includes(normalized) || normalized.includes(roleName);
+    });
+    if (partialMatch) return partialMatch.id;
+    
+    // No match found
+    return null;
+  }
+
+  /**
+   * Recursively enrich a section and its subsections
+   * Looks up mapping with priority: template override > global config > default
+   * Handles both new format (defaultAssignee/category) and legacy formats (assignedTo/stakeholderRole)
+   * Translates legacy display names to role IDs using robust lookup
+   */
+  function enrichSection(section: any): RftSection {
+    // Priority 1: Check template-specific section mappings
+    let mapping: { assignee: string; category: SectionMapping["category"] } | undefined;
+    
+    if (template?.sectionMappings) {
+      const templateMapping = template.sectionMappings.find(
+        (m: any) => m.sectionId === section.sectionId
+      );
+      if (templateMapping) {
+        // Try new format first (defaultAssignee), then legacy formats
+        let rawAssignee = templateMapping.defaultAssignee || 
+                         templateMapping.assignedTo || 
+                         templateMapping.stakeholderRole;
+        
+        // Translate display names to role IDs for backward compatibility
+        // If rawAssignee is already a valid role ID, it passes through
+        // If it's a display name, we translate it
+        let roleId: string | null = null;
+        if (rawAssignee) {
+          // Try translation first
+          roleId = translateDisplayNameToRoleId(rawAssignee);
+          
+          // If translation failed, log warning and fall back to global config
+          if (!roleId) {
+            console.warn(`⚠️  Template mapping for section ${section.sectionId} has invalid assignee "${rawAssignee}". Falling back to global config.`);
+          }
+        }
+        
+        // If we have a valid role ID from template, use it with category
+        if (roleId) {
+          const globalMapping = getSectionMapping(section.sectionId);
+          mapping = {
+            assignee: roleId,
+            // Use template category if present, otherwise fallback to global config category
+            category: templateMapping.category || globalMapping.category
+          };
+        }
+      }
+    }
+    
+    // Priority 2: Fallback to global configuration if template mapping invalid/missing
+    if (!mapping) {
+      mapping = getSectionMapping(section.sectionId);
+    }
     
     const enrichedSection: RftSection = {
       sectionId: section.sectionId,
       title: section.title,
       content: section.content,
-      suggestedAssignee,
-      category,
-      subsections: section.subsections
+      suggestedAssignee: mapping.assignee,
+      category: mapping.category,
+      // Recursively enrich subsections if present
+      subsections: section.subsections 
+        ? section.subsections.map((sub: any) => enrichSection(sub))
+        : undefined
     };
     
     return enrichedSection;
-  });
+  }
+
+  return sections.map(enrichSection);
 }
 
 /**
  * Generate comprehensive RFT document sections following professional standards
+ * @param businessCaseExtract - Extracted business case information
+ * @param template - Optional template with custom sectionMappings for stakeholder overrides
  */
 export async function generateProfessionalRftSections(
-  businessCaseExtract: BusinessCaseExtract
+  businessCaseExtract: BusinessCaseExtract,
+  template?: RftTemplate | null
 ): Promise<RftSection[]> {
   
   // Validate and build requirements and criteria lists
@@ -266,7 +342,8 @@ Return JSON array (MUST include all 10 sections):
     }
     
     // Enrich sections with stakeholder metadata
-    const enrichedSections = enrichSectionsWithStakeholderMetadata(sections);
+    // Template-specific mappings override DEFAULT_SECTION_MAPPINGS
+    const enrichedSections = enrichSectionsWithStakeholderMetadata(sections, template);
     
     return enrichedSections;
   } catch (error) {

@@ -344,6 +344,18 @@ export function getDefaultAssignee(sectionId: string): string {
 }
 
 /**
+ * Get full section mapping for a section ID
+ * Returns both default assignee and category from configuration
+ */
+export function getSectionMapping(sectionId: string): { assignee: string; category: SectionMapping["category"] } {
+  const mapping = DEFAULT_SECTION_MAPPINGS.find(m => m.sectionId === sectionId);
+  return {
+    assignee: mapping?.defaultAssignee || "technical_pm",
+    category: mapping?.category || "other"
+  };
+}
+
+/**
  * Get all sections for a specific stakeholder category
  */
 export function getSectionsByCategory(category: SectionMapping["category"]): SectionMapping[] {

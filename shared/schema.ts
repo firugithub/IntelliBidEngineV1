@@ -321,7 +321,7 @@ export const organizationTemplates = pgTable("organization_templates", {
   templateType: text("template_type").notNull().default("docx"), // 'docx', 'xlsx'
   blobUrl: text("blob_url").notNull(), // Azure Blob Storage URL for template file
   placeholders: jsonb("placeholders").notNull(), // List of detected placeholders: [{name: "PROJECT_NAME", type: "simple", description: "..."}]
-  sectionMappings: jsonb("section_mappings"), // Maps sections to stakeholder roles: [{sectionId: "functional_req", stakeholderRole: "Technical PM", tokens: ["AI_FUNCTIONAL_REQUIREMENTS"]}]
+  sectionMappings: jsonb("section_mappings"), // SectionMapping[] from stakeholderConfig: [{sectionId: "section-1", sectionTitle: "Introduction", defaultAssignee: "technical_pm", category: "business"}]
   isActive: text("is_active").notNull().default("true"),
   isDefault: text("is_default").notNull().default("false"), // Organization-wide default template
   metadata: jsonb("metadata"), // Additional metadata like file size, original filename

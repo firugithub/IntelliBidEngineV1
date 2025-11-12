@@ -10,6 +10,7 @@ import { generateAllQuestionnaires } from "./services/rft/excelGenerator";
 import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rft/rftMockDataGenerator";
 import { templateService } from "./services/rft/templateService";
 import { templateMergeService } from "./services/rft/templateMergeService";
+import { getStakeholderRole } from "./services/rft/stakeholderConfig";
 import { azureEmbeddingService } from "./services/azure/azureEmbedding";
 import { azureAISearchService } from "./services/azure/azureAISearch";
 import { azureBlobStorageService } from "./services/azure/azureBlobStorage";
@@ -2581,47 +2582,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Business case not found" });
         }
 
-        // Extract business case info first
-        const businessCaseExtract = await extractBusinessCaseInfo(
-          businessCase.documentContent || businessCase.description || ""
-        );
-
-        // Generate professional RFT sections using AI
-        const sections = await generateProfessionalRftSections(businessCaseExtract);
-
-        // If templateId provided, get stakeholder mappings
+        // If templateId provided, fetch template first for stakeholder mappings
         if (templateId) {
           template = await templateService.getTemplateById(templateId);
           if (!template) {
             return res.status(404).json({ error: "Template not found" });
           }
+        }
 
-          // Map sections to stakeholders based on template configuration
-          const sectionMappings = (template.sectionMappings as any[]) || [];
-          generatedSections = sections.map((section) => {
-            const mapping = sectionMappings.find((m: any) => m.sectionId === section.sectionId);
-            return {
-              sectionId: section.sectionId,
-              title: section.title,
-              content: section.content,
-              assignedTo: mapping?.assignedTo || "Technical PM",
-              reviewStatus: "pending",
-              approvedBy: null,
-              approvedAt: null,
-            };
-          });
-        } else {
-          // No template - assign all sections to default stakeholder
-          generatedSections = sections.map((section) => ({
+        // Extract business case info first
+        const businessCaseExtract = await extractBusinessCaseInfo(
+          businessCase.documentContent || businessCase.description || ""
+        );
+
+        // Generate professional RFT sections using AI with template for stakeholder enrichment
+        const sections = await generateProfessionalRftSections(businessCaseExtract, template);
+
+        // Map sections to stakeholders based on enriched metadata
+        // Sections now have suggestedAssignee and category from enrichment
+        generatedSections = sections.map((section) => {
+          // Get stakeholder name from role ID
+          const stakeholderRole = section.suggestedAssignee 
+            ? getStakeholderRole(section.suggestedAssignee)
+            : null;
+          
+          const assignedTo = stakeholderRole?.name || "Technical PM";
+          
+          return {
             sectionId: section.sectionId,
             title: section.title,
             content: section.content,
-            assignedTo: "Technical PM",
+            assignedTo,
             reviewStatus: "pending",
             approvedBy: null,
             approvedAt: null,
-          }));
-        }
+          };
+        });
       } else {
         // template_merge mode - placeholder for future implementation
         return res.status(501).json({
