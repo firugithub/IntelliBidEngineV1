@@ -40,6 +40,11 @@ Preferred communication style: Simple, everyday language.
 -   **Valid Category Mapping:** All section categories strictly mapped to allowed types (business/technical/security/procurement/other). Security and compliance sections → "security", evaluation/terms sections → "procurement".
 -   **Template Storage:** Business case form data stored in extractedData JSONB for template merge access. Templates without section mappings generate single-section drafts.
 **Token Substitution:** Business case fields are stored in extractedData and mapped to template placeholders during merge. Robust error handling for malformed templates with user-friendly guidance.
+**Universal AI Enhancement (All Dynamic Sections):**
+-   **Scope:** AI enhancement applies to ALL dynamic content sections (Executive Summary, Background, Scope of Work, Requirements, Evaluation Criteria, etc.), not just technical sections.
+-   **Adaptive Prompts:** Two intelligent prompt templates - (1) Structured requirements with 20+ items and acceptance criteria for technical/requirements sections, (2) Narrative expansion (300-500 words) for content sections like Executive Summary and Background.
+-   **Smart Skipping:** Administrative/boilerplate sections (Contact Information, Terms & Conditions) correctly bypassed to control costs.
+-   **Section Metadata:** Each section tracked with `aiEnhanced` (boolean), `enhancementStatus` (success/skipped/error), and `extractionConfidence` (high/low) for transparency and debugging.
 
 ### Advanced AI Features
 Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant, all leveraging shared AI infrastructure with RAG.
