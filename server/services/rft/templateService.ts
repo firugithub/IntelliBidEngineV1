@@ -1,6 +1,7 @@
 import { type InsertOrganizationTemplate, type OrganizationTemplate } from "@shared/schema";
 import { storage } from "../../storage";
 import { AzureBlobStorageService } from "../azure/azureBlobStorage";
+import { type SectionMapping, getSectionMapping } from "./stakeholderConfig";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 
@@ -11,14 +12,6 @@ interface PlaceholderInfo {
   type: "simple" | "loop" | "condition";
   description?: string;
   defaultValue?: string;
-}
-
-interface SectionMapping {
-  sectionId: string;
-  sectionName: string;
-  stakeholderRole: string;
-  tokens: string[];
-  description?: string;
 }
 
 interface TemplateUploadResult {
@@ -188,6 +181,79 @@ export class TemplateService {
     return `Placeholder for ${placeholderName}`;
   }
 
+  /**
+   * Normalize legacy section mappings to canonical SectionMapping format
+   * Handles backward compatibility with old formats (sectionName, stakeholderRole, tokens)
+   * Uses getSectionMapping() to provide smart defaults for BOTH assignee AND category
+   * ALWAYS rebuilds objects to drop legacy-only fields (tokens, description)
+   * Gracefully handles missing or invalid sectionIds
+   */
+  private normalizeSectionMappings(mappings: any[]): SectionMapping[] {
+    return mappings.map((mapping: any, index: number) => {
+      // Validate sectionId presence
+      const sectionId = mapping.sectionId;
+      if (!sectionId) {
+        console.warn(`⚠️  Section mapping at index ${index} missing sectionId. Skipping normalization for this entry.`);
+        throw new Error(`Section mapping at index ${index} must have a sectionId`);
+      }
+      
+      // Get configured defaults from global config (safe - returns defaults for unknown IDs)
+      const globalMapping = getSectionMapping(sectionId);
+      
+      // Normalize field names: sectionName/title → sectionTitle
+      const sectionTitle = mapping.sectionTitle || mapping.sectionName || mapping.title || sectionId;
+      
+      // Normalize assignee with smart fallback to configured default
+      // Priority: provided value > global config default (NOT hardcoded "technical_pm")
+      const defaultAssignee = mapping.defaultAssignee || 
+                             mapping.assignedTo || 
+                             mapping.stakeholderRole || 
+                             globalMapping.assignee; // Use configured default!
+      
+      // Normalize category with smart fallback to configured default
+      const category = mapping.category || globalMapping.category;
+      
+      // Validate that we have valid assignee (getSectionMapping should always provide one)
+      if (!defaultAssignee) {
+        console.warn(`⚠️  Section mapping for ${sectionId} has no assignee. Using technical_pm as fallback.`);
+      }
+      
+      // ALWAYS return new object with ONLY canonical fields
+      // This drops legacy fields: tokens, description, sectionName, stakeholderRole
+      return {
+        sectionId,
+        sectionTitle,
+        defaultAssignee: defaultAssignee || "technical_pm", // Final safety fallback
+        category
+      };
+    });
+  }
+
+  /**
+   * Validate NORMALIZED section mappings conform to canonical SectionMapping interface
+   * This runs AFTER normalization, so it expects canonical fields only
+   */
+  private validateNormalizedSectionMappings(mappings: SectionMapping[]): void {
+    if (!Array.isArray(mappings)) {
+      throw new Error("sectionMappings must be an array");
+    }
+
+    for (const mapping of mappings) {
+      if (!mapping.sectionId) {
+        throw new Error("Each section mapping must have a sectionId");
+      }
+      if (!mapping.sectionTitle) {
+        throw new Error(`Section mapping for ${mapping.sectionId} must have a sectionTitle`);
+      }
+      if (!mapping.defaultAssignee) {
+        throw new Error(`Section mapping for ${mapping.sectionId} must have a defaultAssignee`);
+      }
+      if (!mapping.category) {
+        throw new Error(`Section mapping for ${mapping.sectionId} must have a category`);
+      }
+    }
+  }
+
   async configureSectionMappings(
     templateId: string,
     sectionMappings: SectionMapping[]
@@ -205,8 +271,17 @@ export class TemplateService {
       );
     }
 
+    // Step 1: Normalize incoming data (handles legacy formats)
+    const normalizedMappings = this.normalizeSectionMappings(sectionMappings);
+    
+    // Step 2: Validate normalized data (expects canonical format only)
+    this.validateNormalizedSectionMappings(normalizedMappings);
+
+    console.log(`✅ Normalized and validated ${normalizedMappings.length} section mappings for template ${templateId}`);
+
+    // Step 3: Save normalized data
     await storage.updateOrganizationTemplate(templateId, {
-      sectionMappings: sectionMappings as any,
+      sectionMappings: normalizedMappings as any,
     });
 
     const updatedTemplate = await storage.getOrganizationTemplate(templateId);
@@ -224,6 +299,18 @@ export class TemplateService {
     const allTemplates = await storage.getAllOrganizationTemplates();
 
     let filtered = allTemplates.filter((template) => template.templateType === "docx");
+
+    // Normalize section mappings on read for all templates
+    filtered = filtered.map((template) => {
+      if (template.sectionMappings && Array.isArray(template.sectionMappings)) {
+        const normalized = this.normalizeSectionMappings(template.sectionMappings);
+        return {
+          ...template,
+          sectionMappings: normalized as any
+        };
+      }
+      return template;
+    });
 
     if (!filters) {
       return filtered;
@@ -245,7 +332,19 @@ export class TemplateService {
 
   async getTemplateById(templateId: string): Promise<OrganizationTemplate | null> {
     const template = await storage.getOrganizationTemplate(templateId);
-    return template || null;
+    if (!template) return null;
+    
+    // Normalize section mappings on read to ensure consumers get canonical format
+    if (template.sectionMappings && Array.isArray(template.sectionMappings)) {
+      const normalized = this.normalizeSectionMappings(template.sectionMappings);
+      // Return template with normalized mappings
+      return {
+        ...template,
+        sectionMappings: normalized as any
+      };
+    }
+    
+    return template;
   }
 
   async setDefaultTemplate(templateId: string): Promise<OrganizationTemplate> {

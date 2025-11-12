@@ -3120,7 +3120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasObjectives: !!businessCaseExtract.businessObjective,
         requirementsCount: businessCaseExtract.keyRequirements?.length || 0,
       });
-      const sections = await generateProfessionalRftSections(businessCaseExtract);
+      const sections = await generateProfessionalRftSections(businessCaseExtract, null);
       console.log(`✅ Generated ${sections.length} comprehensive RFT sections`);
       
       // Log first section preview to verify content
