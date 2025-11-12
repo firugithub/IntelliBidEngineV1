@@ -21,6 +21,7 @@ import KnowledgeBaseChatbotPage from "@/pages/KnowledgeBaseChatbotPage";
 import GenerateMockDataPage from "@/pages/GenerateMockDataPage";
 import ExecutiveSummaryPage from "@/pages/ExecutiveSummaryPage";
 import TemplateManagementPage from "@/pages/TemplateManagementPage";
+import RftDraftReviewPage from "@/pages/RftDraftReviewPage";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/evaluation/:id/deep-dive" component={DeepDivePage} />
       <Route path="/smart-rft-builder" component={SmartRftBuilderPage} />
       <Route path="/template-management" component={TemplateManagementPage} />
+      <Route path="/rft-draft-review" component={RftDraftReviewPage} />
       <Route path="/kb-chatbot" component={KnowledgeBaseChatbotPage} />
       <Route path="/generate-mock-data" component={GenerateMockDataPage} />
       {/* Development-only routes - none currently */}

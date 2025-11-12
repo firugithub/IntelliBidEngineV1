@@ -1,0 +1,531 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Check, Edit, X, FileText, Users, Clock, CheckCircle2, AlertCircle, FileCheck } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+
+interface DraftSection {
+  sectionId: string;
+  sectionTitle: string;
+  content: string;
+  assignedTo: string;
+  category: string;
+  reviewStatus: "pending" | "in_review" | "approved" | "rejected";
+  approvedBy: string | null;
+  approvedAt: string | null;
+  comments?: string;
+}
+
+interface RftDraft {
+  id: string;
+  projectId: string;
+  businessCaseId: string;
+  templateId: string | null;
+  generationMode: "ai_generation" | "template_merge";
+  generatedSections: DraftSection[];
+  status: "draft" | "in_review" | "approved" | "finalized";
+  approvalProgress: {
+    totalSections: number;
+    approvedSections: number;
+    pendingSections: number;
+  };
+  metadata: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const STAKEHOLDER_ROLES = [
+  { id: "all", name: "All Stakeholders", color: "#6B7280" },
+  { id: "technical_pm", name: "Technical PM", color: "#3B82F6" },
+  { id: "solution_architect", name: "Solution Architect", color: "#8B5CF6" },
+  { id: "cybersecurity_analyst", name: "Cybersecurity Analyst", color: "#EF4444" },
+  { id: "engineering_lead", name: "Engineering Lead", color: "#10B981" },
+  { id: "procurement_specialist", name: "Procurement Specialist", color: "#F59E0B" },
+  { id: "compliance_officer", name: "Compliance Officer", color: "#EC4899" },
+  { id: "product_owner", name: "Product Owner", color: "#14B8A6" }
+];
+
+export default function RftDraftReviewPage() {
+  const { toast } = useToast();
+  const [selectedDraftId, setSelectedDraftId] = useState<string>("");
+  const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<string>("");
+  const [approvingSection, setApprovingSection] = useState<DraftSection | null>(null);
+  const [approverName, setApproverName] = useState<string>("");
+
+  // Fetch all drafts
+  const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
+    queryKey: ["/api/rft/drafts"]
+  });
+
+  // Fetch selected draft details
+  const { data: selectedDraft, isLoading: isLoadingDraft } = useQuery<RftDraft>({
+    queryKey: [`/api/rft/drafts/${selectedDraftId}`],
+    enabled: !!selectedDraftId
+  });
+
+  // Set first draft as selected by default
+  useEffect(() => {
+    if (drafts.length > 0 && !selectedDraftId) {
+      setSelectedDraftId(drafts[0].id);
+    }
+  }, [drafts, selectedDraftId]);
+
+  // Filter sections by stakeholder
+  const filteredSections = selectedDraft?.generatedSections.filter(section => {
+    if (selectedStakeholder === "all") return true;
+    // Match the selected role ID to the section's assigned role name
+    const selectedRole = STAKEHOLDER_ROLES.find(r => r.id === selectedStakeholder);
+    return selectedRole?.name === section.assignedTo;
+  }) || [];
+
+  // Update section content mutation
+  const updateSectionMutation = useMutation({
+    mutationFn: async ({ sectionId, content }: { sectionId: string; content: string }) => {
+      return await apiRequest("PATCH", `/api/rft/drafts/${selectedDraftId}/sections/${sectionId}`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
+      toast({ title: "Section updated successfully" });
+      setEditingSectionId(null);
+      setEditedContent("");
+    },
+    onError: () => {
+      toast({ title: "Failed to update section", variant: "destructive" });
+    }
+  });
+
+  // Approve section mutation
+  const approveSectionMutation = useMutation({
+    mutationFn: async ({ sectionId, approvedBy }: { sectionId: string; approvedBy: string }) => {
+      return await apiRequest("POST", `/api/rft/drafts/${selectedDraftId}/sections/${sectionId}/approve`, { approvedBy });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
+      toast({ title: "Section approved successfully" });
+      setApprovingSection(null);
+      setApproverName("");
+    },
+    onError: () => {
+      toast({ title: "Failed to approve section", variant: "destructive" });
+    }
+  });
+
+  // Finalize draft mutation
+  const finalizeDraftMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/rft/drafts/${selectedDraftId}/finalize`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
+      toast({ title: "Draft finalized successfully", description: "The RFT document has been generated." });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to finalize draft", 
+        description: error.message || "Some sections may not be approved yet.",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleEditSection = (section: DraftSection) => {
+    setEditingSectionId(section.sectionId);
+    setEditedContent(section.content);
+  };
+
+  const handleSaveSection = () => {
+    if (!editingSectionId) return;
+    updateSectionMutation.mutate({ sectionId: editingSectionId, content: editedContent });
+  };
+
+  const handleApproveClick = (section: DraftSection) => {
+    setApprovingSection(section);
+    setApproverName("");
+  };
+
+  const handleConfirmApproval = () => {
+    if (!approvingSection || !approverName.trim()) {
+      toast({ title: "Please enter approver name", variant: "destructive" });
+      return;
+    }
+    approveSectionMutation.mutate({ 
+      sectionId: approvingSection.sectionId, 
+      approvedBy: approverName 
+    });
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "in_review":
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      case "rejected":
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "default";
+      case "in_review":
+        return "secondary";
+      case "rejected":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const getRoleColor = (assignedTo: string) => {
+    const role = STAKEHOLDER_ROLES.find(r => r.name === assignedTo);
+    return role?.color || "#6B7280";
+  };
+
+  if (isLoadingDrafts) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-lg">Loading drafts...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (drafts.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>No Drafts Found</CardTitle>
+            <CardDescription>
+              Create an RFT draft from the Smart RFT Builder to start collaborative review.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header Section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+          RFT Draft Review
+        </h1>
+        <p className="text-muted-foreground">
+          Collaborative review workflow with stakeholder-based section assignments
+        </p>
+      </div>
+
+      {/* Filters and Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Draft Selection & Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Draft Selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Draft</label>
+              <Select value={selectedDraftId} onValueChange={setSelectedDraftId}>
+                <SelectTrigger data-testid="select-draft">
+                  <SelectValue placeholder="Select a draft" />
+                </SelectTrigger>
+                <SelectContent>
+                  {drafts.map((draft) => (
+                    <SelectItem key={draft.id} value={draft.id}>
+                      Draft {draft.id.slice(0, 8)} - {draft.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Stakeholder Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Filter by Stakeholder</label>
+              <Select value={selectedStakeholder} onValueChange={setSelectedStakeholder}>
+                <SelectTrigger data-testid="select-stakeholder-filter">
+                  <SelectValue placeholder="Select stakeholder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAKEHOLDER_ROLES.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="h-3 w-3 rounded-full" 
+                          style={{ backgroundColor: role.color }}
+                        />
+                        {role.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Approval Progress */}
+      {selectedDraft && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileCheck className="h-5 w-5" />
+                Approval Progress
+              </div>
+              <Badge variant={selectedDraft.status === "finalized" ? "default" : "secondary"}>
+                {selectedDraft.status}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {selectedDraft.approvalProgress.approvedSections} of {selectedDraft.approvalProgress.totalSections} sections approved
+                </span>
+                <span className="font-medium">
+                  {Math.round((selectedDraft.approvalProgress.approvedSections / selectedDraft.approvalProgress.totalSections) * 100)}%
+                </span>
+              </div>
+              <Progress 
+                value={(selectedDraft.approvalProgress.approvedSections / selectedDraft.approvalProgress.totalSections) * 100}
+                className="h-2"
+              />
+            </div>
+
+            {selectedDraft.status !== "finalized" && (
+              <Button
+                onClick={() => finalizeDraftMutation.mutate()}
+                disabled={finalizeDraftMutation.isPending || selectedDraft.approvalProgress.pendingSections > 0}
+                className="w-full"
+                data-testid="button-finalize-draft"
+              >
+                <FileCheck className="h-4 w-4 mr-2" />
+                {finalizeDraftMutation.isPending ? "Finalizing..." : "Finalize Draft"}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sections List */}
+      {isLoadingDraft ? (
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <div className="text-lg">Loading sections...</div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Sections ({filteredSections.length})
+            </h2>
+          </div>
+
+          {filteredSections.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  No sections found for the selected stakeholder filter
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {filteredSections.map((section) => (
+                <Card 
+                  key={section.sectionId} 
+                  className={section.reviewStatus === "approved" ? "border-green-200 dark:border-green-800" : ""}
+                  data-testid={`card-section-${section.sectionId}`}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CardTitle>{section.sectionTitle}</CardTitle>
+                          {getStatusIcon(section.reviewStatus)}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge 
+                            variant="outline"
+                            style={{ 
+                              borderColor: getRoleColor(section.assignedTo),
+                              color: getRoleColor(section.assignedTo)
+                            }}
+                          >
+                            <Users className="h-3 w-3 mr-1" />
+                            {section.assignedTo}
+                          </Badge>
+                          <Badge variant={getStatusBadgeVariant(section.reviewStatus)}>
+                            {section.reviewStatus}
+                          </Badge>
+                          {section.category && (
+                            <Badge variant="secondary">{section.category}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditSection(section)}
+                          disabled={section.reviewStatus === "approved"}
+                          data-testid={`button-edit-${section.sectionId}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={section.reviewStatus === "approved" ? "default" : "outline"}
+                          onClick={() => handleApproveClick(section)}
+                          disabled={section.reviewStatus === "approved"}
+                          data-testid={`button-approve-${section.sectionId}`}
+                        >
+                          {section.reviewStatus === "approved" ? (
+                            <>
+                              <Check className="h-4 w-4 mr-1" />
+                              Approved
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 mr-1" />
+                              Approve
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose dark:prose-invert max-w-none">
+                      <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                    </div>
+                    {section.approvedBy && section.approvedAt && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <span>
+                            Approved by <strong>{section.approvedBy}</strong> on{" "}
+                            {new Date(section.approvedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Section Dialog */}
+      <Dialog open={editingSectionId !== null} onOpenChange={(open) => !open && setEditingSectionId(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Section Content</DialogTitle>
+            <DialogDescription>
+              Make changes to the section content. This will reset the approval status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              rows={15}
+              className="font-mono text-sm"
+              data-testid="textarea-edit-content"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingSectionId(null)}
+              data-testid="button-cancel-edit"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveSection}
+              disabled={updateSectionMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {updateSectionMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Section Dialog */}
+      <Dialog open={approvingSection !== null} onOpenChange={(open) => !open && setApprovingSection(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Section</DialogTitle>
+            <DialogDescription>
+              Confirm approval for: <strong>{approvingSection?.sectionTitle}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Approver Name</label>
+              <input
+                type="text"
+                value={approverName}
+                onChange={(e) => setApproverName(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Enter your name"
+                data-testid="input-approver-name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setApprovingSection(null)}
+              data-testid="button-cancel-approve"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmApproval}
+              disabled={approveSectionMutation.isPending || !approverName.trim()}
+              data-testid="button-confirm-approve"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {approveSectionMutation.isPending ? "Approving..." : "Approve"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
