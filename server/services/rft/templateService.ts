@@ -57,6 +57,11 @@ export class TemplateService {
     }
 
     const placeholders = await this.extractPlaceholders(file, metadata.templateType);
+    
+    // Auto-detect sections from DOCX headings (hybrid approach)
+    const suggestedSections = metadata.templateType === "docx" 
+      ? await this.extractDocxSections(file)
+      : [];
 
     const templateId = crypto.randomUUID();
     const blobPath = `templates/${templateId}/${fileName}`;
@@ -79,13 +84,14 @@ export class TemplateService {
       templateType: metadata.templateType,
       blobUrl,
       placeholders: placeholders as any,
-      sectionMappings: null,
+      sectionMappings: suggestedSections.length > 0 ? (suggestedSections as any) : null,
       isActive: "true",
       isDefault: "false",
       metadata: {
         originalFileName: fileName,
         fileSize: file.length,
         uploadedAt: new Date().toISOString(),
+        suggestedSectionsCount: suggestedSections.length,
       } as any,
       createdBy: metadata.createdBy || "system",
     };
@@ -112,12 +118,32 @@ export class TemplateService {
   private async extractDocxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {
     try {
       const zip = new PizZip(fileBuffer);
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
+      
+      let text = "";
+      try {
+        const doc = new Docxtemplater(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+        });
+        text = doc.getFullText();
+      } catch (docxtemplaterError) {
+        console.warn("Docxtemplater failed, falling back to direct XML extraction:", docxtemplaterError);
+        
+        // Fallback: Extract text directly from document.xml
+        try {
+          const documentXml = zip.file("word/document.xml")?.asText();
+          if (documentXml) {
+            text = documentXml;
+          }
+        } catch (xmlError) {
+          console.warn("Direct XML extraction failed:", xmlError);
+          // Return empty array instead of throwing - template can still be used
+          console.log("Template uploaded without placeholder extraction - manual configuration required");
+          return [];
+        }
+      }
 
-      const tags = doc.getFullText().match(/\{\{([^}]+)\}\}/g) || [];
+      const tags = text.match(/\{\{([^}]+)\}\}/g) || [];
       const uniqueTags = Array.from(new Set(tags));
 
       const placeholders: PlaceholderInfo[] = uniqueTags.map((tag) => {
@@ -132,15 +158,92 @@ export class TemplateService {
         };
       });
 
+      console.log(`Extracted ${placeholders.length} placeholders from template`);
       return placeholders;
     } catch (error) {
       console.error("Error extracting DOCX placeholders:", error);
-      throw new Error(
-        `Failed to extract placeholders from DOCX template: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      // Return empty array instead of throwing - template can still be uploaded and configured manually
+      console.log("Template uploaded without placeholder extraction - manual configuration required");
+      return [];
     }
+  }
+
+  private async extractDocxSections(fileBuffer: Buffer): Promise<SectionMapping[]> {
+    try {
+      const zip = new PizZip(fileBuffer);
+      
+      let text = "";
+      try {
+        const doc = new Docxtemplater(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+        });
+        text = doc.getFullText();
+      } catch (docxtemplaterError) {
+        // Fallback to XML extraction
+        try {
+          const documentXml = zip.file("word/document.xml")?.asText();
+          if (documentXml) {
+            text = documentXml;
+          }
+        } catch (xmlError) {
+          console.log("Section extraction failed - template will require manual configuration");
+          return [];
+        }
+      }
+
+      // Extract numbered headings (e.g., "1. EXECUTIVE SUMMARY", "2. BACKGROUND")
+      const headingPattern = /^(\d+)\.\s*([A-Z][A-Z\s&-]+)/gm;
+      const matches = Array.from(text.matchAll(headingPattern));
+      
+      const sections: SectionMapping[] = matches.map((match, index) => {
+        const headingText = match[2].trim();
+        const sectionId = `section-${index + 1}`;
+        
+        // Map headings to appropriate stakeholders
+        const assignee = this.inferStakeholderFromHeading(headingText);
+        
+        return {
+          sectionId,
+          sectionTitle: headingText,
+          defaultAssignee: assignee,
+          category: this.inferCategoryFromHeading(headingText) as "technical" | "security" | "business" | "procurement" | "other",
+        };
+      });
+
+      console.log(`✅ Auto-detected ${sections.length} sections from template headings`);
+      return sections;
+    } catch (error) {
+      console.error("Error extracting DOCX sections:", error);
+      return [];
+    }
+  }
+
+  private inferStakeholderFromHeading(heading: string): string {
+    const h = heading.toUpperCase();
+    
+    if (h.includes("EXECUTIVE") || h.includes("SUMMARY")) return "procurement_lead";
+    if (h.includes("BACKGROUND") || h.includes("CONTEXT")) return "technical_pm";
+    if (h.includes("SCOPE") || h.includes("WORK")) return "solution_architect";
+    if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE")) return "solution_architect";
+    if (h.includes("SECURITY") || h.includes("COMPLIANCE") || h.includes("CYBERSECURITY")) return "cybersecurity_analyst";
+    if (h.includes("EVALUATION") || h.includes("CRITERIA")) return "procurement_lead";
+    if (h.includes("SUBMISSION") || h.includes("REQUIREMENT")) return "procurement_lead";
+    if (h.includes("TERMS") || h.includes("CONDITIONS") || h.includes("LEGAL")) return "legal_counsel";
+    if (h.includes("CONTACT") || h.includes("INFORMATION")) return "procurement_lead";
+    
+    return "technical_pm"; // Default
+  }
+
+  private inferCategoryFromHeading(heading: string): string {
+    const h = heading.toUpperCase();
+    
+    if (h.includes("EXECUTIVE") || h.includes("BACKGROUND")) return "business";
+    if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE") || h.includes("SCOPE")) return "technical";
+    if (h.includes("SECURITY") || h.includes("COMPLIANCE")) return "compliance";
+    if (h.includes("EVALUATION") || h.includes("SUBMISSION") || h.includes("TERMS")) return "commercial";
+    
+    return "business"; // Default
   }
 
   private async extractXlsxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {

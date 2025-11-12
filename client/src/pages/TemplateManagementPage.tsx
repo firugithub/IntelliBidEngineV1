@@ -262,7 +262,7 @@ export default function TemplateManagementPage() {
     }
 
     const formData = new FormData();
-    formData.append("file", uploadFormData.file);
+    formData.append("template", uploadFormData.file);
     formData.append("name", uploadFormData.name);
     formData.append("description", uploadFormData.description);
     formData.append("category", uploadFormData.category);
