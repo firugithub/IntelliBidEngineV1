@@ -58,6 +58,7 @@ export default function RftDraftReviewPage() {
   const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
+  const [finalizationError, setFinalizationError] = useState<string | null>(null);
 
   // Fetch all drafts
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
@@ -105,17 +106,43 @@ export default function RftDraftReviewPage() {
   // Finalize draft mutation
   const finalizeDraftMutation = useMutation({
     mutationFn: async () => {
+      setFinalizationError(null); // Clear previous errors
       return await apiRequest("POST", `/api/rft/drafts/${selectedDraftId}/finalize`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
+      setFinalizationError(null);
       toast({ title: "Draft finalized successfully", description: "The RFT document has been generated." });
     },
     onError: (error: any) => {
+      let errorMessage = "An error occurred while finalizing the draft.";
+      let errorHint = "Please check that the template is accessible.";
+      
+      if (error.message) {
+        try {
+          const match = error.message.match(/^\d+:\s*(.+)$/);
+          if (match) {
+            const jsonPart = match[1];
+            const parsed = JSON.parse(jsonPart);
+            if (parsed.error) {
+              errorMessage = parsed.error;
+            }
+            if (parsed.hint) {
+              errorHint = parsed.hint;
+            }
+          }
+        } catch (e) {
+          errorMessage = error.message;
+        }
+      }
+      
+      // Set inline error for display
+      setFinalizationError(`${errorMessage}\n\n${errorHint}`);
+      
       toast({ 
         title: "Failed to finalize draft", 
-        description: error.message || "An error occurred while finalizing the draft. Please check that the template is accessible.",
+        description: errorMessage,
         variant: "destructive" 
       });
     }
