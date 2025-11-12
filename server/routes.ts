@@ -191,6 +191,35 @@ function inferCategoryFromHeading(heading: string): "technical" | "security" | "
   return "other"; // Default
 }
 
+// Helper: Strip common Markdown syntax from AI-generated content
+function stripMarkdownFormatting(text: string): string {
+  let cleaned = text;
+  
+  // Remove heading markers (###, ##, #)
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+  
+  // Remove bold markers (**text** or __text__)
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+  cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+  
+  // Remove italic markers (*text* or _text_) - but preserve single * for bullets
+  cleaned = cleaned.replace(/\*([^*\n]+)\*/g, '$1');
+  cleaned = cleaned.replace(/_([^_\n]+)_/g, '$1');
+  
+  // Remove strikethrough markers (~~text~~)
+  cleaned = cleaned.replace(/~~([^~]+)~~/g, '$1');
+  
+  // Remove code block markers (```)
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
+    return match.replace(/```\w*\n?/g, '').replace(/```/g, '');
+  });
+  
+  // Remove inline code markers (`text`)
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+  
+  return cleaned;
+}
+
 // AI Enhancement for template-merged sections
 async function enhanceSectionWithAI(
   sectionTitle: string,
@@ -280,27 +309,36 @@ For each requirement, provide:
 - Detailed description
 - Technical specifications
 - Expected deliverables
-- **Clear acceptance criteria** (3+ measurable, testable conditions)
+- Clear acceptance criteria (3+ measurable, testable conditions)
 - Dependencies
 - Priority level (Critical/High/Medium/Low)
 
 Organize into relevant categories (e.g., Functional, Technical, Integration, Data Migration, Security, Compliance, Training, Documentation).
 
-FORMAT EACH REQUIREMENT AS:
+CRITICAL FORMATTING RULES - PLAIN TEXT ONLY:
+- DO NOT use Markdown syntax (no # for headings, no ** for bold, no * for italics)
+- DO NOT use hashtags (#, ##, ###) for headings
+- DO NOT wrap text in asterisks or underscores for emphasis
+- Use UPPERCASE for category headings (e.g., "FUNCTIONAL REQUIREMENTS")
+- Use simple numbered lists (1., 2., 3.) or bullet points with hyphens (-)
+- Use line breaks and indentation for structure
+- Format each requirement exactly as shown below with plain text
+
+FORMAT EACH REQUIREMENT AS PLAIN TEXT:
 REQ-[ID]: [Title]
 Description: [What needs to be delivered]
 Technical Specs: [Specific technical details]
 Deliverables: [Concrete outputs]
 Acceptance Criteria:
-  ✓ [Measurable criterion 1]
-  ✓ [Measurable criterion 2]
-  ✓ [Measurable criterion 3]
+  - [Measurable criterion 1]
+  - [Measurable criterion 2]
+  - [Measurable criterion 3]
 Dependencies: [Other requirements or systems]
 Priority: [Critical/High/Medium/Low]
 
-Include a timeline table mapping requirements to project phases.
+Include a timeline table mapping requirements to project phases (use plain text table format with dashes and pipes).
 
-Generate the enhanced section content now:`;
+Generate the enhanced section content now using ONLY plain text formatting (no Markdown):`;
   } else {
     // Prompt for narrative sections (Executive Summary, Background, Evaluation Criteria, etc.)
     enhancementPrompt = `You are enhancing a "${sectionTitle}" section from an RFT template.
@@ -324,11 +362,21 @@ Guidelines:
 - Expand the original template content with specific details from the business case
 - Include relevant aviation industry context and standards where appropriate
 - Make the content substantial and informative (aim for 300-500 words minimum)
-- Use clear structure with headings, paragraphs, and bullet points as appropriate
+- Use clear structure with paragraphs and simple lists
 - Be specific and concrete - avoid generic statements
 - Ensure all information aligns with the project context and requirements
 
-Generate the enhanced section content now:`;
+CRITICAL FORMATTING RULES - PLAIN TEXT ONLY:
+- DO NOT use Markdown syntax (no # for headings, no ** for bold, no * for italics)
+- DO NOT use hashtags (#, ##, ###) for headings
+- DO NOT wrap text in asterisks or underscores for emphasis
+- Use UPPERCASE for section headings when needed (e.g., "PROJECT TIMELINE" or "STRATEGIC IMPORTANCE")
+- Use simple numbered lists (1., 2., 3., 4.) for ordered items
+- Use simple bullet points with hyphens (-) for unordered items
+- Use blank lines to separate paragraphs
+- Use line breaks for clear structure
+
+Generate the enhanced section content now using ONLY plain text formatting (no Markdown):`;
   }
 
   try {
@@ -349,7 +397,16 @@ Generate the enhanced section content now:`;
       max_tokens: maxTokens,
     });
 
-    const enhancedContent = response.choices[0]?.message?.content || extractedContent;
+    const rawContent = response.choices[0]?.message?.content || extractedContent;
+    
+    // Sanitize: Strip any Markdown formatting that AI may have included despite instructions
+    const enhancedContent = stripMarkdownFormatting(rawContent);
+    
+    // Log warning if Markdown was detected and stripped
+    if (rawContent !== enhancedContent) {
+      console.warn(`⚠️  Stripped Markdown formatting from AI response for ${sectionTitle} (${rawContent.length} → ${enhancedContent.length} chars)`);
+    }
+    
     console.log(`✅ AI enhancement complete for ${sectionTitle} (${enhancedContent.length} chars, ${response.usage?.total_tokens || 0} tokens)`);
     
     return {
