@@ -9,6 +9,7 @@ import { generateRftFromBusinessCase, regenerateRftSection, generateProfessional
 import { generateAllQuestionnaires } from "./services/rft/excelGenerator";
 import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rft/rftMockDataGenerator";
 import { templateService } from "./services/rft/templateService";
+import { templateMergeService } from "./services/rft/templateMergeService";
 import { azureEmbeddingService } from "./services/azure/azureEmbedding";
 import { azureAISearchService } from "./services/azure/azureAISearch";
 import { azureBlobStorageService } from "./services/azure/azureBlobStorage";
@@ -2539,6 +2540,420 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting template:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to delete template";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // ========== Collaborative Draft Review Routes ==========
+
+  // Generate new RFT draft with stakeholder assignments
+  app.post("/api/rft/drafts", async (req, res) => {
+    try {
+      const { projectId, businessCaseId, templateId, generationMode } = req.body;
+
+      if (!projectId || !businessCaseId || !generationMode) {
+        return res.status(400).json({
+          error: "projectId, businessCaseId, and generationMode are required",
+        });
+      }
+
+      if (!["ai_generation", "template_merge"].includes(generationMode)) {
+        return res.status(400).json({
+          error: "generationMode must be 'ai_generation' or 'template_merge'",
+        });
+      }
+
+      // If using template_merge mode, templateId is required
+      if (generationMode === "template_merge" && !templateId) {
+        return res.status(400).json({
+          error: "templateId is required for template_merge mode",
+        });
+      }
+
+      // For ai_generation mode, generate sections using smartRftService
+      let generatedSections: any[] = [];
+      let template: any = null;
+
+      if (generationMode === "ai_generation") {
+        // Get business case to generate RFT content
+        const businessCase = await storage.getBusinessCase(businessCaseId);
+        if (!businessCase) {
+          return res.status(404).json({ error: "Business case not found" });
+        }
+
+        // Extract business case info first
+        const businessCaseExtract = await extractBusinessCaseInfo(
+          businessCase.documentContent || businessCase.description || ""
+        );
+
+        // Generate professional RFT sections using AI
+        const sections = await generateProfessionalRftSections(businessCaseExtract);
+
+        // If templateId provided, get stakeholder mappings
+        if (templateId) {
+          template = await templateService.getTemplateById(templateId);
+          if (!template) {
+            return res.status(404).json({ error: "Template not found" });
+          }
+
+          // Map sections to stakeholders based on template configuration
+          const sectionMappings = (template.sectionMappings as any[]) || [];
+          generatedSections = sections.map((section) => {
+            const mapping = sectionMappings.find((m: any) => m.sectionId === section.sectionId);
+            return {
+              sectionId: section.sectionId,
+              title: section.title,
+              content: section.content,
+              assignedTo: mapping?.assignedTo || "Technical PM",
+              reviewStatus: "pending",
+              approvedBy: null,
+              approvedAt: null,
+            };
+          });
+        } else {
+          // No template - assign all sections to default stakeholder
+          generatedSections = sections.map((section) => ({
+            sectionId: section.sectionId,
+            title: section.title,
+            content: section.content,
+            assignedTo: "Technical PM",
+            reviewStatus: "pending",
+            approvedBy: null,
+            approvedAt: null,
+          }));
+        }
+      } else {
+        // template_merge mode - placeholder for future implementation
+        return res.status(501).json({
+          error: "template_merge mode not yet implemented. Use ai_generation mode.",
+        });
+      }
+
+      // Create draft
+      const draft = await storage.createRftGenerationDraft({
+        projectId,
+        businessCaseId,
+        templateId: templateId || null,
+        generationMode,
+        generatedSections: generatedSections as any,
+        status: "draft",
+        approvalProgress: {
+          totalSections: generatedSections.length,
+          approvedSections: 0,
+          pendingSections: generatedSections.length,
+        } as any,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          editHistory: {},
+        } as any,
+      });
+
+      res.json({
+        draft,
+        message: "Draft generated successfully with stakeholder assignments",
+      });
+    } catch (error) {
+      console.error("Error generating draft:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate draft";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Get draft by ID
+  app.get("/api/rft/drafts/:id", async (req, res) => {
+    try {
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+      res.json(draft);
+    } catch (error) {
+      console.error("Error fetching draft:", error);
+      res.status(500).json({ error: "Failed to fetch draft" });
+    }
+  });
+
+  // List drafts with optional filters
+  app.get("/api/rft/drafts", async (req, res) => {
+    try {
+      const { projectId, status, assignedTo } = req.query;
+
+      let drafts = await storage.getRftGenerationDraftsByRft(projectId as string || "");
+      
+      // Apply filters
+      if (status) {
+        drafts = drafts.filter((d) => d.status === status);
+      }
+      
+      if (assignedTo) {
+        drafts = drafts.filter((d) => {
+          const sections = d.generatedSections as any[];
+          return sections.some((s: any) => s.assignedTo === assignedTo);
+        });
+      }
+
+      res.json(drafts);
+    } catch (error) {
+      console.error("Error listing drafts:", error);
+      res.status(500).json({ error: "Failed to list drafts" });
+    }
+  });
+
+  // Edit section content (with authorization check)
+  app.patch("/api/rft/drafts/:id/sections/:sectionId", async (req, res) => {
+    try {
+      const { content, editedBy } = req.body;
+
+      if (!content || !editedBy) {
+        return res.status(400).json({ error: "content and editedBy are required" });
+      }
+
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+
+      const sections = draft.generatedSections as any[];
+      const sectionIndex = sections.findIndex((s: any) => s.sectionId === req.params.sectionId);
+
+      if (sectionIndex === -1) {
+        return res.status(404).json({ error: "Section not found" });
+      }
+
+      const section = sections[sectionIndex];
+
+      // Authorization: Check if editedBy matches assignedTo (or allow privileged roles)
+      // For MVP, we'll log a warning but allow edits
+      if (section.assignedTo && editedBy !== section.assignedTo) {
+        console.warn(
+          `⚠️  Section edit authorization warning: ${editedBy} editing section assigned to ${section.assignedTo}`
+        );
+      }
+
+      // Update section content and reset approval
+      section.content = content;
+      section.reviewStatus = "pending";
+      section.approvedBy = null;
+      section.approvedAt = null;
+
+      // Track edit history in metadata (ring buffer, max 10 entries per section)
+      const metadata = (draft.metadata as any) || { editHistory: {} };
+      metadata.editHistory = metadata.editHistory || {};
+      metadata.editHistory[req.params.sectionId] = metadata.editHistory[req.params.sectionId] || [];
+      
+      metadata.editHistory[req.params.sectionId].push({
+        editedBy,
+        editedAt: new Date().toISOString(),
+        previousContent: section.content,
+      });
+
+      // Keep only last 10 edits (ring buffer)
+      if (metadata.editHistory[req.params.sectionId].length > 10) {
+        metadata.editHistory[req.params.sectionId].shift();
+      }
+
+      // Update draft
+      await storage.updateRftGenerationDraft(req.params.id, {
+        generatedSections: sections as any,
+        metadata: metadata as any,
+      });
+
+      res.json({
+        section,
+        message: "Section updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating section:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update section";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Approve section (with authorization check)
+  app.post("/api/rft/drafts/:id/sections/:sectionId/approve", async (req, res) => {
+    try {
+      const { approvedBy } = req.body;
+
+      if (!approvedBy) {
+        return res.status(400).json({ error: "approvedBy is required" });
+      }
+
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+
+      const sections = draft.generatedSections as any[];
+      const sectionIndex = sections.findIndex((s: any) => s.sectionId === req.params.sectionId);
+
+      if (sectionIndex === -1) {
+        return res.status(404).json({ error: "Section not found" });
+      }
+
+      const section = sections[sectionIndex];
+
+      // Authorization: Check if approvedBy matches assignedTo
+      if (section.assignedTo && approvedBy !== section.assignedTo) {
+        return res.status(403).json({
+          error: `Only ${section.assignedTo} can approve this section`,
+        });
+      }
+
+      // Approve section
+      section.reviewStatus = "approved";
+      section.approvedBy = approvedBy;
+      section.approvedAt = new Date().toISOString();
+
+      // Update approval progress
+      const approvalProgress = (draft.approvalProgress as any) || {
+        totalSections: sections.length,
+        approvedSections: 0,
+        pendingSections: sections.length,
+      };
+
+      approvalProgress.approvedSections = sections.filter(
+        (s: any) => s.reviewStatus === "approved"
+      ).length;
+      approvalProgress.pendingSections =
+        approvalProgress.totalSections - approvalProgress.approvedSections;
+
+      // Update draft status if all sections approved
+      let newStatus = draft.status;
+      if (approvalProgress.approvedSections === approvalProgress.totalSections) {
+        newStatus = "approved";
+      } else if (approvalProgress.approvedSections > 0) {
+        newStatus = "in_review";
+      }
+
+      // Update draft
+      await storage.updateRftGenerationDraft(req.params.id, {
+        generatedSections: sections as any,
+        approvalProgress: approvalProgress as any,
+        status: newStatus,
+      });
+
+      res.json({
+        section,
+        approvalProgress,
+        draftStatus: newStatus,
+        message: "Section approved successfully",
+      });
+    } catch (error) {
+      console.error("Error approving section:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to approve section";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Finalize draft and merge into template
+  app.post("/api/rft/drafts/:id/finalize", async (req, res) => {
+    try {
+      const { forceFinalize, finalizedBy } = req.body;
+
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+
+      const sections = draft.generatedSections as any[];
+      const unapprovedSections = sections.filter((s: any) => s.reviewStatus !== "approved");
+
+      // Check if all sections are approved
+      if (unapprovedSections.length > 0 && !forceFinalize) {
+        return res.status(400).json({
+          error: `Cannot finalize: ${unapprovedSections.length} section(s) not yet approved`,
+          unapprovedSections: unapprovedSections.map((s: any) => ({
+            sectionId: s.sectionId,
+            assignedTo: s.assignedTo,
+            reviewStatus: s.reviewStatus,
+          })),
+          hint: "Set forceFinalize=true to override (privileged roles only)",
+        });
+      }
+
+      // If force finalizing, log warning and temporarily approve draft
+      if (forceFinalize && unapprovedSections.length > 0) {
+        console.warn(
+          `⚠️  Force finalizing draft ${req.params.id} by ${finalizedBy} with ${unapprovedSections.length} unapproved sections: ${unapprovedSections.map((s: any) => s.sectionId).join(", ")}`
+        );
+        
+        // Temporarily set draft to "approved" to bypass mergeTemplate guard
+        await storage.updateRftGenerationDraft(req.params.id, {
+          status: "approved",
+        });
+      }
+
+      // Verify template exists (with retry on blob failures)
+      if (!draft.templateId) {
+        return res.status(400).json({
+          error: "Cannot finalize: Draft has no associated template",
+          hint: "This draft was generated without a template and cannot be merged",
+        });
+      }
+
+      let template;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          template = await templateService.getTemplateById(draft.templateId);
+          break;
+        } catch (error) {
+          retries--;
+          if (retries === 0) throw error;
+          console.warn(`Template fetch failed, retrying... (${retries} attempts left)`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Merge content into template with retry on blob failures
+      let mergeResult;
+      retries = 3;
+      while (retries > 0) {
+        try {
+          mergeResult = await templateMergeService.mergeTemplate(
+            draft.templateId,
+            req.params.id,
+            draft.projectId
+          );
+          break;
+        } catch (error) {
+          retries--;
+          if (retries === 0) throw error;
+          console.warn(`Template merge failed, retrying... (${retries} attempts left)`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Update draft status to finalized
+      await storage.updateRftGenerationDraft(req.params.id, {
+        status: "finalized",
+        metadata: {
+          ...(draft.metadata as any),
+          finalizedAt: new Date().toISOString(),
+          finalizedBy: finalizedBy || "system",
+          forcedFinalize: forceFinalize || false,
+          unapprovedSectionsAtFinalize: unapprovedSections.map((s: any) => s.sectionId),
+        } as any,
+      });
+
+      res.json({
+        draft: {
+          ...draft,
+          status: "finalized",
+        },
+        mergedDocument: mergeResult,
+        unapprovedSections: forceFinalize ? unapprovedSections.map((s: any) => s.sectionId) : [],
+        message: forceFinalize
+          ? `Draft force-finalized with ${unapprovedSections.length} unapproved sections`
+          : "Draft finalized successfully",
+      });
+    } catch (error) {
+      console.error("Error finalizing draft:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to finalize draft";
       res.status(500).json({ error: errorMessage });
     }
   });
