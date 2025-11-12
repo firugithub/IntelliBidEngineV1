@@ -58,7 +58,6 @@ export default function RftDraftReviewPage() {
   const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
-  const [finalizationError, setFinalizationError] = useState<string | null>(null);
 
   // Fetch all drafts
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
@@ -103,50 +102,6 @@ export default function RftDraftReviewPage() {
   });
 
 
-  // Finalize draft mutation
-  const finalizeDraftMutation = useMutation({
-    mutationFn: async () => {
-      setFinalizationError(null); // Clear previous errors
-      return await apiRequest("POST", `/api/rft/drafts/${selectedDraftId}/finalize`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
-      setFinalizationError(null);
-      toast({ title: "Draft finalized successfully", description: "The RFT document has been generated." });
-    },
-    onError: (error: any) => {
-      let errorMessage = "An error occurred while finalizing the draft.";
-      let errorHint = "Please check that the template is accessible.";
-      
-      if (error.message) {
-        try {
-          const match = error.message.match(/^\d+:\s*(.+)$/);
-          if (match) {
-            const jsonPart = match[1];
-            const parsed = JSON.parse(jsonPart);
-            if (parsed.error) {
-              errorMessage = parsed.error;
-            }
-            if (parsed.hint) {
-              errorHint = parsed.hint;
-            }
-          }
-        } catch (e) {
-          errorMessage = error.message;
-        }
-      }
-      
-      // Set inline error for display
-      setFinalizationError(`${errorMessage}\n\n${errorHint}`);
-      
-      toast({ 
-        title: "Failed to finalize draft", 
-        description: errorMessage,
-        variant: "destructive" 
-      });
-    }
-  });
 
   const handleEditSection = (section: DraftSection) => {
     setEditingSectionId(section.sectionId);
@@ -260,52 +215,101 @@ export default function RftDraftReviewPage() {
         </CardContent>
       </Card>
 
-      {/* Draft Actions */}
-      {selectedDraft && (
+      {/* RFT Pack Downloads */}
+      {selectedDraft && selectedDraft.metadata?.pack && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Draft Actions
+                RFT Pack Downloads
               </div>
-              <Badge variant={selectedDraft.status === "finalized" ? "default" : "secondary"}>
-                {selectedDraft.status}
+              <Badge variant={selectedDraft.metadata.pack.status === "completed" ? "default" : "secondary"}>
+                {selectedDraft.metadata.pack.status || "generating"}
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Download Merged Document Button */}
-            {selectedDraft.generationMode === "template_merge" && selectedDraft.metadata?.mergedDocumentUrl && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  const url = selectedDraft.metadata.mergedDocumentUrl;
-                  window.open(url, '_blank');
-                }}
-                data-testid="button-download-merged-document"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Merged DOCX
-                {selectedDraft.metadata?.templateName && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({selectedDraft.metadata.templateName})
-                  </span>
-                )}
-              </Button>
+          <CardContent className="space-y-3">
+            {selectedDraft.metadata.pack.status === "generating" && (
+              <div className="text-center p-4 text-muted-foreground">
+                <div className="animate-pulse">Generating RFT pack (DOCX, PDF, 4 Excel questionnaires)...</div>
+              </div>
             )}
+            
+            {selectedDraft.metadata.pack.status === "completed" && selectedDraft.metadata.pack.files && (
+              <>
+                {/* DOCX Document */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.docx.url, '_blank')}
+                  data-testid="button-download-docx"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  RFT Document (DOCX)
+                </Button>
 
-            {selectedDraft.status !== "finalized" && (
-              <Button
-                onClick={() => finalizeDraftMutation.mutate()}
-                disabled={finalizeDraftMutation.isPending}
-                className="w-full"
-                data-testid="button-finalize-draft"
-              >
-                <FileCheck className="h-4 w-4 mr-2" />
-                {finalizeDraftMutation.isPending ? "Finalizing..." : "Finalize Draft"}
-              </Button>
+                {/* PDF Document */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.pdf.url, '_blank')}
+                  data-testid="button-download-pdf"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  RFT Document (PDF)
+                </Button>
+
+                {/* Product Questionnaire */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.questionnaires.product.url, '_blank')}
+                  data-testid="button-download-product"
+                >
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  Product Questionnaire (XLSX)
+                </Button>
+
+                {/* NFR Questionnaire */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.questionnaires.nfr.url, '_blank')}
+                  data-testid="button-download-nfr"
+                >
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  NFR Questionnaire (XLSX)
+                </Button>
+
+                {/* Cybersecurity Questionnaire */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.questionnaires.cybersecurity.url, '_blank')}
+                  data-testid="button-download-cybersecurity"
+                >
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  Cybersecurity Questionnaire (XLSX)
+                </Button>
+
+                {/* Agile Questionnaire */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(selectedDraft.metadata.pack.files.questionnaires.agile.url, '_blank')}
+                  data-testid="button-download-agile"
+                >
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  Agile Questionnaire (XLSX)
+                </Button>
+              </>
+            )}
+            
+            {selectedDraft.metadata.pack.status === "error" && (
+              <div className="text-center p-4 text-destructive">
+                Error generating RFT pack. Please contact support.
+              </div>
             )}
           </CardContent>
         </Card>

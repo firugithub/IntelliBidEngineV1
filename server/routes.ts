@@ -3269,6 +3269,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: draftMetadata as any,
       });
 
+      // Automatically generate RFT pack in background (DOCX, PDF, 4 Excel questionnaires)
+      console.log(`🎯 Triggering automatic RFT pack generation for draft ${draft.id}...`);
+      const {generateRftPackFromDraft} = await import("./services/rft/draftPackGenerator");
+      generateRftPackFromDraft(draft.id).catch((error) => {
+        console.error(`❌ Background RFT pack generation failed for draft ${draft.id}:`, error);
+      });
+
       res.json({
         id: draft.id,
         draft,
