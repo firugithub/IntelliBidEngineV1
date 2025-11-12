@@ -48,9 +48,9 @@ const STAKEHOLDER_ROLES = [
   { id: "solution_architect", name: "Solution Architect", color: "#8B5CF6" },
   { id: "cybersecurity_analyst", name: "Cybersecurity Analyst", color: "#EF4444" },
   { id: "engineering_lead", name: "Engineering Lead", color: "#10B981" },
-  { id: "procurement_lead", name: "Procurement Lead", color: "#F59E0B" },
-  { id: "legal_counsel", name: "Legal Counsel", color: "#EC4899" },
-  { id: "product_owner", name: "Product Owner", color: "#14B8A6" }
+  { id: "procurement_specialist", name: "Procurement Specialist", color: "#F59E0B" },
+  { id: "product_owner", name: "Product Owner", color: "#EC4899" },
+  { id: "compliance_officer", name: "Compliance Officer", color: "#6366F1" }
 ];
 
 export default function RftDraftReviewPage() {
@@ -60,7 +60,7 @@ export default function RftDraftReviewPage() {
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
   const [approvingSection, setApprovingSection] = useState<DraftSection | null>(null);
-  const [approverName, setApproverName] = useState<string>("");
+  const [approverRole, setApproverRole] = useState<string>("");
 
   // Fetch all drafts
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
@@ -114,7 +114,7 @@ export default function RftDraftReviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
       toast({ title: "Section approved successfully" });
       setApprovingSection(null);
-      setApproverName("");
+      setApproverRole("");
     },
     onError: () => {
       toast({ title: "Failed to approve section", variant: "destructive" });
@@ -152,17 +152,18 @@ export default function RftDraftReviewPage() {
 
   const handleApproveClick = (section: DraftSection) => {
     setApprovingSection(section);
-    setApproverName("");
+    // Pre-select the section's assigned role
+    setApproverRole(section.assignedTo);
   };
 
   const handleConfirmApproval = () => {
-    if (!approvingSection || !approverName.trim()) {
-      toast({ title: "Please enter approver name", variant: "destructive" });
+    if (!approvingSection || !approverRole) {
+      toast({ title: "Please select your role", variant: "destructive" });
       return;
     }
     approveSectionMutation.mutate({ 
       sectionId: approvingSection.sectionId, 
-      approvedBy: approverName 
+      approvedBy: approverRole 
     });
   };
 
@@ -521,15 +522,28 @@ export default function RftDraftReviewPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Approver Name</label>
-              <input
-                type="text"
-                value={approverName}
-                onChange={(e) => setApproverName(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="Enter your name"
-                data-testid="input-approver-name"
-              />
+              <label className="text-sm font-medium">Your Role</label>
+              <p className="text-xs text-muted-foreground">
+                Select your stakeholder role to approve this section. Only the assigned stakeholder ({getRoleName(approvingSection?.assignedTo || "")}) can approve.
+              </p>
+              <Select value={approverRole} onValueChange={setApproverRole}>
+                <SelectTrigger data-testid="select-approver-role">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAKEHOLDER_ROLES.filter(r => r.id !== "all").map((role) => (
+                    <SelectItem key={role.id} value={role.id} data-testid={`select-role-${role.id}`}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: role.color }}
+                        />
+                        <span>{role.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -542,7 +556,7 @@ export default function RftDraftReviewPage() {
             </Button>
             <Button
               onClick={handleConfirmApproval}
-              disabled={approveSectionMutation.isPending || !approverName.trim()}
+              disabled={approveSectionMutation.isPending || !approverRole}
               data-testid="button-confirm-approve"
             >
               <Check className="h-4 w-4 mr-2" />
