@@ -2980,19 +2980,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extract additional data from extractedData JSONB field if available
         const extractedData = businessCase.extractedData as any;
         
+        // Helper function to decode HTML entities
+        const decodeHTML = (str: string): string => {
+          return str
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'");
+        };
+        
         const mergeData: any = {
-          PROJECT_NAME: businessCase.name || "Untitled Project",
-          AIRLINE_NAME: extractedData?.airline || "Nujum Air",
-          DESCRIPTION: businessCase.description || extractedData?.projectObjective || extractedData?.description || "",
-          BUDGET: extractedData?.budget || "TBD",
-          TIMELINE: extractedData?.timeline || "TBD",
-          FUNCTIONAL_REQUIREMENTS: extractedData?.functionalRequirements || extractedData?.keyRequirements || extractedData?.requirements || "",
-          NON_FUNCTIONAL_REQUIREMENTS: extractedData?.nonFunctionalRequirements || "",
-          REQUIREMENTS: extractedData?.requirements || 
+          PROJECT_NAME: decodeHTML(businessCase.name || "Untitled Project"),
+          AIRLINE_NAME: decodeHTML(extractedData?.airline || "Nujum Air"),
+          DESCRIPTION: decodeHTML(businessCase.description || extractedData?.projectObjective || extractedData?.description || ""),
+          BUDGET: decodeHTML(extractedData?.budget || "TBD"),
+          TIMELINE: decodeHTML(extractedData?.timeline || "TBD"),
+          FUNCTIONAL_REQUIREMENTS: decodeHTML(extractedData?.functionalRequirements || extractedData?.keyRequirements || extractedData?.requirements || ""),
+          NON_FUNCTIONAL_REQUIREMENTS: decodeHTML(extractedData?.nonFunctionalRequirements || ""),
+          REQUIREMENTS: decodeHTML(extractedData?.requirements || 
             (extractedData?.functionalRequirements && extractedData?.nonFunctionalRequirements 
               ? `Functional Requirements:\n${extractedData.functionalRequirements}\n\nNon-functional Requirements:\n${extractedData.nonFunctionalRequirements}`
-              : extractedData?.functionalRequirements || extractedData?.nonFunctionalRequirements || extractedData?.keyRequirements || ""),
-          DEADLINE: extractedData?.successCriteria || extractedData?.deadline || "TBD",
+              : extractedData?.functionalRequirements || extractedData?.nonFunctionalRequirements || extractedData?.keyRequirements || "")),
+          DEADLINE: decodeHTML(extractedData?.successCriteria || extractedData?.deadline || "TBD"),
         };
 
         console.log("🔄 Template merge data prepared:", {
