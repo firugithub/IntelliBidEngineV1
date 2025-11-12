@@ -11,7 +11,8 @@ Preferred communication style: Simple, everyday language.
 ### Frontend
 **Technology Stack:** React with TypeScript, Vite, wouter, shadcn/ui (Radix UI), Tailwind CSS, TanStack Query, and Recharts.
 **Design System:** Dark mode-first, enterprise-focused with "New York" style shadcn/ui components, and information-dense layouts. Features comprehensive gradient styling and vibrant color theming for enhanced visual appeal and data representation across dashboards.
-**Key Pages & Navigation:** Portfolio-centric 7-menu structure including Home, Smart RFT Builder, Knowledge Base, KB Chatbot, Generate Mock Data, Executive Summary, and Admin Config. Includes a dedicated "Agent Metrics" page for observability.
+**Key Pages & Navigation:** Portfolio-centric 8-menu structure including Home, Executive Summary, Smart RFT Builder, Template Management, Knowledge Base, KB Chatbot, Generate Mock Data, Admin Config, and Agent Metrics.
+**Template Management Page:** Complete DOCX template management interface with drag-and-drop upload, metadata configuration (name, description, category), sortable template catalog table, section-to-stakeholder assignment configuration modal with role legend, and full integration with all 8 template API routes. Features upload extraction summary showing detected sections with default assignees, query invalidation for fresh data, and comprehensive loading/error states.
 **Executive Summary Dashboard:** Provides a global overview with a professional gradient hero section, vibrant color-themed KPI cards with trend indicators, beautified Top Vendors rankings with score-based color-coded progress bars, improved vendor stage distribution charts, and a timeline-style activity stream.
 
 ### Backend
