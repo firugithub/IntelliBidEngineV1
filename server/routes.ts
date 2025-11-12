@@ -191,12 +191,17 @@ function inferCategoryFromHeading(heading: string): "technical" | "security" | "
   return "other"; // Default
 }
 
-// Helper: Strip common Markdown syntax from AI-generated content
+// Helper: Strip common Markdown syntax and visual artifacts from AI-generated content
 function stripMarkdownFormatting(text: string): string {
   let cleaned = text;
   
   // Remove heading markers (###, ##, #)
   cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+  
+  // Remove horizontal rules (---, ___, ***) - standalone or with surrounding whitespace
+  cleaned = cleaned.replace(/^\s*[-_*]{3,}\s*$/gm, '');
+  // Also remove inline horizontal separators (e.g., "--- CONTENT ---")
+  cleaned = cleaned.replace(/\s*[-]{3,}\s*/g, ' ');
   
   // Remove bold markers (**text** or __text__)
   cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
@@ -217,10 +222,16 @@ function stripMarkdownFormatting(text: string): string {
   // Remove inline code markers (`text`)
   cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
   
+  // Remove emojis using surrogate pairs (compatible approach)
+  cleaned = cleaned.replace(/([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF]|\uD83D[\uDE00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|[\u2600-\u26FF]|[\u2700-\u27BF])/g, '');
+  
+  // Clean up multiple consecutive blank lines (more than 2)
+  cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
+  
   return cleaned;
 }
 
-// AI Enhancement for template-merged sections
+// AI Enhancement for template-merged 
 async function enhanceSectionWithAI(
   sectionTitle: string,
   extractedContent: string,
@@ -3166,37 +3177,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 let sectionContent = "";
                 
                 if (extraction.confidence === "high") {
-                  // High confidence - show extracted/enhanced section content
-                  const contentLabel = enhancement.enhanced 
-                    ? "✨ AI-enhanced with detailed requirements"
-                    : "✅ Auto-extracted from merged template";
-                  
-                  sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-                    `${contentLabel}\n` +
-                    `📝 Review and edit the content below\n` +
-                    `✓ All placeholders have been replaced with actual values\n` +
-                    (enhancement.enhanced ? `✓ AI expanded with 20+ requirements and acceptance criteria\n` : '') +
-                    `\n---\n\n` +
-                    `${enhancement.content}\n\n` +
-                    `---\n\n` +
-                    `💡 Instructions:\n` +
-                    `• Review the ${enhancement.enhanced ? 'AI-enhanced ' : ''}content above\n` +
-                    `• Edit as needed to finalize this section\n` +
-                    `• Approve when ready\n\n` +
-                    `📥 Download full merged RFT (all sections): ${blobUrl}`;
+                  // High confidence - use extracted/enhanced section content directly
+                  sectionContent = enhancement.content;
                 } else {
-                  // Low confidence - provide full document with guidance
-                  sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-                    `⚠️ Could not auto-extract your section (${extraction.method})\n` +
-                    `📝 Please locate and edit your section from the complete document below\n\n` +
-                    `--- COMPLETE MERGED DOCUMENT ---\n\n` +
-                    `${mergedText}\n\n` +
-                    `--- END OF DOCUMENT ---\n\n` +
-                    `💡 Instructions:\n` +
-                    `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
-                    `• Copy only your section's content and replace this entire text\n` +
-                    `• Approve when ready\n\n` +
-                    `📥 Download full DOCX: ${blobUrl}`;
+                  // Low confidence - provide full merged document for manual extraction
+                  sectionContent = `Could not auto-extract section "${mapping.sectionTitle}" from template.\n\n` +
+                    `Please locate your section content in the merged document below and edit to keep only your section:\n\n` +
+                    `${mergedText}`;
                 }
 
                 return {
@@ -3219,7 +3206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 return {
                   sectionId: mapping.sectionId,
                   title: mapping.sectionTitle,
-                  content: `=== ${mapping.sectionTitle.toUpperCase()} ===\n\nError processing section. Please check logs.`,
+                  content: `Error processing section. Please check server logs for details.\n\nSection: ${mapping.sectionTitle}`,
                   assignedTo: mapping.defaultAssignee,
                   reviewStatus: "pending",
                   approvedBy: null,
@@ -3240,20 +3227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedSections = [{
             sectionId: "section-complete-document",
             title: "Complete RFT Document",
-            content: `=== COMPLETE MERGED RFT DOCUMENT ===\n\n` +
-              `✅ Template merged with business case: ${businessCase.name}\n` +
-              `📝 Review and edit the merged document below\n` +
-              `⬇️ All placeholders have been replaced with actual values\n\n` +
-              `--- MERGED DOCUMENT CONTENT ---\n\n` +
-              `${mergedText}\n\n` +
-              `--- END OF DOCUMENT ---\n\n` +
-              `💡 Instructions:\n` +
-              `• Review the complete merged document above\n` +
-              `• Edit as needed to finalize your RFT\n` +
-              `• This template did not have configured sections - you can manage it as a single document\n` +
-              `• Or configure section mappings in Template Management for multi-stakeholder review\n` +
-              `• Approve when ready\n\n` +
-              `📥 Download full DOCX: ${blobUrl}`,
+            content: mergedText,
             assignedTo: "Technical PM",
             reviewStatus: "pending",
             approvedBy: null,
