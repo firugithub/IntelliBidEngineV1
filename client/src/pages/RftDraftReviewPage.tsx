@@ -48,8 +48,8 @@ const STAKEHOLDER_ROLES = [
   { id: "solution_architect", name: "Solution Architect", color: "#8B5CF6" },
   { id: "cybersecurity_analyst", name: "Cybersecurity Analyst", color: "#EF4444" },
   { id: "engineering_lead", name: "Engineering Lead", color: "#10B981" },
-  { id: "procurement_specialist", name: "Procurement Specialist", color: "#F59E0B" },
-  { id: "compliance_officer", name: "Compliance Officer", color: "#EC4899" },
+  { id: "procurement_lead", name: "Procurement Lead", color: "#F59E0B" },
+  { id: "legal_counsel", name: "Legal Counsel", color: "#EC4899" },
   { id: "product_owner", name: "Product Owner", color: "#14B8A6" }
 ];
 
@@ -83,9 +83,8 @@ export default function RftDraftReviewPage() {
   // Filter sections by stakeholder
   const filteredSections = selectedDraft?.generatedSections.filter(section => {
     if (selectedStakeholder === "all") return true;
-    // Match the selected role ID to the section's assigned role name
-    const selectedRole = STAKEHOLDER_ROLES.find(r => r.id === selectedStakeholder);
-    return selectedRole?.name === section.assignedTo;
+    // Match the selected role ID to the section's assignedTo (which contains role ID)
+    return section.assignedTo === selectedStakeholder;
   }) || [];
 
   // Update section content mutation
@@ -194,8 +193,13 @@ export default function RftDraftReviewPage() {
   };
 
   const getRoleColor = (assignedTo: string) => {
-    const role = STAKEHOLDER_ROLES.find(r => r.name === assignedTo);
+    const role = STAKEHOLDER_ROLES.find(r => r.id === assignedTo);
     return role?.color || "#6B7280";
+  };
+
+  const getRoleName = (assignedTo: string) => {
+    const role = STAKEHOLDER_ROLES.find(r => r.id === assignedTo);
+    return role?.name || assignedTo;
   };
 
   if (isLoadingDrafts) {
@@ -402,7 +406,7 @@ export default function RftDraftReviewPage() {
                             }}
                           >
                             <Users className="h-3 w-3 mr-1" />
-                            {section.assignedTo}
+                            {getRoleName(section.assignedTo)}
                           </Badge>
                           <Badge variant={getStatusBadgeVariant(section.reviewStatus)}>
                             {section.reviewStatus}
