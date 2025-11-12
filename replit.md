@@ -29,9 +29,10 @@ Preferred communication style: Simple, everyday language.
 **Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking (execution time, token usage, cost, success rates).
 
 ### Smart RFT Builder
+**Business Case Form Fields:** Project Name, Business Objective, Scope, Timeline, Budget, Functional Requirements (required), Non-functional Requirements (optional), and Success Criteria. Functional requirements describe system capabilities; non-functional requirements specify quality attributes (performance, security, scalability).
 **Dual-Path RFT Generation:**
 -   **AI-generated:** AI creates structured RFT sections with stakeholder assignments.
--   **Template Merge:** Fully functional token substitution system that merges business case data with organization DOCX templates. Supports placeholders: {{PROJECT_NAME}}, {{AIRLINE_NAME}}, {{DESCRIPTION}}, {{BUDGET}}, {{TIMELINE}}, {{REQUIREMENTS}}, {{DEADLINE}}.
+-   **Template Merge:** Fully functional token substitution system that merges business case data with organization DOCX templates. Supports placeholders: {{PROJECT_NAME}}, {{AIRLINE_NAME}}, {{DESCRIPTION}}, {{BUDGET}}, {{TIMELINE}}, {{FUNCTIONAL_REQUIREMENTS}}, {{NON_FUNCTIONAL_REQUIREMENTS}}, {{REQUIREMENTS}} (combined), {{DEADLINE}}.
 **Workflow:** A 3-step "Draft-First" process (Business Case → Template Selection → Draft Generation) leading to collaborative drafts with stakeholder assignments.
 **Intelligent Template Processing:** 
 -   **Text Extraction with Formatting:** Custom DOCX parser (`extractTextWithFormatting`) preserves paragraph structure by parsing XML `<w:p>` tags, joining paragraphs with `\n\n` for readable output instead of blob text.
