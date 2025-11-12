@@ -2801,6 +2801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({
+        id: draft.id,
         draft,
         message: "Draft generated successfully with stakeholder assignments",
       });
