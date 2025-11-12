@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb, Edit, FileDown } from "lucide-react";
+import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb, Edit, FileDown, FileCheck2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 type Step = 1 | 2 | 3 | 4;
 type BusinessCaseMethod = "generate" | "upload";
+type GenerationMode = "ai_generation" | "template_merge";
 
 export default function SmartRftBuilderPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [businessCaseMethod, setBusinessCaseMethod] = useState<BusinessCaseMethod>("generate");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,8 +29,10 @@ export default function SmartRftBuilderPage() {
   const [businessCaseDescription, setBusinessCaseDescription] = useState("");
   const [selectedPortfolio, setSelectedPortfolio] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("ai_generation");
   const [businessCaseId, setBusinessCaseId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [generatedDraftId, setGeneratedDraftId] = useState("");
   const [generatedRftId, setGeneratedRftId] = useState("");
   const [generatedRft, setGeneratedRft] = useState<any>(null);
   const [isSeedingTemplates, setIsSeedingTemplates] = useState(false);
@@ -50,9 +55,14 @@ export default function SmartRftBuilderPage() {
     queryKey: ["/api/portfolios"],
   });
 
-  // Fetch active RFT templates
+  // Fetch active RFT templates (AI generation)
   const { data: templates = [], isLoading: templatesLoading } = useQuery<any[]>({
     queryKey: ["/api/rft-templates/active"],
+  });
+
+  // Fetch organization templates (template merge)
+  const { data: orgTemplates = [], isLoading: orgTemplatesLoading } = useQuery<any[]>({
+    queryKey: ["/api/templates"],
   });
 
   // Auto-seed templates if empty
@@ -177,33 +187,40 @@ export default function SmartRftBuilderPage() {
     },
   });
 
-  // Generate RFT
-  const generateRftMutation = useMutation({
+  // Generate RFT Draft (NEW - replaces old generateRftMutation)
+  const generateDraftMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/generate-rft", {
+      return apiRequest("POST", "/api/rft/drafts", {
         businessCaseId,
-        templateId: selectedTemplate,
         projectId,
+        templateId: selectedTemplate || undefined,
+        generationMode,
       });
     },
     onSuccess: (data: any) => {
-      setGeneratedRftId(data.id);
-      setGeneratedRft(data);
-      toast({
-        title: "RFT Generated Successfully!",
-        description: `Generated ${(data.sections?.sections || []).length} sections using AI.`,
-      });
-      setCurrentStep(4);
+      setGeneratedDraftId(data.id);
       
       // Invalidate all RFT-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/rft/drafts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+      
+      // Show success toast
+      toast({
+        title: "Draft Created Successfully!",
+        description: `Draft ID: ${data.id.slice(0, 8)}... - Redirecting to collaborative review workspace.`,
+      });
+      
+      // Redirect to RFT Draft Review page
+      setTimeout(() => {
+        setLocation("/rft-draft-review");
+      }, 500); // Small delay to allow toast to display
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Generation Failed",
-        description: "Failed to generate RFT. Please try again.",
+        title: "Draft Creation Failed",
+        description: error.message || "Failed to create RFT draft. Please try again.",
       });
     },
   });
@@ -447,14 +464,27 @@ export default function SmartRftBuilderPage() {
   };
 
   const handleSelectTemplate = () => {
-    if (!selectedTemplate) {
+    console.log("Select template button clicked", { selectedTemplate, businessCaseId, generationMode });
+    
+    // Template is required only for template_merge mode
+    if (generationMode === "template_merge" && !selectedTemplate) {
       toast({
         variant: "destructive",
-        title: "No Template Selected",
-        description: "Please select an RFT template.",
+        title: "Template Required",
+        description: "Please select an organization template for template merge mode.",
       });
       return;
     }
+    
+    if (!businessCaseId) {
+      toast({
+        variant: "destructive",
+        title: "Missing Business Case",
+        description: "Business case ID is missing. Please go back and create/upload a business case.",
+      });
+      return;
+    }
+    
     createProjectMutation.mutate();
   };
 
@@ -476,22 +506,13 @@ export default function SmartRftBuilderPage() {
   };
 
   const handleGenerate = () => {
-    console.log("Generate button clicked", { businessCaseId, selectedTemplate, projectId });
+    console.log("Generate button clicked", { businessCaseId, selectedTemplate, projectId, generationMode });
     
     if (!businessCaseId) {
       toast({
         variant: "destructive",
         title: "Missing Business Case",
         description: "Business case ID is missing. Please upload your business case first.",
-      });
-      return;
-    }
-    
-    if (!selectedTemplate) {
-      toast({
-        variant: "destructive",
-        title: "Missing Template",
-        description: "Please select an RFT template.",
       });
       return;
     }
@@ -505,7 +526,17 @@ export default function SmartRftBuilderPage() {
       return;
     }
     
-    generateRftMutation.mutate();
+    // Template is optional for AI generation
+    if (generationMode === "template_merge" && !selectedTemplate) {
+      toast({
+        variant: "destructive",
+        title: "Missing Template",
+        description: "Please select an organization template for template merge mode.",
+      });
+      return;
+    }
+    
+    generateDraftMutation.mutate();
   };
 
   const handlePublish = () => {
@@ -526,7 +557,7 @@ export default function SmartRftBuilderPage() {
 
       {/* Progress Steps */}
       <div className="flex items-center justify-between mb-8">
-        {[1, 2, 3, 4].map((step) => (
+        {[1, 2, 3].map((step) => (
           <div key={step} className="flex items-center">
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
@@ -538,7 +569,7 @@ export default function SmartRftBuilderPage() {
             >
               {currentStep > step ? <CheckCircle2 className="w-5 h-5" /> : step}
             </div>
-            {step < 4 && (
+            {step < 3 && (
               <div
                 className={`w-24 h-1 mx-2 ${
                   currentStep > step ? "bg-primary" : "bg-muted"
@@ -798,50 +829,122 @@ export default function SmartRftBuilderPage() {
               Step 2: Select RFT Template
             </CardTitle>
             <CardDescription>
-              Choose a template that best matches your project type
+              Choose between AI-generated or organization templates
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {(templatesLoading || isSeedingTemplates) ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  {isSeedingTemplates ? "Loading RFT templates..." : "Loading..."}
-                </p>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No templates available</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {templates.map((template: any) => (
-                  <div
-                    key={template.id}
-                    className={`p-4 border rounded-lg cursor-pointer hover-elevate ${
-                      selectedTemplate === template.id ? "border-primary bg-accent" : ""
-                    }`}
-                    onClick={() => setSelectedTemplate(template.id)}
-                    data-testid={`template-${template.category}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{template.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {template.description}
-                        </p>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="outline">{template.category}</Badge>
-                          <Badge variant="secondary">
-                            {(template.sections?.sections || []).length} sections
-                          </Badge>
+            <Tabs 
+              defaultValue="ai_generation" 
+              onValueChange={(value) => {
+                setGenerationMode(value as GenerationMode);
+                setSelectedTemplate(""); // Reset selection when switching modes
+              }}
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="ai_generation" data-testid="tab-ai-generation">
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  AI Templates
+                </TabsTrigger>
+                <TabsTrigger value="template_merge" data-testid="tab-template-merge">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Organization Templates
+                </TabsTrigger>
+              </TabsList>
+
+              {/* AI Templates Tab */}
+              <TabsContent value="ai_generation" className="space-y-4">
+                {(templatesLoading || isSeedingTemplates) ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      {isSeedingTemplates ? "Loading RFT templates..." : "Loading..."}
+                    </p>
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No AI templates available</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {templates.map((template: any) => (
+                      <div
+                        key={template.id}
+                        className={`p-4 border rounded-lg cursor-pointer hover-elevate ${
+                          selectedTemplate === template.id ? "border-primary bg-accent" : ""
+                        }`}
+                        onClick={() => setSelectedTemplate(template.id)}
+                        data-testid={`template-ai-${template.category}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{template.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {template.description}
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="outline">{template.category}</Badge>
+                              <Badge variant="secondary">
+                                {(template.sections?.sections || []).length} sections
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
+              </TabsContent>
+
+              {/* Organization Templates Tab */}
+              <TabsContent value="template_merge" className="space-y-4">
+                {orgTemplatesLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading organization templates...</p>
+                  </div>
+                ) : orgTemplates.length === 0 ? (
+                  <div className="text-center py-12 space-y-2">
+                    <p className="text-muted-foreground">No organization templates available</p>
+                    <p className="text-sm text-muted-foreground">
+                      Upload templates in Template Management to use them here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {orgTemplates.filter((t: any) => t.isActive === "true").map((template: any) => (
+                      <div
+                        key={template.id}
+                        className={`p-4 border rounded-lg cursor-pointer hover-elevate ${
+                          selectedTemplate === template.id ? "border-primary bg-accent" : ""
+                        }`}
+                        onClick={() => setSelectedTemplate(template.id)}
+                        data-testid={`template-org-${template.id}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{template.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {template.description}
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="outline">{template.category}</Badge>
+                              {template.isDefault === "true" && (
+                                <Badge variant="default">Default</Badge>
+                              )}
+                              {template.sectionMappings && (
+                                <Badge variant="secondary">
+                                  {template.sectionMappings.length} sections configured
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
 
             <div className="flex gap-2">
               <Button
@@ -853,13 +956,13 @@ export default function SmartRftBuilderPage() {
               </Button>
               <Button
                 onClick={handleSelectTemplate}
-                disabled={createProjectMutation.isPending}
+                disabled={createProjectMutation.isPending || (generationMode === "template_merge" && !selectedTemplate)}
                 className="flex-1"
                 data-testid="button-select-template"
               >
                 {createProjectMutation.isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2" />
                     Creating Project...
                   </>
                 ) : (
@@ -871,52 +974,61 @@ export default function SmartRftBuilderPage() {
         </Card>
       )}
 
-      {/* Step 3: Generate RFT */}
+      {/* Step 3: Generate RFT Draft */}
       {currentStep === 3 && (
         <Card data-testid="step-generate">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Wand2 className="w-5 h-5" />
-              Step 3: Generate RFT
+              <FileCheck2 className="w-5 h-5" />
+              Step 3: Generate RFT Draft
             </CardTitle>
             <CardDescription>
-              Our AI will analyze your business case and generate a comprehensive RFT
+              Create a collaborative draft with stakeholder assignments for review
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-accent p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Ready to Generate</h4>
+              <h4 className="font-semibold mb-2">Ready to Generate Draft</h4>
               <p className="text-sm text-muted-foreground">
-                AI will create structured RFT sections based on your business case including:
-                business requirements, functional requirements, technical specifications,
-                cybersecurity requirements, and evaluation criteria.
+                {generationMode === "ai_generation" 
+                  ? "AI will create structured RFT sections with stakeholder assignments based on your business case. Sections will be assigned to Technical PM, Solution Architect, Cybersecurity Analyst, and other roles for collaborative review."
+                  : "The system will merge your business case with the selected organization template, creating sections with pre-configured stakeholder assignments for collaborative review."
+                }
               </p>
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-sm font-medium mb-1">Next steps after generation:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Review sections assigned to stakeholders</li>
+                  <li>Edit content and get approvals</li>
+                  <li>Finalize when all sections approved</li>
+                </ul>
+              </div>
             </div>
 
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setCurrentStep(2)}
-                disabled={generateRftMutation.isPending}
+                disabled={generateDraftMutation.isPending}
                 data-testid="button-back-step3"
               >
                 Back
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={generateRftMutation.isPending}
+                disabled={generateDraftMutation.isPending}
                 className="flex-1"
                 data-testid="button-generate"
               >
-                {generateRftMutation.isPending ? (
+                {generateDraftMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating RFT... This may take a minute
+                    Creating Draft... This may take a minute
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Generate RFT with AI
+                    <FileCheck2 className="w-4 h-4 mr-2" />
+                    {generationMode === "ai_generation" ? "Generate Draft with AI" : "Create Draft from Template"}
                   </>
                 )}
               </Button>
