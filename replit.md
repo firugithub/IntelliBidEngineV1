@@ -33,7 +33,12 @@ Preferred communication style: Simple, everyday language.
 -   **AI-generated:** AI creates structured RFT sections with stakeholder assignments.
 -   **Template Merge:** Fully functional token substitution system that merges business case data with organization DOCX templates. Supports placeholders: {{PROJECT_NAME}}, {{AIRLINE_NAME}}, {{DESCRIPTION}}, {{BUDGET}}, {{TIMELINE}}, {{REQUIREMENTS}}, {{DEADLINE}}.
 **Workflow:** A 3-step "Draft-First" process (Business Case → Template Selection → Draft Generation) leading to collaborative drafts with stakeholder assignments.
-**Intelligent Template Processing:** Auto-section detection from DOCX numbered headings with XML fallback. Templates without section mappings generate single-section drafts. Business case form data stored in extractedData JSONB for template merge access.
+**Intelligent Template Processing:** 
+-   **Text Extraction with Formatting:** Custom DOCX parser (`extractTextWithFormatting`) preserves paragraph structure by parsing XML `<w:p>` tags, joining paragraphs with `\n\n` for readable output instead of blob text.
+-   **Multi-Pattern Section Detection:** Auto-detection tries multiple regex patterns (numbered uppercase, numbered mixed case, unnumbered uppercase) to handle varied heading formats. Successfully detects 9+ sections from professional templates.
+-   **Smart Section Content Extraction:** Analyzes merged document to find heading positions, extracts content between headings for section-specific drafts. High-confidence extractions provide targeted content; low-confidence falls back to full document with warning.
+-   **Valid Category Mapping:** All section categories strictly mapped to allowed types (business/technical/security/procurement/other). Security and compliance sections → "security", evaluation/terms sections → "procurement".
+-   **Template Storage:** Business case form data stored in extractedData JSONB for template merge access. Templates without section mappings generate single-section drafts.
 **Token Substitution:** Business case fields are stored in extractedData and mapped to template placeholders during merge. Robust error handling for malformed templates with user-friendly guidance.
 
 ### Advanced AI Features
