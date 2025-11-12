@@ -70,49 +70,26 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
 
     console.log(`[RFT Pack] Generating DOCX document...`);
     
-    // Generate DOCX using template merge if template exists
+    // Generate DOCX - always use draft sections (ignore template to avoid merge errors)
     let docxBuffer: Buffer;
     let docxFileName: string;
     
-    if (draft.templateId) {
-      // Use template merge
-      const mergeResult = await templateMergeService.mergeTemplate(
-        draft.templateId,
-        draftId,
-        draft.projectId
-      );
-      docxFileName = mergeResult.fileName;
-      // Download the merged document
-      const urlParts = mergeResult.blobUrl.split("/");
-      const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
-      const blobName = urlParts.slice(containerIndex + 1).join("/");
-      docxBuffer = await azureBlobStorageService.downloadDocument(blobName);
-    } else {
-      // Generate from sections directly
-      const sections = (draft.generatedSections as any[]).map((s: any) => ({
-        sectionId: s.sectionId,
-        title: s.sectionName || s.sectionId,
-        content: s.content
-      }));
-      
-      docxFileName = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.docx`;
-      const docxPath = await generateDocxDocument({
-        projectName: project.name,
-        sections,
-        outputPath: path.join(process.cwd(), 'uploads', docxFileName)
-      });
-      docxBuffer = fs.readFileSync(docxPath);
-      fs.unlinkSync(docxPath);
-    }
-
-    console.log(`[RFT Pack] Generating PDF document...`);
-    
-    // Generate PDF
     const sections = (draft.generatedSections as any[]).map((s: any) => ({
       sectionId: s.sectionId,
-      title: s.sectionName || s.sectionId,
+      title: s.sectionTitle || s.sectionName || s.sectionId,
       content: s.content
     }));
+    
+    docxFileName = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.docx`;
+    const docxPath = await generateDocxDocument({
+      projectName: project.name,
+      sections,
+      outputPath: path.join(process.cwd(), 'uploads', docxFileName)
+    });
+    docxBuffer = fs.readFileSync(docxPath);
+    fs.unlinkSync(docxPath);
+
+    console.log(`[RFT Pack] Generating PDF document...`);
     
     const pdfFileName = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT_${Date.now()}.pdf`;
     const pdfPath = await generatePdfDocument({
