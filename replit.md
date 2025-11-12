@@ -31,9 +31,10 @@ Preferred communication style: Simple, everyday language.
 ### Smart RFT Builder
 **Dual-Path RFT Generation:**
 -   **AI-generated:** AI creates structured RFT sections with stakeholder assignments.
--   **Template Merge:** Merges business case data with selected organization DOCX templates using pre-configured stakeholder assignments from auto-detected sections.
+-   **Template Merge:** Fully functional token substitution system that merges business case data with organization DOCX templates. Supports placeholders: {{PROJECT_NAME}}, {{AIRLINE_NAME}}, {{DESCRIPTION}}, {{BUDGET}}, {{TIMELINE}}, {{REQUIREMENTS}}, {{DEADLINE}}.
 **Workflow:** A 3-step "Draft-First" process (Business Case → Template Selection → Draft Generation) leading to collaborative drafts with stakeholder assignments.
-**Intelligent Template Processing:** Robust section extraction from DOCX templates with fallback mechanisms and inferred stakeholder assignments based on section content.
+**Intelligent Template Processing:** Auto-section detection from DOCX numbered headings with XML fallback. Templates without section mappings generate single-section drafts. Business case form data stored in extractedData JSONB for template merge access.
+**Token Substitution:** Business case fields are stored in extractedData and mapped to template placeholders during merge. Robust error handling for malformed templates with user-friendly guidance.
 
 ### Advanced AI Features
 Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant, all leveraging shared AI infrastructure with RAG.

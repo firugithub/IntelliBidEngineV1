@@ -2627,13 +2627,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Template not found" });
         }
 
-        // Check if template has section mappings
-        if (!template.sectionMappings || template.sectionMappings.length === 0) {
-          return res.status(400).json({
-            error: "Template does not have section mappings configured. Please configure stakeholder assignments first.",
-          });
-        }
-
         // Fetch business case
         const businessCase = await storage.getBusinessCase(businessCaseId);
         if (!businessCase) {
@@ -2650,12 +2643,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mergeData: any = {
           PROJECT_NAME: businessCase.name || "Untitled Project",
           AIRLINE_NAME: extractedData?.airline || "Nujum Air",
-          DESCRIPTION: businessCase.description || extractedData?.description || "",
+          DESCRIPTION: businessCase.description || extractedData?.projectObjective || extractedData?.description || "",
           BUDGET: extractedData?.budget || "TBD",
           TIMELINE: extractedData?.timeline || "TBD",
-          REQUIREMENTS: businessCase.description || extractedData?.requirements || "",
-          DEADLINE: extractedData?.deadline || "TBD",
+          REQUIREMENTS: extractedData?.keyRequirements || extractedData?.requirements || businessCase.description || "",
+          DEADLINE: extractedData?.successCriteria || extractedData?.deadline || "TBD",
         };
+
+        console.log("🔄 Template merge data prepared:", {
+          PROJECT_NAME: mergeData.PROJECT_NAME,
+          AIRLINE_NAME: mergeData.AIRLINE_NAME,
+          BUDGET: mergeData.BUDGET,
+          TIMELINE: mergeData.TIMELINE,
+        });
 
         // Merge template with business case data using docxtemplater
         const PizZip = (await import("pizzip")).default;
@@ -2665,6 +2665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
+          delimiters: { start: '{{', end: '}}' },
           nullGetter: (part: any) => {
             console.warn(`Missing placeholder data for: ${part.value}`);
             return `[${part.value}]`;
@@ -2672,9 +2673,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Render template with merge data
-        doc.render(mergeData);
-
-        console.log(`✅ Template merged successfully with business case data`);
+        try {
+          doc.render(mergeData);
+          console.log(`✅ Template merged successfully with business case data`);
+        } catch (docxError: any) {
+          console.error("Docxtemplater merge error:", docxError);
+          
+          // Check if this is a common "duplicate tag" error from malformed Word placeholders
+          if (docxError.message && docxError.message.includes("duplicate")) {
+            return res.status(400).json({
+              error: "Template contains malformed placeholders",
+              details: "This template has formatting issues that prevent merge. Placeholders like {{AIRLINE_NAME}} may be split across formatting boundaries in Word. Please re-upload the template or ensure all placeholders are formatted consistently.",
+              technicalDetails: docxError.message,
+            });
+          }
+          
+          // Generic docxtemplater error
+          return res.status(500).json({
+            error: "Failed to merge template with business case data",
+            details: docxError.message || "Unknown template processing error",
+          });
+        }
 
         // Extract the complete merged text content
         const mergedText = doc.getFullText();
@@ -2700,36 +2719,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`📥 Merged document backup saved to: ${blobUrl}`);
 
-        // Create sections with the full merged content
-        // Each stakeholder can see complete document and edit their assigned portion
-        const sectionMappings = template.sectionMappings as any[];
+        // Create sections based on template configuration
+        // If template has section mappings, use them; otherwise create a single default section
+        const hasSectionMappings = template.sectionMappings && template.sectionMappings.length > 0;
+        
+        if (hasSectionMappings) {
+          // Use configured section mappings with full merged content in each section
+          const sectionMappings = template.sectionMappings as any[];
+          
+          generatedSections = sectionMappings.map((mapping: any, index: number) => {
+            const content = `=== SECTION ${index + 1}: ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+              `✅ Template merged with business case: ${businessCase.name}\n` +
+              `📝 Review and edit the content below for your section\n` +
+              `⬇️ All placeholders have been replaced with actual values\n\n` +
+              `--- COMPLETE MERGED DOCUMENT ---\n\n` +
+              `${mergedText}\n\n` +
+              `--- END OF DOCUMENT ---\n\n` +
+              `💡 Instructions:\n` +
+              `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
+              `• Edit this content to include only your section's final text\n` +
+              `• Remove other sections and these instructions\n` +
+              `• Approve when ready\n\n` +
+              `📥 Download full DOCX: ${blobUrl}`;
 
-        generatedSections = sectionMappings.map((mapping: any, index: number) => {
-          // Include section marker and the full merged text
-          const content = `=== SECTION ${index + 1}: ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-            `✅ Template merged with business case: ${businessCase.name}\n` +
-            `📝 Review and edit the content below for your section\n` +
-            `⬇️ All placeholders have been replaced with actual values\n\n` +
-            `--- COMPLETE MERGED DOCUMENT ---\n\n` +
-            `${mergedText}\n\n` +
-            `--- END OF DOCUMENT ---\n\n` +
-            `💡 Instructions:\n` +
-            `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
-            `• Edit this content to include only your section's final text\n` +
-            `• Remove other sections and these instructions\n` +
-            `• Approve when ready\n\n` +
-            `📥 Download full DOCX: ${blobUrl}`;
-
-          return {
-            sectionId: mapping.sectionId,
-            title: mapping.sectionTitle,
-            content,
-            assignedTo: mapping.defaultAssignee,
+            return {
+              sectionId: mapping.sectionId,
+              title: mapping.sectionTitle,
+              content,
+              assignedTo: mapping.defaultAssignee,
+              reviewStatus: "pending",
+              approvedBy: null,
+              approvedAt: null,
+            };
+          });
+        } else {
+          // Template has no section mappings - create a single default section
+          console.warn(`Template ${templateId} has no section mappings - creating default single section`);
+          
+          generatedSections = [{
+            sectionId: "section-complete-document",
+            title: "Complete RFT Document",
+            content: `=== COMPLETE MERGED RFT DOCUMENT ===\n\n` +
+              `✅ Template merged with business case: ${businessCase.name}\n` +
+              `📝 Review and edit the merged document below\n` +
+              `⬇️ All placeholders have been replaced with actual values\n\n` +
+              `--- MERGED DOCUMENT CONTENT ---\n\n` +
+              `${mergedText}\n\n` +
+              `--- END OF DOCUMENT ---\n\n` +
+              `💡 Instructions:\n` +
+              `• Review the complete merged document above\n` +
+              `• Edit as needed to finalize your RFT\n` +
+              `• This template did not have configured sections - you can manage it as a single document\n` +
+              `• Or configure section mappings in Template Management for multi-stakeholder review\n` +
+              `• Approve when ready\n\n` +
+              `📥 Download full DOCX: ${blobUrl}`,
+            assignedTo: "Technical PM",
             reviewStatus: "pending",
             approvedBy: null,
             approvedAt: null,
-          };
-        });
+          }];
+        }
       }
 
       // Create draft
@@ -3102,14 +3151,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("📝 Generated business case content length:", generatedContent?.length || 0);
       console.log("📝 Generated business case preview:", generatedContent?.substring(0, 300));
 
-      // Create business case with AI-generated content
+      // Create business case with AI-generated content and store form data in extractedData
       const businessCase = await storage.createBusinessCase({
         portfolioId,
         name,
         description: description || null,
         fileName: "AI Generated Business Case.txt",
         documentContent: generatedContent,
-        extractedData: null,
+        extractedData: {
+          projectObjective,
+          projectScope,
+          timeline,
+          budget,
+          keyRequirements,
+          successCriteria,
+        },
         ragDocumentId: null,
         status: "generated",
       });
