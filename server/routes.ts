@@ -167,9 +167,9 @@ function extractSectionContent(
 function inferStakeholderFromHeading(heading: string): string {
   const h = heading.toUpperCase();
   
-  if (h.includes("EXECUTIVE") || h.includes("SUMMARY")) return "procurement_lead";
+  if (h.includes("EXECUTIVE") || h.includes("SUMMARY")) return "product_owner";
+  if (h.includes("SCOPE") || h.includes("WORK")) return "product_owner";
   if (h.includes("BACKGROUND") || h.includes("CONTEXT")) return "technical_pm";
-  if (h.includes("SCOPE") || h.includes("WORK")) return "solution_architect";
   if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE")) return "solution_architect";
   if (h.includes("SECURITY") || h.includes("COMPLIANCE") || h.includes("CYBERSECURITY")) return "cybersecurity_analyst";
   if (h.includes("EVALUATION") || h.includes("CRITERIA")) return "procurement_lead";
