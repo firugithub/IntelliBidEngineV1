@@ -3569,6 +3569,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error finalizing draft:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to finalize draft";
+      
+      // Template syntax errors should return 400, not 500
+      if (errorMessage.includes("Template has syntax errors") || 
+          errorMessage.includes("Invalid placeholder syntax") ||
+          errorMessage.includes("malformed placeholders")) {
+        return res.status(400).json({ 
+          error: errorMessage,
+          hint: "The template file contains formatting issues. Please upload a corrected template or contact support."
+        });
+      }
+      
       res.status(500).json({ error: errorMessage });
     }
   });

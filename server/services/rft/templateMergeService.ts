@@ -51,12 +51,6 @@ export class TemplateMergeService {
       throw new Error(`Draft ${draftId} not found`);
     }
 
-    if (draft.status !== "approved") {
-      throw new Error(
-        `Draft ${draftId} is not approved. Current status: ${draft.status}. Only approved drafts can be finalized.`
-      );
-    }
-
     const templateBuffer = await this.downloadTemplateFile(template.blobUrl);
 
     const mergeData = this.prepareMergeData(
@@ -158,8 +152,31 @@ export class TemplateMergeService {
       });
 
       return buffer;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error merging DOCX template:", error);
+      
+      if (error.properties && error.properties.errors) {
+        const detailedErrors = error.properties.errors.map((err: any) => {
+          const { message, name, properties } = err;
+          let userMessage = `Template error: ${message}`;
+          
+          if (properties) {
+            if (properties.xtag) {
+              userMessage = `Invalid placeholder syntax near "{{${properties.xtag}}}". Check for duplicate closing braces or malformed tags.`;
+            } else if (properties.offset) {
+              userMessage = `${message} at position ${properties.offset}`;
+            }
+          }
+          
+          return userMessage;
+        }).join(' | ');
+        
+        throw new Error(
+          `Template has syntax errors that prevent merging: ${detailedErrors}. ` +
+          `Please check the template file for malformed placeholders (e.g., extra braces like "{{NAME}}}}" instead of "{{NAME}}").`
+        );
+      }
+      
       throw new Error(
         `Failed to merge DOCX template: ${error instanceof Error ? error.message : String(error)}`
       );
