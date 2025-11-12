@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, X, FileText, Users, Clock, CheckCircle2, AlertCircle, FileCheck } from "lucide-react";
+import { Check, Edit, X, FileText, Users, Clock, CheckCircle2, AlertCircle, FileCheck, Download } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 
@@ -317,6 +317,27 @@ export default function RftDraftReviewPage() {
                 className="h-2"
               />
             </div>
+
+            {/* Download Merged Document Button */}
+            {selectedDraft.generationMode === "template_merge" && selectedDraft.metadata?.mergedDocumentUrl && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  const url = selectedDraft.metadata.mergedDocumentUrl;
+                  window.open(url, '_blank');
+                }}
+                data-testid="button-download-merged-document"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Merged DOCX
+                {selectedDraft.metadata?.templateName && (
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({selectedDraft.metadata.templateName})
+                  </span>
+                )}
+              </Button>
+            )}
 
             {selectedDraft.status !== "finalized" && (
               <Button

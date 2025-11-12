@@ -2966,7 +2966,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create draft
+      // Create draft with metadata
+      // For template merge, include the merged document URL
+      const draftMetadata: any = {
+        generatedAt: new Date().toISOString(),
+        editHistory: {},
+      };
+      
+      // Add merged document URL for template merge mode
+      if (generationMode === "template_merge" && template) {
+        // Extract blobUrl from the first section's content or use the stored value
+        const mergedDocUrlMatch = generatedSections[0]?.content?.match(/📥 Download.*?: (https:\/\/[^\s\n]+)/);
+        if (mergedDocUrlMatch) {
+          draftMetadata.mergedDocumentUrl = mergedDocUrlMatch[1];
+          draftMetadata.templateName = template.name;
+          console.log(`✅ Stored merged document URL in metadata: ${draftMetadata.mergedDocumentUrl}`);
+        }
+      }
+
       const draft = await storage.createRftGenerationDraft({
         projectId,
         businessCaseId,
@@ -2979,10 +2996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           approvedSections: 0,
           pendingSections: generatedSections.length,
         } as any,
-        metadata: {
-          generatedAt: new Date().toISOString(),
-          editHistory: {},
-        } as any,
+        metadata: draftMetadata as any,
       });
 
       res.json({
