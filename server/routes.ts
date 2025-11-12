@@ -2990,12 +2990,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Business case not found" });
         }
 
-        // If templateId provided, fetch template first for stakeholder mappings
+        // If templateId provided, try to fetch template for stakeholder mappings
+        // Template can be either an RFT template or organization template
         if (templateId) {
-          template = await templateService.getTemplateById(templateId);
-          if (!template) {
-            return res.status(404).json({ error: "Template not found" });
+          try {
+            // Try RFT template first (from AI Templates tab)
+            template = await storage.getRftTemplate(templateId);
+            
+            if (!template) {
+              // Try organization template (from Template Management)
+              template = await templateService.getTemplateById(templateId);
+              
+              if (!template) {
+                console.log(`Template ${templateId} not found in either RFT templates or organization templates, proceeding without stakeholder mappings`);
+              }
+            }
+          } catch (error: any) {
+            // Infrastructure/storage errors should fail the request
+            console.error(`Error fetching template ${templateId}:`, error);
+            return res.status(500).json({
+              error: "Failed to fetch template",
+              details: error.message || "Template storage service unavailable"
+            });
           }
+          
+          // Template is optional for AI generation, continue with or without it (if null)
         }
 
         // Extract business case info first

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,8 @@ export default function RftDraftReviewPage() {
   const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPackStatusRef = useRef<string | null>(null);
 
   // Fetch all drafts
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery<RftDraft[]>({
@@ -66,7 +68,7 @@ export default function RftDraftReviewPage() {
   });
 
   // Fetch selected draft details
-  const { data: selectedDraft, isLoading: isLoadingDraft } = useQuery<RftDraft>({
+  const { data: selectedDraft, isLoading: isLoadingDraft, refetch: refetchDraft } = useQuery<RftDraft>({
     queryKey: [`/api/rft/drafts/${selectedDraftId}`],
     enabled: !!selectedDraftId
   });
@@ -80,25 +82,64 @@ export default function RftDraftReviewPage() {
 
   // Auto-refresh polling when pack is generating
   useEffect(() => {
-    if (!selectedDraft || !selectedDraft.metadata?.pack) return;
+    // Reset status ref when switching drafts or when pack is not available
+    if (!selectedDraft || !selectedDraft.metadata?.pack) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      lastPackStatusRef.current = null;
+      return;
+    }
     
     const packStatus = selectedDraft.metadata.pack.status;
     
-    // Only poll if status is "pending" or "generating"
-    if (packStatus !== "pending" && packStatus !== "generating") return;
+    // Only react to actual status changes (not every render)
+    if (packStatus === lastPackStatusRef.current) {
+      return;
+    }
     
-    console.log("[Auto-refresh] Starting polling for pack generation...");
+    lastPackStatusRef.current = packStatus;
     
-    const interval = setInterval(() => {
-      console.log("[Auto-refresh] Polling draft status...");
-      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
-    }, 5000); // Poll every 5 seconds
+    // If pack is complete or errored, stop polling
+    if (packStatus !== "pending" && packStatus !== "generating") {
+      if (pollingIntervalRef.current) {
+        console.log("[Auto-refresh] Pack complete, stopping polling");
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
     
+    // Start polling (only runs once when status changes to generating/pending)
+    if (!pollingIntervalRef.current) {
+      console.log("[Auto-refresh] Starting polling for pack generation...");
+      
+      pollingIntervalRef.current = setInterval(async () => {
+        console.log("[Auto-refresh] Polling draft status...");
+        try {
+          await refetchDraft();
+        } catch (error) {
+          console.error("[Auto-refresh] Refetch failed:", error);
+          toast({
+            variant: "destructive",
+            title: "Failed to refresh pack status",
+            description: "Will retry automatically..."
+          });
+        }
+      }, 5000); // Poll every 5 seconds
+    }
+    
+    // Cleanup: reset status ref to allow fresh polling on next draft
     return () => {
-      console.log("[Auto-refresh] Stopping polling");
-      clearInterval(interval);
+      if (pollingIntervalRef.current) {
+        console.log("[Auto-refresh] Cleanup: stopping polling");
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      lastPackStatusRef.current = null;
     };
-  }, [selectedDraft?.metadata?.pack?.status, selectedDraftId]);
+  }, [selectedDraft?.metadata?.pack?.status, selectedDraftId, refetchDraft, toast]);
 
   // Filter sections by stakeholder
   const filteredSections = selectedDraft?.generatedSections.filter(section => {
