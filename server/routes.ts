@@ -3080,11 +3080,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           TIMELINE: mergeData.TIMELINE,
         });
 
-        // Merge template with business case data using docxtemplater
+        // Normalize template placeholders before merging (fixes malformed {{{{VAR}}}} or {{VAR}}}} syntax)
         const PizZip = (await import("pizzip")).default;
         const Docxtemplater = (await import("docxtemplater")).default;
+        
+        let normalizedBuffer = templateBuffer;
+        try {
+          const zipForNormalization = new PizZip(templateBuffer);
+          const xml = zipForNormalization.file("word/document.xml")?.asText();
+          
+          if (xml) {
+            // Fix malformed placeholders: {{{{VAR}}}} -> {{VAR}}, {{VAR}}}} -> {{VAR}}
+            let normalizedXml = xml.replace(/\{\{+/g, '{{').replace(/\}\}+/g, '}}');
+            
+            console.log(`✓ Normalized template placeholders before merge`);
+            
+            zipForNormalization.file("word/document.xml", normalizedXml);
+            normalizedBuffer = zipForNormalization.generate({
+              type: "nodebuffer",
+              compression: "DEFLATE",
+            });
+          }
+        } catch (normError) {
+          console.warn("Could not normalize template - using original:", normError);
+        }
 
-        const zip = new PizZip(templateBuffer);
+        // Merge template with business case data using docxtemplater
+        const zip = new PizZip(normalizedBuffer);
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
@@ -3101,6 +3123,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Template merged successfully with business case data`);
         } catch (docxError: any) {
           console.error("Docxtemplater merge error:", docxError);
+          
+          // Provide detailed error with placeholder context
+          if (docxError.properties && docxError.properties.errors) {
+            const errors = docxError.properties.errors.map((err: any) => {
+              if (err.properties?.xtag) {
+                return `Invalid placeholder "{{${err.properties.xtag}}}"`;
+              }
+              return err.message;
+            }).join(', ');
+            
+            return res.status(400).json({
+              error: "Template has syntax errors that prevent merging",
+              hint: "Check for duplicate closing braces or malformed tags like '{{{{NAME}}}}' instead of '{{NAME}}'",
+              details: errors,
+            });
+          }
           
           // Check if this is a common "duplicate tag" error from malformed Word placeholders
           if (docxError.message && docxError.message.includes("duplicate")) {

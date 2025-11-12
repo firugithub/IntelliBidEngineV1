@@ -120,6 +120,48 @@ export class TemplateMergeService {
     return `AI_${sectionId.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
   }
 
+  /**
+   * Normalize malformed placeholders in DOCX template
+   * Fixes issues like {{{{PROJ}}}} -> {{PROJ}} and {{NAME}}}} -> {{NAME}}
+   */
+  private normalizeTemplatePlaceholders(templateBuffer: Buffer): Buffer {
+    try {
+      const zip = new PizZip(templateBuffer);
+      const xml = zip.file("word/document.xml")?.asText();
+      
+      if (!xml) {
+        console.warn("Could not find document.xml in template - skipping normalization");
+        return templateBuffer;
+      }
+
+      // Fix malformed placeholders:
+      // 1. Replace {{{{VAR}}}} with {{VAR}}
+      // 2. Replace {{{VAR}}} with {{VAR}}
+      // 3. Replace {{VAR}}}} with {{VAR}}
+      // 4. Replace {{VAR}}} with {{VAR}}
+      let normalizedXml = xml;
+      
+      // Fix 4+ opening braces: {{{{+ -> {{
+      normalizedXml = normalizedXml.replace(/\{\{+/g, '{{');
+      
+      // Fix 3+ closing braces: }}}+ -> }}
+      normalizedXml = normalizedXml.replace(/\}\}+/g, '}}');
+
+      console.log(`✓ Normalized template placeholders`);
+      
+      // Update the zip with normalized XML
+      zip.file("word/document.xml", normalizedXml);
+      
+      return zip.generate({
+        type: "nodebuffer",
+        compression: "DEFLATE",
+      });
+    } catch (error) {
+      console.warn("Error normalizing template placeholders - using original:", error);
+      return templateBuffer;
+    }
+  }
+
   private async performMerge(
     templateBuffer: Buffer,
     templateType: "docx" | "xlsx",
@@ -134,7 +176,10 @@ export class TemplateMergeService {
 
   private async mergeDocx(templateBuffer: Buffer, mergeData: MergeData): Promise<Buffer> {
     try {
-      const zip = new PizZip(templateBuffer);
+      // Normalize template placeholders before processing
+      const normalizedBuffer = this.normalizeTemplatePlaceholders(templateBuffer);
+      
+      const zip = new PizZip(normalizedBuffer);
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
