@@ -210,12 +210,30 @@ Section 1 - Introduction & Overview:
 Explain why this solution is needed to achieve: ${businessCaseExtract.businessObjective}. Describe what problem it solves for these stakeholders: ${stakeholdersList}. Include organizational context based on the scope (${businessCaseExtract.scope}) and explain the tendering process.
 
 Section 2 - Scope of Work / Requirements:
-Detail each of the key requirements listed above. For each requirement, explain:
-- What the requirement means in practice
-- Technical specifications needed
-- Expected deliverables
-- Integration points
-Create a timeline table mapping requirements to implementation phases.
+Create a comprehensive, detailed scope of work with MINIMUM 20 specific requirements. For each requirement, provide:
+- Requirement ID and Title
+- Detailed description of what the requirement means in practice
+- Technical specifications and constraints
+- Expected deliverables (tangible outputs)
+- Clear acceptance criteria (measurable, testable conditions that must be met)
+- Integration points and dependencies
+- Priority level (Critical/High/Medium/Low)
+
+Organize requirements into logical categories (e.g., Functional, Technical, Integration, Data Migration, Training, Documentation).
+
+Format each requirement as:
+REQ-[ID]: [Title]
+Description: [What needs to be delivered]
+Technical Specs: [Specific technical details]
+Deliverables: [Concrete outputs]
+Acceptance Criteria:
+  ✓ [Measurable criterion 1]
+  ✓ [Measurable criterion 2]
+  ✓ [Measurable criterion 3]
+Dependencies: [Other requirements or systems]
+Priority: [Critical/High/Medium/Low]
+
+Additionally, create a timeline table mapping all requirements to implementation phases with clear milestones.
 
 Section 3 - Instructions to Tenderers:
 Create submission instructions specific to ${businessCaseExtract.projectName}:
