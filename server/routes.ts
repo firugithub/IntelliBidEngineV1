@@ -8,6 +8,7 @@ import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzure
 import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/rft/smartRftService";
 import { generateAllQuestionnaires } from "./services/rft/excelGenerator";
 import { generateRft, generateRftPack, generateVendorResponses, generateEvaluation, generateVendorStages } from "./services/rft/rftMockDataGenerator";
+import { templateService } from "./services/rft/templateService";
 import { azureEmbeddingService } from "./services/azure/azureEmbedding";
 import { azureAISearchService } from "./services/azure/azureAISearch";
 import { azureBlobStorageService } from "./services/azure/azureBlobStorage";
@@ -2374,6 +2375,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching RFT template:", error);
       res.status(500).json({ error: "Failed to fetch RFT template" });
+    }
+  });
+
+  // ========== Organization Template Management Routes ==========
+
+  // Upload organization template (DOCX only)
+  app.post("/api/templates/upload", upload.single("template"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { name, description, category, createdBy } = req.body;
+
+      if (!name || !category) {
+        return res.status(400).json({ error: "Template name and category are required" });
+      }
+
+      // Validate DOCX-only at controller level (return 400, not 500)
+      if (!req.file.originalname.toLowerCase().endsWith(".docx")) {
+        return res.status(400).json({ 
+          error: "Only DOCX files are supported in this release. " +
+                 "XLSX support requires SheetJS integration and will be added in a future update. " +
+                 "Please upload a DOCX template with {{TOKEN}} placeholders."
+        });
+      }
+
+      const fileExtension = "docx";
+
+      const result = await templateService.uploadTemplate(
+        req.file.buffer,
+        req.file.originalname,
+        {
+          name,
+          description,
+          category,
+          templateType: fileExtension,
+          createdBy: createdBy || "system",
+        }
+      );
+
+      res.json({
+        template: result.template,
+        placeholders: result.placeholders,
+        message: "Template uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading organization template:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload template";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Get all organization templates
+  app.get("/api/templates", async (req, res) => {
+    try {
+      const { category, isActive } = req.query;
+      
+      const filters: any = {};
+      if (category) filters.category = String(category);
+      if (isActive !== undefined) filters.isActive = isActive === "true";
+
+      const templates = await templateService.getAllTemplates(filters);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching organization templates:", error);
+      res.status(500).json({ error: "Failed to fetch organization templates" });
+    }
+  });
+
+  // Get organization template by ID
+  app.get("/api/templates/:id", async (req, res) => {
+    try {
+      const template = await templateService.getTemplateById(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching organization template:", error);
+      res.status(500).json({ error: "Failed to fetch organization template" });
+    }
+  });
+
+  // Configure section mappings for organization template
+  app.patch("/api/templates/:id/sections", async (req, res) => {
+    try {
+      const { sectionMappings } = req.body;
+
+      if (!sectionMappings || !Array.isArray(sectionMappings)) {
+        return res.status(400).json({ 
+          error: "sectionMappings array is required" 
+        });
+      }
+
+      const updatedTemplate = await templateService.configureSectionMappings(
+        req.params.id,
+        sectionMappings
+      );
+
+      res.json({
+        template: updatedTemplate,
+        message: "Section mappings configured successfully",
+      });
+    } catch (error) {
+      console.error("Error configuring section mappings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to configure section mappings";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Set default template
+  app.patch("/api/templates/:id/set-default", async (req, res) => {
+    try {
+      const updatedTemplate = await templateService.setDefaultTemplate(req.params.id);
+      res.json({
+        template: updatedTemplate,
+        message: "Template set as default successfully",
+      });
+    } catch (error) {
+      console.error("Error setting default template:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to set default template";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Deactivate organization template
+  app.patch("/api/templates/:id/deactivate", async (req, res) => {
+    try {
+      const updatedTemplate = await templateService.deactivateTemplate(req.params.id);
+      res.json({
+        template: updatedTemplate,
+        message: "Template deactivated successfully",
+      });
+    } catch (error) {
+      console.error("Error deactivating template:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to deactivate template";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Download organization template
+  app.get("/api/templates/:id/download", async (req, res) => {
+    try {
+      const { buffer, fileName } = await templateService.downloadTemplate(req.params.id);
+      
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to download template";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Delete organization template
+  app.delete("/api/templates/:id", async (req, res) => {
+    try {
+      await templateService.deleteTemplate(req.params.id);
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete template";
+      res.status(500).json({ error: errorMessage });
     }
   });
 
