@@ -2674,9 +2674,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { projectId, status, assignedTo } = req.query;
 
-      let drafts = await storage.getRftGenerationDraftsByRft(projectId as string || "");
+      // Get all drafts first
+      let drafts = await storage.getAllRftGenerationDrafts();
       
       // Apply filters
+      if (projectId) {
+        drafts = drafts.filter((d) => d.projectId === projectId);
+      }
+      
       if (status) {
         drafts = drafts.filter((d) => d.status === status);
       }

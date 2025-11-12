@@ -237,7 +237,7 @@ export interface IStorage {
   // RFT Generation Drafts
   createRftGenerationDraft(draft: InsertRftGenerationDraft): Promise<RftGenerationDraft>;
   getRftGenerationDraft(id: string): Promise<RftGenerationDraft | undefined>;
-  getRftGenerationDraftsByRft(rftId: string): Promise<RftGenerationDraft[]>;
+  getAllRftGenerationDrafts(): Promise<RftGenerationDraft[]>;
   updateRftGenerationDraft(id: string, updates: Partial<InsertRftGenerationDraft>): Promise<void>;
   deleteRftGenerationDraft(id: string): Promise<void>;
 
@@ -1284,10 +1284,8 @@ export class MemStorage implements IStorage {
     return this.rftGenerationDrafts.get(id);
   }
 
-  async getRftGenerationDraftsByRft(rftId: string): Promise<RftGenerationDraft[]> {
-    return Array.from(this.rftGenerationDrafts.values()).filter(
-      (draft) => draft.rftId === rftId
-    ).sort(
+  async getAllRftGenerationDrafts(): Promise<RftGenerationDraft[]> {
+    return Array.from(this.rftGenerationDrafts.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
   }
@@ -1742,8 +1740,8 @@ storage.getRftGenerationDraft = async function(id: string): Promise<RftGeneratio
   return results[0];
 };
 
-storage.getRftGenerationDraftsByRft = async function(rftId: string): Promise<RftGenerationDraft[]> {
-  return await db.select().from(rftGenerationDrafts).where(eq(rftGenerationDrafts.rftId, rftId)).orderBy(desc(rftGenerationDrafts.createdAt));
+storage.getAllRftGenerationDrafts = async function(): Promise<RftGenerationDraft[]> {
+  return await db.select().from(rftGenerationDrafts).orderBy(desc(rftGenerationDrafts.createdAt));
 };
 
 storage.updateRftGenerationDraft = async function(id: string, updates: Partial<InsertRftGenerationDraft>): Promise<void> {

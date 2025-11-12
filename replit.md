@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 **Key Pages & Navigation:** Portfolio-centric 9-menu structure including Home, Executive Summary, Smart RFT Builder, Template Management, RFT Draft Review, Knowledge Base, KB Chatbot, Generate Mock Data, Admin Config, and Agent Metrics.
 **Template Management Page:** Complete DOCX template management interface with drag-and-drop upload, metadata configuration (name, description, category), sortable template catalog table, section-to-stakeholder assignment configuration modal with role legend, and full integration with all 8 template API routes. Features upload extraction summary showing detected sections with default assignees, query invalidation for fresh data, and comprehensive loading/error states.
 **RFT Draft Review Page:** Stakeholder-based collaborative review interface with draft selector, stakeholder role filter dropdown (7 aviation roles), section cards displaying approval status indicators and assigned stakeholder badges, section content editor dialog with approval reset, approval workflow with approver name capture, and finalize draft action with progress tracking. Fully integrated with 5 collaborative draft review API endpoints (list drafts, get draft details, update section, approve section, finalize draft). Features empty states, loading states, disabled controls based on approval status, visual highlighting for approved sections, and real-time approval progress visualization.
+**Smart RFT Builder Integration:** 3-step draft generation workflow with tabbed template selection (AI Templates vs Organization Templates), generation mode switching (ai_generation vs template_merge), optional template selection for AI mode, required template for merge mode, and automatic redirect to RFT Draft Review page after successful draft creation. Success toast displays draft ID and confirms redirect to collaborative review workspace.
 **Executive Summary Dashboard:** Provides a global overview with a professional gradient hero section, vibrant color-themed KPI cards with trend indicators, beautified Top Vendors rankings with score-based color-coded progress bars, improved vendor stage distribution charts, and a timeline-style activity stream.
 
 ### Backend
@@ -36,10 +37,14 @@ Preferred communication style: Simple, everyday language.
 **Agent Metrics & Observability:** Comprehensive tracking of execution time, token usage, cost estimation, success rates, and error classification for each agent execution, persisted in PostgreSQL and accessible via dedicated API endpoints and an enterprise dashboard.
 
 ### Smart RFT Builder
-**AI-Powered Generation:** Generates context-aware RFTs from ideas or uploaded documents, deeply integrating business case details into questionnaire generation.
-**Multi-Deliverable Generation:** Creates 5 comprehensive RFT deliverables (Sample RFT Document, Product Questionnaire, NFR Questionnaire, Cybersecurity Questionnaire, Agile Questionnaire) with professional formatting.
-**Workflow:** A 4-step process for RFT creation, template selection, AI generation, and review.
-**Azure Blob Storage Publishing:** Publishes generated files to structured paths.
+**Dual-Path RFT Generation:** Two generation modes - (1) AI-generated templates with intelligent section creation, and (2) Organization template merge with token substitution from uploaded DOCX templates.
+**Tabbed Template Selection:** Step 2 features tabs for "AI Templates" vs "Organization Templates" to handle large template catalogs and clearly differentiate generation modes.
+**Draft-First Workflow:** A 3-step process (Business Case → Template Selection → Draft Generation) that creates collaborative drafts with stakeholder assignments instead of final documents.
+**Collaborative Review Integration:** After generation, users are redirected to the RFT Draft Review page where sections are assigned to aviation stakeholders (Technical PM, Solution Architect, Cybersecurity Analyst, etc.) for approval workflow.
+**Generation Modes:**
+  - `ai_generation`: AI creates structured RFT sections with stakeholder assignments based on business case (template selection optional)
+  - `template_merge`: Merges business case data with selected organization DOCX template using pre-configured stakeholder assignments (template selection required)
+**Azure Blob Storage Publishing:** Final DOCX/PDF documents published after draft finalization.
 
 ### Advanced AI Features
 IntelliBid includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant, all leveraging a shared AI infrastructure with RAG integration.
