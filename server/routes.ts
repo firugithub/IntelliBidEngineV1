@@ -28,6 +28,169 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
+// Helper function to extract text from DOCX with paragraph breaks preserved
+function extractTextWithFormatting(zip: any): string {
+  try {
+    const documentXml = zip.file("word/document.xml")?.asText();
+    if (!documentXml) {
+      return "";
+    }
+
+    // Extract text and preserve paragraph breaks
+    // Parse XML and add double line breaks between paragraphs (<w:p> tags)
+    const paragraphs: string[] = [];
+    
+    // Match all paragraph tags (avoid 's' flag - not supported in older TS targets)
+    const paragraphRegex = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+    const matches = documentXml.matchAll(paragraphRegex);
+    
+    for (const match of matches) {
+      const paragraphContent = match[1];
+      
+      // Extract text from <w:t> tags within this paragraph
+      const textRegex = /<w:t[^>]*>(.*?)<\/w:t>/g;
+      const textMatches = paragraphContent.matchAll(textRegex);
+      
+      let paragraphText = "";
+      for (const textMatch of textMatches) {
+        // Decode XML entities
+        const text = textMatch[1]
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'");
+        paragraphText += text;
+      }
+      
+      // Handle line breaks within paragraphs
+      const lineBreakCount = (paragraphContent.match(/<w:br\s*\/?>/g) || []).length;
+      if (lineBreakCount > 0) {
+        // Add explicit line breaks where Word has them
+        paragraphText = paragraphText.replace(/\s+/g, ' ') + '\n'.repeat(lineBreakCount);
+      }
+      
+      if (paragraphText.trim()) {
+        paragraphs.push(paragraphText);
+      }
+    }
+    
+    // Join paragraphs with double line breaks
+    return paragraphs.join('\n\n');
+  } catch (error) {
+    console.error("Error extracting formatted text:", error);
+    // Fallback to simple text extraction
+    try {
+      const documentXml = zip.file("word/document.xml")?.asText();
+      if (documentXml) {
+        return documentXml
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+    } catch (fallbackError) {
+      console.error("Fallback text extraction also failed:", fallbackError);
+    }
+    return "";
+  }
+}
+
+// Helper function to extract section-specific content from merged text
+function extractSectionContent(
+  mergedText: string,
+  sectionTitle: string,
+  allSectionTitles: string[]
+): { content: string; confidence: "high" | "low"; method: string } {
+  try {
+    // Clean section title for matching (remove extra newlines and trim)
+    const cleanTitle = sectionTitle.replace(/\n.*$/gm, '').trim().toUpperCase();
+    
+    // Find where this section starts
+    const sectionStartPattern = new RegExp(`\\d+\\.?\\s*${cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+    const match = mergedText.match(sectionStartPattern);
+    
+    if (!match) {
+      console.warn(`⚠️ Could not find section heading: "${sectionTitle}" - using full document`);
+      return {
+        content: mergedText,
+        confidence: "low",
+        method: "fallback_full_document"
+      };
+    }
+    
+    const sectionStart = match.index!;
+    
+    // Find where the NEXT section starts
+    let nextSectionStart = mergedText.length; // Default to end of document
+    
+    for (const nextTitle of allSectionTitles) {
+      if (nextTitle === sectionTitle) continue; // Skip current section
+      
+      const cleanNextTitle = nextTitle.replace(/\n.*$/gm, '').trim().toUpperCase();
+      const nextPattern = new RegExp(`\\d+\\.?\\s*${cleanNextTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+      const nextMatch = mergedText.match(nextPattern);
+      
+      if (nextMatch && nextMatch.index! > sectionStart && nextMatch.index! < nextSectionStart) {
+        nextSectionStart = nextMatch.index!;
+      }
+    }
+    
+    // Extract content between this section and the next
+    const extractedContent = mergedText.substring(sectionStart, nextSectionStart).trim();
+    
+    if (extractedContent.length < 50) {
+      console.warn(`⚠️ Section "${sectionTitle}" extracted content is very short (${extractedContent.length} chars) - may be incomplete`);
+      return {
+        content: extractedContent,
+        confidence: "low",
+        method: "heading_extraction_short"
+      };
+    }
+    
+    console.log(`✅ Extracted ${extractedContent.length} chars for section "${sectionTitle.substring(0, 40)}..."`);
+    return {
+      content: extractedContent,
+      confidence: "high",
+      method: "heading_extraction"
+    };
+  } catch (error) {
+    console.error(`Error extracting section "${sectionTitle}":`, error);
+    return {
+      content: mergedText,
+      confidence: "low",
+      method: "fallback_error"
+    };
+  }
+}
+
+// Helper functions for stakeholder inference
+function inferStakeholderFromHeading(heading: string): string {
+  const h = heading.toUpperCase();
+  
+  if (h.includes("EXECUTIVE") || h.includes("SUMMARY")) return "procurement_lead";
+  if (h.includes("BACKGROUND") || h.includes("CONTEXT")) return "technical_pm";
+  if (h.includes("SCOPE") || h.includes("WORK")) return "solution_architect";
+  if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE")) return "solution_architect";
+  if (h.includes("SECURITY") || h.includes("COMPLIANCE") || h.includes("CYBERSECURITY")) return "cybersecurity_analyst";
+  if (h.includes("EVALUATION") || h.includes("CRITERIA")) return "procurement_lead";
+  if (h.includes("SUBMISSION") || h.includes("REQUIREMENT")) return "procurement_lead";
+  if (h.includes("TERMS") || h.includes("CONDITIONS") || h.includes("LEGAL")) return "legal_counsel";
+  if (h.includes("CONTACT") || h.includes("INFORMATION")) return "procurement_lead";
+  
+  return "technical_pm"; // Default
+}
+
+function inferCategoryFromHeading(heading: string): "technical" | "security" | "business" | "procurement" | "other" {
+  const h = heading.toUpperCase();
+  
+  if (h.includes("EXECUTIVE") || h.includes("BACKGROUND")) return "business";
+  if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE") || h.includes("SCOPE")) return "technical";
+  if (h.includes("SECURITY") || h.includes("COMPLIANCE")) return "security";
+  if (h.includes("EVALUATION") || h.includes("SUBMISSION") || h.includes("TERMS")) return "procurement";
+  
+  return "other"; // Default
+}
+
 // Middleware to protect development-only endpoints
 const requireDevelopment = (req: any, res: any, next: any) => {
   const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
@@ -2695,9 +2858,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Extract the complete merged text content
-        const mergedText = doc.getFullText();
-        console.log(`📄 Extracted ${mergedText.length} characters of merged content`);
+        // Extract the complete merged text content with paragraph breaks preserved
+        const mergedText = extractTextWithFormatting(zip);
+        console.log(`📄 Extracted ${mergedText.length} characters of merged content (with formatting preserved)`);
 
         // Generate merged DOCX buffer for download/backup
         const mergedBuffer = doc.getZip().generate({
@@ -2724,28 +2887,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const hasSectionMappings = template.sectionMappings && template.sectionMappings.length > 0;
         
         if (hasSectionMappings) {
-          // Use configured section mappings with full merged content in each section
+          // Use configured section mappings with smart content extraction
           const sectionMappings = template.sectionMappings as any[];
+          const allSectionTitles = sectionMappings.map((m: any) => m.sectionTitle);
           
           generatedSections = sectionMappings.map((mapping: any, index: number) => {
-            const content = `=== SECTION ${index + 1}: ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-              `✅ Template merged with business case: ${businessCase.name}\n` +
-              `📝 Review and edit the content below for your section\n` +
-              `⬇️ All placeholders have been replaced with actual values\n\n` +
-              `--- COMPLETE MERGED DOCUMENT ---\n\n` +
-              `${mergedText}\n\n` +
-              `--- END OF DOCUMENT ---\n\n` +
-              `💡 Instructions:\n` +
-              `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
-              `• Edit this content to include only your section's final text\n` +
-              `• Remove other sections and these instructions\n` +
-              `• Approve when ready\n\n` +
-              `📥 Download full DOCX: ${blobUrl}`;
+            // Extract section-specific content from merged text
+            const extraction = extractSectionContent(mergedText, mapping.sectionTitle, allSectionTitles);
+            
+            // Build section content based on extraction confidence
+            let sectionContent = "";
+            
+            if (extraction.confidence === "high") {
+              // High confidence - show extracted section content
+              sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+                `✅ Auto-extracted your section from merged template\n` +
+                `📝 Review and edit the content below\n` +
+                `✓ All placeholders have been replaced with actual values\n\n` +
+                `---\n\n` +
+                `${extraction.content}\n\n` +
+                `---\n\n` +
+                `💡 Instructions:\n` +
+                `• Review the extracted content above\n` +
+                `• Edit as needed to finalize this section\n` +
+                `• Approve when ready\n\n` +
+                `📥 Download full merged RFT (all sections): ${blobUrl}`;
+            } else {
+              // Low confidence - provide full document with guidance
+              sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+                `⚠️ Could not auto-extract your section (${extraction.method})\n` +
+                `📝 Please locate and edit your section from the complete document below\n\n` +
+                `--- COMPLETE MERGED DOCUMENT ---\n\n` +
+                `${mergedText}\n\n` +
+                `--- END OF DOCUMENT ---\n\n` +
+                `💡 Instructions:\n` +
+                `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
+                `• Copy only your section's content and replace this entire text\n` +
+                `• Approve when ready\n\n` +
+                `📥 Download full DOCX: ${blobUrl}`;
+            }
 
             return {
               sectionId: mapping.sectionId,
               title: mapping.sectionTitle,
-              content,
+              content: sectionContent,
               assignedTo: mapping.defaultAssignee,
               reviewStatus: "pending",
               approvedBy: null,

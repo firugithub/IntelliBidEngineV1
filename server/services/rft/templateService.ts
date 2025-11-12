@@ -181,38 +181,42 @@ export class TemplateService {
     try {
       const zip = new PizZip(fileBuffer);
       
-      let text = "";
-      try {
-        const doc = new Docxtemplater(zip, {
-          paragraphLoop: true,
-          linebreaks: true,
-          delimiters: { start: '{{', end: '}}' },
-        });
-        text = doc.getFullText();
-      } catch (docxtemplaterError: any) {
-        console.warn("Docxtemplater failed for section extraction, using XML fallback");
-        console.warn("Error details:", docxtemplaterError.message);
-        
-        // Fallback to XML extraction
-        try {
-          const documentXml = zip.file("word/document.xml")?.asText();
-          if (documentXml) {
-            // Strip XML tags for better heading detection
-            text = documentXml
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-            console.log("Using XML fallback for section extraction");
-          }
-        } catch (xmlError) {
-          console.log("Section extraction failed - template will require manual configuration");
-          return [];
+      // Use formatted text extraction to preserve line breaks and structure
+      const text = this.extractFormattedText(zip);
+      
+      if (!text) {
+        console.log("Section extraction failed - no text extracted from template");
+        return [];
+      }
+
+      console.log("📝 Extracted text for section detection (first 800 chars):");
+      console.log(text.substring(0, 800));
+
+      // Try multiple heading patterns (more flexible to handle different template styles)
+      const patterns = [
+        { regex: /^(\d+)\.\s*([A-Z][A-Z\s&-]+)/gm, name: "Numbered uppercase (1. EXECUTIVE SUMMARY)" },
+        { regex: /^(\d+)\.\s*([A-Z][a-z\s&-]+)/gm, name: "Numbered title case (1. Executive Summary)" },
+        { regex: /^(\d+)\s+([A-Z][A-Z\s&-]{5,})/gm, name: "Numbered with space (1 EXECUTIVE SUMMARY)" },
+        { regex: /(\d+)\.\s*([A-Z][A-Z\s&-]{5,})/gm, name: "Numbered anywhere in line" },
+      ];
+
+      let matches: RegExpMatchArray[] = [];
+      let usedPattern = "";
+      
+      for (const pattern of patterns) {
+        const foundMatches = Array.from(text.matchAll(pattern.regex));
+        if (foundMatches.length > 0) {
+          console.log(`✅ Found ${foundMatches.length} sections with pattern: ${pattern.name}`);
+          matches = foundMatches;
+          usedPattern = pattern.name;
+          break; // Use first pattern that finds sections
         }
       }
 
-      // Extract numbered headings (e.g., "1. EXECUTIVE SUMMARY", "2. BACKGROUND")
-      const headingPattern = /^(\d+)\.\s*([A-Z][A-Z\s&-]+)/gm;
-      const matches = Array.from(text.matchAll(headingPattern));
+      if (matches.length === 0) {
+        console.warn("⚠️ No sections detected with any pattern - template will require manual configuration");
+        return [];
+      }
       
       const sections: SectionMapping[] = matches.map((match, index) => {
         const headingText = match[2].trim();
@@ -220,20 +224,62 @@ export class TemplateService {
         
         // Map headings to appropriate stakeholders
         const assignee = this.inferStakeholderFromHeading(headingText);
+        const category = this.inferCategoryFromHeading(headingText);
+        
+        console.log(`  Section ${index + 1}: "${headingText}" → ${assignee} (${category})`);
         
         return {
           sectionId,
           sectionTitle: headingText,
           defaultAssignee: assignee,
-          category: this.inferCategoryFromHeading(headingText) as "technical" | "security" | "business" | "procurement" | "other",
+          category: category as "technical" | "security" | "business" | "procurement" | "other",
         };
       });
 
-      console.log(`✅ Auto-detected ${sections.length} sections from template headings`);
+      console.log(`✅ Auto-detected ${sections.length} sections using: ${usedPattern}`);
       return sections;
     } catch (error) {
       console.error("Error extracting DOCX sections:", error);
       return [];
+    }
+  }
+
+  private extractFormattedText(zip: any): string {
+    try {
+      const documentXml = zip.file("word/document.xml")?.asText();
+      if (!documentXml) {
+        return "";
+      }
+
+      const paragraphs: string[] = [];
+      const paragraphRegex = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+      const matches = documentXml.matchAll(paragraphRegex);
+      
+      for (const match of matches) {
+        const paragraphContent = match[1];
+        const textRegex = /<w:t[^>]*>(.*?)<\/w:t>/g;
+        const textMatches = paragraphContent.matchAll(textRegex);
+        
+        let paragraphText = "";
+        for (const textMatch of textMatches) {
+          const text = textMatch[1]
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'");
+          paragraphText += text;
+        }
+        
+        if (paragraphText.trim()) {
+          paragraphs.push(paragraphText);
+        }
+      }
+      
+      return paragraphs.join('\n\n');
+    } catch (error) {
+      console.error("Error extracting formatted text:", error);
+      return "";
     }
   }
 
@@ -253,15 +299,15 @@ export class TemplateService {
     return "technical_pm"; // Default
   }
 
-  private inferCategoryFromHeading(heading: string): string {
+  private inferCategoryFromHeading(heading: string): "technical" | "security" | "business" | "procurement" | "other" {
     const h = heading.toUpperCase();
     
     if (h.includes("EXECUTIVE") || h.includes("BACKGROUND")) return "business";
     if (h.includes("TECHNICAL") || h.includes("ARCHITECTURE") || h.includes("SCOPE")) return "technical";
-    if (h.includes("SECURITY") || h.includes("COMPLIANCE")) return "compliance";
-    if (h.includes("EVALUATION") || h.includes("SUBMISSION") || h.includes("TERMS")) return "commercial";
+    if (h.includes("SECURITY") || h.includes("COMPLIANCE")) return "security";
+    if (h.includes("EVALUATION") || h.includes("SUBMISSION") || h.includes("TERMS")) return "procurement";
     
-    return "business"; // Default
+    return "other"; // Default
   }
 
   private async extractXlsxPlaceholders(fileBuffer: Buffer): Promise<PlaceholderInfo[]> {
