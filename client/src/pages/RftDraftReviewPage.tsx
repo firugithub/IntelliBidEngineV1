@@ -307,8 +307,16 @@ export default function RftDraftReviewPage() {
             )}
             
             {selectedDraft.metadata.pack.status === "error" && (
-              <div className="text-center p-4 text-destructive">
-                Error generating RFT pack. Please contact support.
+              <div className="p-4 space-y-2">
+                <div className="text-destructive font-medium">Error Generating RFT Pack</div>
+                {selectedDraft.metadata.pack.error && (
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {selectedDraft.metadata.pack.error}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  Please check the template for syntax errors or try using AI generation mode instead.
+                </div>
               </div>
             )}
           </CardContent>

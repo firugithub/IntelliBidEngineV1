@@ -1,4 +1,4 @@
-import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
+import { BlobServiceClient, ContainerClient, BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 import { ConfigHelper } from "../core/configHelpers";
 
 // Helper function to sanitize metadata values for Azure Blob Storage
@@ -22,6 +22,8 @@ export class AzureBlobStorageService {
   private client: BlobServiceClient | null = null;
   private containerClient: ContainerClient | null = null;
   private containerName = "intellibid-documents";
+  private credential: StorageSharedKeyCredential | null = null;
+  private accountName: string = "";
 
   async initialize(): Promise<void> {
     // Use ConfigHelper to get configuration from environment variables
@@ -30,6 +32,15 @@ export class AzureBlobStorageService {
     try {
       this.client = BlobServiceClient.fromConnectionString(connectionString);
       this.containerClient = this.client.getContainerClient(this.containerName);
+
+      // Extract account name and key from connection string for SAS token generation
+      const accountNameMatch = connectionString.match(/AccountName=([^;]+)/);
+      const accountKeyMatch = connectionString.match(/AccountKey=([^;]+)/);
+      
+      if (accountNameMatch && accountKeyMatch) {
+        this.accountName = accountNameMatch[1];
+        this.credential = new StorageSharedKeyCredential(this.accountName, accountKeyMatch[1]);
+      }
 
       // Create container if it doesn't exist
       await this.containerClient.createIfNotExists();
@@ -66,10 +77,42 @@ export class AzureBlobStorageService {
       metadata: sanitizeMetadata(metadata),
     });
 
+    // Generate SAS URL for download (24 hour expiry)
+    const sasUrl = await this.generateSasUrl(blobName, 24);
+
     return {
-      blobUrl: blockBlobClient.url,
+      blobUrl: sasUrl,
       blobName,
     };
+  }
+
+  /**
+   * Generate a SAS URL for a blob with read permissions
+   * @param blobName - Name of the blob
+   * @param expiryHours - Hours until the SAS token expires (default: 24)
+   */
+  async generateSasUrl(blobName: string, expiryHours: number = 24): Promise<string> {
+    if (!this.containerClient || !this.credential) {
+      await this.initialize();
+    }
+
+    if (!this.containerClient || !this.credential) {
+      throw new Error("Azure Blob Storage client not initialized");
+    }
+
+    const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+    
+    const expiresOn = new Date();
+    expiresOn.setHours(expiresOn.getHours() + expiryHours);
+
+    const sasToken = generateBlobSASQueryParameters({
+      containerName: this.containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse("r"), // Read-only
+      expiresOn,
+    }, this.credential).toString();
+
+    return `${blockBlobClient.url}?${sasToken}`;
   }
 
   async downloadDocument(blobName: string): Promise<Buffer> {
