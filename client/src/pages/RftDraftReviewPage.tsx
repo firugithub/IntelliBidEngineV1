@@ -8,9 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, X, FileText, Users, Clock, CheckCircle2, AlertCircle, FileCheck, Download } from "lucide-react";
+import { Check, Edit, X, FileText, Users, FileCheck, Download } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 
 interface DraftSection {
   sectionId: string;
@@ -116,7 +115,7 @@ export default function RftDraftReviewPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to finalize draft", 
-        description: error.message || "Some sections may not be approved yet.",
+        description: error.message || "An error occurred while finalizing the draft. Please check that the template is accessible.",
         variant: "destructive" 
       });
     }
@@ -133,31 +132,6 @@ export default function RftDraftReviewPage() {
   };
 
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case "in_review":
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      case "rejected":
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "default";
-      case "in_review":
-        return "secondary";
-      case "rejected":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
 
   const getRoleColor = (assignedTo: string) => {
     const role = STAKEHOLDER_ROLES.find(r => r.id === assignedTo);
@@ -259,14 +233,14 @@ export default function RftDraftReviewPage() {
         </CardContent>
       </Card>
 
-      {/* Approval Progress */}
+      {/* Draft Actions */}
       {selectedDraft && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileCheck className="h-5 w-5" />
-                Approval Progress
+                <FileText className="h-5 w-5" />
+                Draft Actions
               </div>
               <Badge variant={selectedDraft.status === "finalized" ? "default" : "secondary"}>
                 {selectedDraft.status}
@@ -274,21 +248,6 @@ export default function RftDraftReviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {selectedDraft.approvalProgress.approvedSections} of {selectedDraft.approvalProgress.totalSections} sections approved
-                </span>
-                <span className="font-medium">
-                  {Math.round((selectedDraft.approvalProgress.approvedSections / selectedDraft.approvalProgress.totalSections) * 100)}%
-                </span>
-              </div>
-              <Progress 
-                value={(selectedDraft.approvalProgress.approvedSections / selectedDraft.approvalProgress.totalSections) * 100}
-                className="h-2"
-              />
-            </div>
-
             {/* Download Merged Document Button */}
             {selectedDraft.generationMode === "template_merge" && selectedDraft.metadata?.mergedDocumentUrl && (
               <Button
@@ -313,7 +272,7 @@ export default function RftDraftReviewPage() {
             {selectedDraft.status !== "finalized" && (
               <Button
                 onClick={() => finalizeDraftMutation.mutate()}
-                disabled={finalizeDraftMutation.isPending || selectedDraft.approvalProgress.pendingSections > 0}
+                disabled={finalizeDraftMutation.isPending}
                 className="w-full"
                 data-testid="button-finalize-draft"
               >
@@ -354,16 +313,12 @@ export default function RftDraftReviewPage() {
               {filteredSections.map((section) => (
                 <Card 
                   key={section.sectionId} 
-                  className={section.reviewStatus === "approved" ? "border-green-200 dark:border-green-800" : ""}
                   data-testid={`card-section-${section.sectionId}`}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <CardTitle>{section.sectionTitle}</CardTitle>
-                          {getStatusIcon(section.reviewStatus)}
-                        </div>
+                        <CardTitle>{section.sectionTitle}</CardTitle>
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge 
                             variant="outline"
@@ -374,9 +329,6 @@ export default function RftDraftReviewPage() {
                           >
                             <Users className="h-3 w-3 mr-1" />
                             {getRoleName(section.assignedTo)}
-                          </Badge>
-                          <Badge variant={getStatusBadgeVariant(section.reviewStatus)}>
-                            {section.reviewStatus}
                           </Badge>
                           {section.category && (
                             <Badge variant="secondary">{section.category}</Badge>

@@ -3468,39 +3468,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Finalize draft and merge into template
   app.post("/api/rft/drafts/:id/finalize", async (req, res) => {
     try {
-      const { forceFinalize, finalizedBy } = req.body;
-
       const draft = await storage.getRftGenerationDraft(req.params.id);
       if (!draft) {
         return res.status(404).json({ error: "Draft not found" });
-      }
-
-      const sections = draft.generatedSections as any[];
-      const unapprovedSections = sections.filter((s: any) => s.reviewStatus !== "approved");
-
-      // Check if all sections are approved
-      if (unapprovedSections.length > 0 && !forceFinalize) {
-        return res.status(400).json({
-          error: `Cannot finalize: ${unapprovedSections.length} section(s) not yet approved`,
-          unapprovedSections: unapprovedSections.map((s: any) => ({
-            sectionId: s.sectionId,
-            assignedTo: s.assignedTo,
-            reviewStatus: s.reviewStatus,
-          })),
-          hint: "Set forceFinalize=true to override (privileged roles only)",
-        });
-      }
-
-      // If force finalizing, log warning and temporarily approve draft
-      if (forceFinalize && unapprovedSections.length > 0) {
-        console.warn(
-          `⚠️  Force finalizing draft ${req.params.id} by ${finalizedBy} with ${unapprovedSections.length} unapproved sections: ${unapprovedSections.map((s: any) => s.sectionId).join(", ")}`
-        );
-        
-        // Temporarily set draft to "approved" to bypass mergeTemplate guard
-        await storage.updateRftGenerationDraft(req.params.id, {
-          status: "approved",
-        });
       }
 
       // Verify template exists (with retry on blob failures)
@@ -3554,9 +3524,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           ...(draft.metadata as any),
           finalizedAt: new Date().toISOString(),
-          finalizedBy: finalizedBy || "system",
-          forcedFinalize: forceFinalize || false,
-          unapprovedSectionsAtFinalize: unapprovedSections.map((s: any) => s.sectionId),
         } as any,
       });
 
@@ -3566,10 +3533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "finalized",
         },
         mergedDocument: mergeResult,
-        unapprovedSections: forceFinalize ? unapprovedSections.map((s: any) => s.sectionId) : [],
-        message: forceFinalize
-          ? `Draft force-finalized with ${unapprovedSections.length} unapproved sections`
-          : "Draft finalized successfully",
+        message: "Draft finalized successfully",
       });
     } catch (error) {
       console.error("Error finalizing draft:", error);
