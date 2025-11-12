@@ -77,8 +77,8 @@ function enrichSectionsWithStakeholderMetadata(sections: any[], template?: RftTe
     // Priority 1: Check template-specific section mappings
     let mapping: { assignee: string; category: SectionMapping["category"] } | undefined;
     
-    if (template?.sectionMappings) {
-      const templateMapping = template.sectionMappings.find(
+    if (template && (template as any).sectionMappings) {
+      const templateMapping = (template as any).sectionMappings.find(
         (m: any) => m.sectionId === section.sectionId
       );
       if (templateMapping) {

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import { parseDocument } from "./services/knowledgebase/documentParser";
-import { analyzeRequirements, analyzeProposal, evaluateProposal } from "./services/ai/aiAnalysis";
+import { analyzeRequirements, analyzeProposal, evaluateProposal, getOpenAIClient } from "./services/ai/aiAnalysis";
 import { seedSampleData, seedPortfolios, seedAllMockData, wipeAllData, wipeAzureOnly, seedRftTemplates } from "./services/core/sampleData";
 import { generateRftFromBusinessCase, regenerateRftSection, generateProfessionalRftSections, extractBusinessCaseInfo } from "./services/rft/smartRftService";
 import { generateAllQuestionnaires } from "./services/rft/excelGenerator";
@@ -189,6 +189,135 @@ function inferCategoryFromHeading(heading: string): "technical" | "security" | "
   if (h.includes("EVALUATION") || h.includes("SUBMISSION") || h.includes("TERMS")) return "procurement";
   
   return "other"; // Default
+}
+
+// AI Enhancement for template-merged sections
+async function enhanceSectionWithAI(
+  sectionTitle: string,
+  extractedContent: string,
+  businessCaseData: any,
+  options: {
+    enabled?: boolean;
+    maxTokens?: number;
+    category?: string;
+  } = {}
+): Promise<{ content: string; enhanced: boolean; status: string }> {
+  // Default options
+  const { 
+    enabled = true, 
+    maxTokens = 3500,
+    category = "other"
+  } = options;
+  
+  // Skip enhancement if disabled
+  if (!enabled) {
+    return {
+      content: extractedContent,
+      enhanced: false,
+      status: "skipped_disabled"
+    };
+  }
+  
+  // Determine if this section needs enhancement based on title and category
+  const needsDetailedRequirements = 
+    sectionTitle.toUpperCase().includes("SCOPE") || 
+    sectionTitle.toUpperCase().includes("WORK") ||
+    sectionTitle.toUpperCase().includes("REQUIREMENT") ||
+    category === "technical";
+  
+  if (!needsDetailedRequirements) {
+    // For non-requirement sections, return as-is
+    return {
+      content: extractedContent,
+      enhanced: false,
+      status: "skipped_non_requirement_section"
+    };
+  }
+  
+  // Truncate input content to prevent token overflow (estimate ~4 chars per token)
+  const maxInputChars = 2000; // ~500 tokens for input
+  const truncatedContent = extractedContent.length > maxInputChars 
+    ? extractedContent.substring(0, maxInputChars) + "\n\n[Content truncated for AI processing...]"
+    : extractedContent;
+  
+  console.log(`🤖 AI enhancing section: ${sectionTitle} (input: ${truncatedContent.length} chars, max output: ${maxTokens} tokens)`);
+  
+  const enhancementPrompt = `You are enhancing a "${sectionTitle}" section from an RFT template.
+
+ORIGINAL TEMPLATE CONTENT:
+${truncatedContent}
+
+BUSINESS CASE CONTEXT:
+Project: ${businessCaseData.name || "N/A"}
+Description: ${(businessCaseData.description || "N/A").substring(0, 500)}
+Budget: ${businessCaseData.extractedData?.budget || "TBD"}
+Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
+Industry: Aviation/Airline (Nujum Air)
+
+TASK: Expand this section into a comprehensive, detailed Scope of Work with MINIMUM 20 specific requirements.
+
+For each requirement, provide:
+- Requirement ID and Title (REQ-001, REQ-002, etc.)
+- Detailed description
+- Technical specifications
+- Expected deliverables
+- **Clear acceptance criteria** (3+ measurable, testable conditions)
+- Dependencies
+- Priority level (Critical/High/Medium/Low)
+
+Organize into categories: Functional, Technical, Integration, Data Migration, Training, Documentation.
+
+FORMAT EACH REQUIREMENT AS:
+REQ-[ID]: [Title]
+Description: [What needs to be delivered]
+Technical Specs: [Specific technical details]
+Deliverables: [Concrete outputs]
+Acceptance Criteria:
+  ✓ [Measurable criterion 1]
+  ✓ [Measurable criterion 2]
+  ✓ [Measurable criterion 3]
+Dependencies: [Other requirements or systems]
+Priority: [Critical/High/Medium/Low]
+
+Include a timeline table mapping requirements to phases.
+
+Generate the enhanced section content now:`;
+
+  try {
+    const client = await getOpenAIClient();
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert RFT/RFP writer specializing in detailed requirement specifications with clear acceptance criteria for aviation and airline industry projects."
+        },
+        {
+          role: "user",
+          content: enhancementPrompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: maxTokens,
+    });
+
+    const enhancedContent = response.choices[0]?.message?.content || extractedContent;
+    console.log(`✅ AI enhancement complete for ${sectionTitle} (${enhancedContent.length} chars, ${response.usage?.total_tokens || 0} tokens)`);
+    
+    return {
+      content: enhancedContent,
+      enhanced: true,
+      status: "success"
+    };
+  } catch (error) {
+    console.error(`❌ AI enhancement failed for ${sectionTitle}:`, error);
+    // Fallback to original content if AI fails
+    return {
+      content: extractedContent,
+      enhanced: false,
+      status: `error: ${error instanceof Error ? error.message : "unknown"}`
+    };
+  }
 }
 
 // Middleware to protect development-only endpoints
@@ -2887,56 +3016,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const hasSectionMappings = template.sectionMappings && template.sectionMappings.length > 0;
         
         if (hasSectionMappings) {
-          // Use configured section mappings with smart content extraction
+          // Use configured section mappings with smart content extraction and AI enhancement
           const sectionMappings = template.sectionMappings as any[];
           const allSectionTitles = sectionMappings.map((m: any) => m.sectionTitle);
           
-          generatedSections = sectionMappings.map((mapping: any, index: number) => {
-            // Extract section-specific content from merged text
-            const extraction = extractSectionContent(mergedText, mapping.sectionTitle, allSectionTitles);
-            
-            // Build section content based on extraction confidence
-            let sectionContent = "";
-            
-            if (extraction.confidence === "high") {
-              // High confidence - show extracted section content
-              sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-                `✅ Auto-extracted your section from merged template\n` +
-                `📝 Review and edit the content below\n` +
-                `✓ All placeholders have been replaced with actual values\n\n` +
-                `---\n\n` +
-                `${extraction.content}\n\n` +
-                `---\n\n` +
-                `💡 Instructions:\n` +
-                `• Review the extracted content above\n` +
-                `• Edit as needed to finalize this section\n` +
-                `• Approve when ready\n\n` +
-                `📥 Download full merged RFT (all sections): ${blobUrl}`;
-            } else {
-              // Low confidence - provide full document with guidance
-              sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
-                `⚠️ Could not auto-extract your section (${extraction.method})\n` +
-                `📝 Please locate and edit your section from the complete document below\n\n` +
-                `--- COMPLETE MERGED DOCUMENT ---\n\n` +
-                `${mergedText}\n\n` +
-                `--- END OF DOCUMENT ---\n\n` +
-                `💡 Instructions:\n` +
-                `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
-                `• Copy only your section's content and replace this entire text\n` +
-                `• Approve when ready\n\n` +
-                `📥 Download full DOCX: ${blobUrl}`;
-            }
+          // Check if AI enhancement is enabled (default: true for template merge)
+          const enableAIEnhancement = req.body.enableAIEnhancement !== false;
+          
+          // Process sections in parallel with AI enhancement
+          generatedSections = await Promise.all(
+            sectionMappings.map(async (mapping: any, index: number) => {
+              try {
+                // Extract section-specific content from merged text
+                const extraction = extractSectionContent(mergedText, mapping.sectionTitle, allSectionTitles);
+                
+                // AI Enhancement: Expand content with detailed requirements
+                const enhancement = await enhanceSectionWithAI(
+                  mapping.sectionTitle,
+                  extraction.content,
+                  businessCase,
+                  {
+                    enabled: enableAIEnhancement,
+                    maxTokens: 3500,
+                    category: mapping.category
+                  }
+                );
+                
+                // Build section content based on extraction confidence and enhancement status
+                let sectionContent = "";
+                
+                if (extraction.confidence === "high") {
+                  // High confidence - show extracted/enhanced section content
+                  const contentLabel = enhancement.enhanced 
+                    ? "✨ AI-enhanced with detailed requirements"
+                    : "✅ Auto-extracted from merged template";
+                  
+                  sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+                    `${contentLabel}\n` +
+                    `📝 Review and edit the content below\n` +
+                    `✓ All placeholders have been replaced with actual values\n` +
+                    (enhancement.enhanced ? `✓ AI expanded with 20+ requirements and acceptance criteria\n` : '') +
+                    `\n---\n\n` +
+                    `${enhancement.content}\n\n` +
+                    `---\n\n` +
+                    `💡 Instructions:\n` +
+                    `• Review the ${enhancement.enhanced ? 'AI-enhanced ' : ''}content above\n` +
+                    `• Edit as needed to finalize this section\n` +
+                    `• Approve when ready\n\n` +
+                    `📥 Download full merged RFT (all sections): ${blobUrl}`;
+                } else {
+                  // Low confidence - provide full document with guidance
+                  sectionContent = `=== ${mapping.sectionTitle.toUpperCase()} ===\n\n` +
+                    `⚠️ Could not auto-extract your section (${extraction.method})\n` +
+                    `📝 Please locate and edit your section from the complete document below\n\n` +
+                    `--- COMPLETE MERGED DOCUMENT ---\n\n` +
+                    `${mergedText}\n\n` +
+                    `--- END OF DOCUMENT ---\n\n` +
+                    `💡 Instructions:\n` +
+                    `• Locate your section "${mapping.sectionTitle}" in the text above\n` +
+                    `• Copy only your section's content and replace this entire text\n` +
+                    `• Approve when ready\n\n` +
+                    `📥 Download full DOCX: ${blobUrl}`;
+                }
 
-            return {
-              sectionId: mapping.sectionId,
-              title: mapping.sectionTitle,
-              content: sectionContent,
-              assignedTo: mapping.defaultAssignee,
-              reviewStatus: "pending",
-              approvedBy: null,
-              approvedAt: null,
-            };
-          });
+                return {
+                  sectionId: mapping.sectionId,
+                  title: mapping.sectionTitle,
+                  content: sectionContent,
+                  assignedTo: mapping.defaultAssignee,
+                  reviewStatus: "pending",
+                  approvedBy: null,
+                  approvedAt: null,
+                  metadata: {
+                    aiEnhanced: enhancement.enhanced,
+                    enhancementStatus: enhancement.status,
+                    extractionConfidence: extraction.confidence
+                  }
+                };
+              } catch (error) {
+                console.error(`Error processing section ${mapping.sectionTitle}:`, error);
+                // Fallback to basic section on error
+                return {
+                  sectionId: mapping.sectionId,
+                  title: mapping.sectionTitle,
+                  content: `=== ${mapping.sectionTitle.toUpperCase()} ===\n\nError processing section. Please check logs.`,
+                  assignedTo: mapping.defaultAssignee,
+                  reviewStatus: "pending",
+                  approvedBy: null,
+                  approvedAt: null,
+                  metadata: {
+                    aiEnhanced: false,
+                    enhancementStatus: "error",
+                    extractionConfidence: "low"
+                  }
+                };
+              }
+            })
+          );
         } else {
           // Template has no section mappings - create a single default section
           console.warn(`Template ${templateId} has no section mappings - creating default single section`);
