@@ -3629,6 +3629,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download all RFT pack documents as ZIP
+  app.get("/api/drafts/:id/pack/download-all", async (req, res) => {
+    try {
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+
+      const metadata = (draft.metadata as any) || {};
+      const pack = metadata.pack;
+
+      if (!pack || pack.status !== "completed") {
+        return res.status(400).json({
+          error: "RFT pack is not ready for download",
+          status: pack?.status || "pending",
+        });
+      }
+
+      // Get all 6 pack files from Azure Blob Storage
+      const files = [
+        { blobUrl: pack.docxBlobUrl, name: "RFT_Document.docx" },
+        { blobUrl: pack.pdfBlobUrl, name: "RFT_Document.pdf" },
+        { blobUrl: pack.productQuestionnaireBlobUrl, name: "Product_Questionnaire.xlsx" },
+        { blobUrl: pack.nfrQuestionnaireBlobUrl, name: "NFR_Questionnaire.xlsx" },
+        { blobUrl: pack.cybersecurityQuestionnaireBlobUrl, name: "Cybersecurity_Questionnaire.xlsx" },
+        { blobUrl: pack.agileQuestionnaireBlobUrl, name: "Agile_Delivery_Questionnaire.xlsx" },
+      ];
+
+      // Create ZIP archive
+      const archiver = (await import("archiver")).default;
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      const project = await storage.getProject(draft.projectId);
+      const sanitizedName = project?.name.replace(/[^a-zA-Z0-9]/g, "_") || "RFT";
+      res.attachment(`${sanitizedName}_Complete_RFT_Package.zip`);
+      res.setHeader('Content-Type', 'application/zip');
+
+      archive.on('error', (err) => {
+        console.error("Archive error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to create ZIP file" });
+        }
+      });
+
+      archive.pipe(res);
+
+      // Download and add each file to the archive
+      const { default: azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+      
+      for (const file of files) {
+        if (file.blobUrl) {
+          try {
+            // Extract blob name from URL
+            const urlParts = file.blobUrl.split("/");
+            const containerIndex = urlParts.findIndex((part: string) => part === "intellibid-documents");
+            const blobName = urlParts.slice(containerIndex + 1).join("/");
+            
+            // Download from Azure
+            const buffer = await azureBlobStorageService.downloadDocument(blobName);
+            
+            // Add to archive
+            archive.append(buffer, { name: file.name });
+            console.log(`✓ Added ${file.name} to ZIP`);
+          } catch (error) {
+            console.warn(`Could not add ${file.name} to ZIP:`, error);
+          }
+        }
+      }
+
+      // Finalize archive
+      await archive.finalize();
+      console.log(`✓ ZIP package sent for draft ${req.params.id}`);
+
+    } catch (error) {
+      console.error("Error creating draft pack ZIP:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to create ZIP file" });
+      }
+    }
+  });
+
   // Generate business case with AI
   app.post("/api/business-cases/generate", async (req, res) => {
     try {
