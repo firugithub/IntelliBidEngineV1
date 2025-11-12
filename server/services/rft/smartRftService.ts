@@ -2,11 +2,14 @@ import { type InsertGeneratedRft, type RftTemplate, type BusinessCase } from "@s
 import { storage } from "../../storage";
 import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
 import { getOpenAIClient } from "../ai/aiAnalysis";
+import { getDefaultAssignee, getStakeholderRole, type SectionMapping } from "./stakeholderConfig";
 
 interface RftSection {
   sectionId: string;
   title: string;
   content: string;
+  suggestedAssignee?: string; // Suggested stakeholder role ID
+  category?: SectionMapping["category"];
   subsections?: RftSection[];
 }
 
@@ -20,6 +23,44 @@ interface BusinessCaseExtract {
   keyRequirements: string[];
   risks: string[];
   successCriteria: string[];
+}
+
+/**
+ * Enrich AI-generated sections with stakeholder metadata
+ * Maps section IDs to suggested assignees and categories
+ */
+function enrichSectionsWithStakeholderMetadata(sections: any[]): RftSection[] {
+  const sectionIdMappings: Record<string, { assignee: string; category: SectionMapping["category"] }> = {
+    "section-1": { assignee: "technical_pm", category: "business" },
+    "section-2": { assignee: "technical_pm", category: "business" },
+    "section-3": { assignee: "product_owner", category: "business" },
+    "section-4": { assignee: "procurement_specialist", category: "procurement" },
+    "section-5": { assignee: "procurement_specialist", category: "procurement" },
+    "section-6": { assignee: "procurement_specialist", category: "procurement" },
+    "section-7": { assignee: "solution_architect", category: "technical" },
+    "section-8": { assignee: "technical_pm", category: "business" },
+    "section-9": { assignee: "procurement_specialist", category: "procurement" },
+    "section-10": { assignee: "technical_pm", category: "other" },
+  };
+
+  return sections.map((section: any) => {
+    const mapping = sectionIdMappings[section.sectionId];
+    
+    // Use mapping if found, otherwise try to infer from sectionId or default to technical_pm
+    const suggestedAssignee = mapping?.assignee || getDefaultAssignee(section.sectionId);
+    const category = mapping?.category || "other" as SectionMapping["category"];
+    
+    const enrichedSection: RftSection = {
+      sectionId: section.sectionId,
+      title: section.title,
+      content: section.content,
+      suggestedAssignee,
+      category,
+      subsections: section.subsections
+    };
+    
+    return enrichedSection;
+  });
 }
 
 /**
@@ -224,7 +265,10 @@ Return JSON array (MUST include all 10 sections):
       }
     }
     
-    return sections as RftSection[];
+    // Enrich sections with stakeholder metadata
+    const enrichedSections = enrichSectionsWithStakeholderMetadata(sections);
+    
+    return enrichedSections;
   } catch (error) {
     console.error("Error generating RFT sections:", error);
     throw new Error("Failed to generate professional RFT sections");
