@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, X, FileText, Users, FileCheck, Download } from "lucide-react";
+import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 
 interface DraftSection {
   sectionId: string;
@@ -76,6 +77,28 @@ export default function RftDraftReviewPage() {
       setSelectedDraftId(drafts[0].id);
     }
   }, [drafts, selectedDraftId]);
+
+  // Auto-refresh polling when pack is generating
+  useEffect(() => {
+    if (!selectedDraft || !selectedDraft.metadata?.pack) return;
+    
+    const packStatus = selectedDraft.metadata.pack.status;
+    
+    // Only poll if status is "pending" or "generating"
+    if (packStatus !== "pending" && packStatus !== "generating") return;
+    
+    console.log("[Auto-refresh] Starting polling for pack generation...");
+    
+    const interval = setInterval(() => {
+      console.log("[Auto-refresh] Polling draft status...");
+      queryClient.invalidateQueries({ queryKey: [`/api/rft/drafts/${selectedDraftId}`] });
+    }, 5000); // Poll every 5 seconds
+    
+    return () => {
+      console.log("[Auto-refresh] Stopping polling");
+      clearInterval(interval);
+    };
+  }, [selectedDraft?.metadata?.pack?.status, selectedDraftId]);
 
   // Filter sections by stakeholder
   const filteredSections = selectedDraft?.generatedSections.filter(section => {
@@ -230,14 +253,34 @@ export default function RftDraftReviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {selectedDraft.metadata.pack.status === "generating" && (
-              <div className="text-center p-4 text-muted-foreground">
-                <div className="animate-pulse">Generating RFT pack (DOCX, PDF, 4 Excel questionnaires)...</div>
+            {(selectedDraft.metadata.pack.status === "generating" || selectedDraft.metadata.pack.status === "pending") && (
+              <div className="space-y-4 p-4">
+                <div className="text-center text-muted-foreground">
+                  <div className="font-medium mb-2">Generating RFT Pack...</div>
+                  <div className="text-sm">Creating DOCX, PDF, and 4 Excel questionnaires</div>
+                </div>
+                <Progress value={selectedDraft.metadata.pack.progress || 33} className="h-2" />
+                <div className="text-xs text-center text-muted-foreground">
+                  This usually takes 30-60 seconds. The page will auto-refresh when complete.
+                </div>
               </div>
             )}
             
             {selectedDraft.metadata.pack.status === "completed" && selectedDraft.metadata.pack.files && (
               <>
+                {/* Download All Button */}
+                <Button
+                  className="w-full"
+                  onClick={() => window.open(`/api/drafts/${selectedDraftId}/pack/download-all`, '_blank')}
+                  data-testid="button-download-all"
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  Download All as ZIP
+                </Button>
+                
+                <Separator className="my-4" />
+                
+                <div className="text-sm text-muted-foreground mb-2">Or download individual files:</div>
                 {/* DOCX Document */}
                 <Button
                   variant="outline"
