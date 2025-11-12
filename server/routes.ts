@@ -3369,13 +3369,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/rft/drafts/:id/sections/:sectionId/approve", async (req, res) => {
     try {
       const { approvedBy } = req.body;
+      
+      console.log("🔍 Approval request received:", {
+        draftId: req.params.id,
+        sectionId: req.params.sectionId,
+        approvedBy,
+        body: req.body
+      });
 
       if (!approvedBy) {
+        console.log("❌ Missing approvedBy in request");
         return res.status(400).json({ error: "approvedBy is required" });
       }
 
       const draft = await storage.getRftGenerationDraft(req.params.id);
       if (!draft) {
+        console.log("❌ Draft not found:", req.params.id);
         return res.status(404).json({ error: "Draft not found" });
       }
 
@@ -3383,17 +3392,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sectionIndex = sections.findIndex((s: any) => s.sectionId === req.params.sectionId);
 
       if (sectionIndex === -1) {
+        console.log("❌ Section not found:", req.params.sectionId);
         return res.status(404).json({ error: "Section not found" });
       }
 
       const section = sections[sectionIndex];
+      
+      console.log("📝 Section details:", {
+        sectionTitle: section.sectionTitle,
+        assignedTo: section.assignedTo,
+        approvedBy,
+        match: section.assignedTo === approvedBy
+      });
 
       // Authorization: Check if approvedBy matches assignedTo
       if (section.assignedTo && approvedBy !== section.assignedTo) {
+        console.log("❌ Authorization failed:", {
+          assignedTo: section.assignedTo,
+          approvedBy,
+          error: `Only ${section.assignedTo} can approve this section`
+        });
         return res.status(403).json({
           error: `Only ${section.assignedTo} can approve this section`,
         });
       }
+      
+      console.log("✅ Authorization passed, approving section");
 
       // Approve section
       section.reviewStatus = "approved";
