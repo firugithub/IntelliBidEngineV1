@@ -1,10 +1,11 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, AlertCircle, CheckCircle2, XCircle, Trash2, Info } from "lucide-react";
+import { Settings, AlertCircle, CheckCircle2, XCircle, Trash2, Info, Play, RotateCcw, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
 
 export default function AdminConfigPage() {
   const { toast } = useToast();
+  const [showIndexerStatus, setShowIndexerStatus] = useState(false);
 
   const testConnectivityMutation = useMutation({
     mutationFn: async () => {
@@ -76,6 +78,71 @@ export default function AdminConfigPage() {
       });
       console.error("Wipe error:", error);
     },
+  });
+
+  // OCR Skillset & Indexer mutations
+  const initializeSkillsetMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/skillset/initialize", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Skillset Initialized",
+        description: data.message || "OCR skillset and indexer created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Initialization Failed",
+        description: error.message || "Failed to initialize skillset",
+      });
+    },
+  });
+
+  const runIndexerMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/skillset/run", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Indexer Started",
+        description: data.message || "OCR processing initiated",
+      });
+      setShowIndexerStatus(true);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Indexer Run Failed",
+        description: error.message || "Failed to run indexer",
+      });
+    },
+  });
+
+  const resetIndexerMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/skillset/reset", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Indexer Reset",
+        description: data.message || "Indexer reset successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: error.message || "Failed to reset indexer",
+      });
+    },
+  });
+
+  const indexerStatusQuery = useQuery<{ success: boolean; status: any }>({
+    queryKey: ["/api/skillset/status"],
+    enabled: showIndexerStatus,
+    refetchInterval: showIndexerStatus ? 5000 : false,
   });
 
   return (
@@ -155,6 +222,93 @@ export default function AdminConfigPage() {
                     />
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              OCR Skillset & Indexer
+            </CardTitle>
+            <CardDescription>
+              Manage Azure AI Search skillset for OCR image text extraction. Documents with images are automatically processed when uploaded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button
+                onClick={() => initializeSkillsetMutation.mutate()}
+                disabled={initializeSkillsetMutation.isPending}
+                variant="outline"
+                data-testid="button-initialize-skillset"
+                className="w-full"
+              >
+                {initializeSkillsetMutation.isPending ? (
+                  <>Initializing...</>
+                ) : (
+                  <>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Initialize
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => runIndexerMutation.mutate()}
+                disabled={runIndexerMutation.isPending}
+                data-testid="button-run-indexer"
+                className="w-full"
+              >
+                {runIndexerMutation.isPending ? (
+                  <>Running...</>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Run Indexer
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => resetIndexerMutation.mutate()}
+                disabled={resetIndexerMutation.isPending}
+                variant="outline"
+                data-testid="button-reset-indexer"
+                className="w-full"
+              >
+                {resetIndexerMutation.isPending ? (
+                  <>Resetting...</>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Button
+              onClick={() => setShowIndexerStatus(!showIndexerStatus)}
+              variant="ghost"
+              data-testid="button-toggle-indexer-status"
+              className="w-full"
+            >
+              {showIndexerStatus ? "Hide Status" : "Show Status"}
+            </Button>
+
+            {showIndexerStatus && indexerStatusQuery.data?.status && (
+              <div className="mt-4 p-4 rounded-lg border bg-card space-y-3">
+                <div className="text-sm font-semibold">Indexer Status:</div>
+                <IndexerStatus status={indexerStatusQuery.data.status} />
+              </div>
+            )}
+
+            {showIndexerStatus && indexerStatusQuery.isLoading && (
+              <div className="mt-4 p-4 rounded-lg border bg-card">
+                <div className="text-sm text-muted-foreground">Loading status...</div>
               </div>
             )}
           </CardContent>
@@ -245,6 +399,57 @@ function ConnectivityResult({ name, result }: { name: string; result: any }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function IndexerStatus({ status }: { status: any }) {
+  if (!status) {
+    return <div className="text-sm text-muted-foreground">No status available</div>;
+  }
+
+  const getStatusIcon = (state: string) => {
+    switch (state) {
+      case "running":
+        return <Play className="w-4 h-4 text-blue-500" />;
+      case "success":
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case "error":
+        return <XCircle className="w-4 h-4 text-destructive" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        {getStatusIcon(status.lastResult?.status || "unknown")}
+        <span className="text-sm font-medium">
+          Status: {status.lastResult?.status || "unknown"}
+        </span>
+      </div>
+      
+      {status.lastResult?.endTime && (
+        <div className="text-xs text-muted-foreground">
+          Last run: {new Date(status.lastResult.endTime).toLocaleString()}
+        </div>
+      )}
+      
+      {status.lastResult?.errors && status.lastResult.errors.length > 0 && (
+        <div className="text-xs text-destructive mt-2">
+          <div className="font-semibold mb-1">Errors:</div>
+          {status.lastResult.errors.map((error: any, i: number) => (
+            <div key={i} className="ml-2">• {error.message || error}</div>
+          ))}
+        </div>
+      )}
+      
+      {status.lastResult?.itemsProcessed !== undefined && (
+        <div className="text-xs text-muted-foreground">
+          Items processed: {status.lastResult.itemsProcessed} / {status.lastResult.itemsFailed || 0} failed
+        </div>
+      )}
     </div>
   );
 }
