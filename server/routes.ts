@@ -3792,6 +3792,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       };
 
+      // Extract blob URLs from pack metadata
+      // Pack structure: pack.files.docx.url, pack.files.pdf.url, pack.files.questionnaires.product.url
+      const packFiles = pack.files || {};
+      
       // Create generatedRft record
       const generatedRft = await storage.createGeneratedRft({
         projectId: draft.projectId,
@@ -3800,13 +3804,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: rftName,
         status: "published",
         sections,
-        // Copy all pack file URLs from draft
-        docxBlobUrl: pack.docxBlobUrl,
-        pdfBlobUrl: pack.pdfBlobUrl,
-        productQuestionnaireBlobUrl: pack.productQuestionnaireBlobUrl,
-        nfrQuestionnaireBlobUrl: pack.nfrQuestionnaireBlobUrl,
-        cybersecurityQuestionnaireBlobUrl: pack.cybersecurityQuestionnaireBlobUrl,
-        agileQuestionnaireBlobUrl: pack.agileQuestionnaireBlobUrl,
+        // Copy all pack file URLs from draft (support both new and legacy structures)
+        docxBlobUrl: packFiles.docx?.url || pack.docxBlobUrl,
+        pdfBlobUrl: packFiles.pdf?.url || pack.pdfBlobUrl,
+        productQuestionnaireBlobUrl: packFiles.questionnaires?.product?.url || pack.productQuestionnaireBlobUrl,
+        nfrQuestionnaireBlobUrl: packFiles.questionnaires?.nfr?.url || pack.nfrQuestionnaireBlobUrl,
+        cybersecurityQuestionnaireBlobUrl: packFiles.questionnaires?.cybersecurity?.url || pack.cybersecurityQuestionnaireBlobUrl,
+        agileQuestionnaireBlobUrl: packFiles.questionnaires?.agile?.url || pack.agileQuestionnaireBlobUrl,
         publishedAt: new Date(),
       });
 
@@ -4440,85 +4444,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       archive.pipe(res);
 
-      // Add RFT documents (DOCX and PDF)
-      const sections = (rft.sections as any)?.sections || [];
-      const tempFiles: string[] = [];
+      // Check if RFT was published from draft (has Azure Blob URLs)
+      const hasAzureFiles = rft.docxBlobUrl || rft.pdfBlobUrl;
       
-      if (sections.length > 0) {
-        const { generateDocxDocument, generatePdfDocument } = await import("./services/rft/documentGenerator");
+      if (hasAzureFiles) {
+        console.log(`📦 Downloading RFT files from Azure Blob Storage for: ${rft.name}`);
         
-        // Generate DOCX
-        const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
-        console.log(`Generating DOCX at: ${docPath}`);
-        await generateDocxDocument({
-          projectName: rft.name,
-          sections,
-          outputPath: docPath,
-        });
+        // Import Azure Blob Storage service
+        const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
         
-        // Verify file exists and has content before adding to archive
-        if (fs.existsSync(docPath)) {
-          const stats = fs.statSync(docPath);
-          console.log(`DOCX file size: ${stats.size} bytes`);
-          if (stats.size > 0) {
-            archive.file(docPath, { name: `${sanitizedName}_RFT.docx` });
-            tempFiles.push(docPath);
-          } else {
-            console.warn("DOCX file is empty!");
+        // Define all 6 files with their blob URLs
+        const files = [
+          { blobUrl: rft.docxBlobUrl, name: "RFT_Document.docx" },
+          { blobUrl: rft.pdfBlobUrl, name: "RFT_Document.pdf" },
+          { blobUrl: rft.productQuestionnaireBlobUrl, name: "Product_Questionnaire.xlsx" },
+          { blobUrl: rft.nfrQuestionnaireBlobUrl, name: "NFR_Questionnaire.xlsx" },
+          { blobUrl: rft.cybersecurityQuestionnaireBlobUrl, name: "Cybersecurity_Questionnaire.xlsx" },
+          { blobUrl: rft.agileQuestionnaireBlobUrl, name: "Agile_Delivery_Questionnaire.xlsx" },
+        ];
+        
+        // Download and add each file to the archive
+        for (const file of files) {
+          if (file.blobUrl) {
+            try {
+              // Extract blob name from URL
+              // URL format: https://intellibidstorage.blob.core.windows.net/intellibid-documents/project-XXX/RFT_Generated/file.docx?sas
+              const url = new URL(file.blobUrl.split('?')[0]); // Remove SAS token
+              const pathname = url.pathname; // e.g., /intellibid-documents/project-XXX/RFT_Generated/file.docx
+              const parts = pathname.split('/').filter(Boolean); // ['intellibid-documents', 'project-XXX', 'RFT_Generated', 'file.docx']
+              
+              // Skip container name, join the rest
+              const blobName = parts.slice(1).join('/'); // project-XXX/RFT_Generated/file.docx
+              
+              console.log(`📥 Downloading ${file.name} from blob: ${blobName}`);
+              
+              // Download from Azure
+              const buffer = await azureBlobStorageService.downloadDocument(blobName);
+              
+              // Add to archive
+              archive.append(buffer, { name: file.name });
+              console.log(`✓ Added ${file.name} to ZIP (${buffer.length} bytes)`);
+            } catch (error) {
+              console.warn(`⚠️ Could not add ${file.name} to ZIP:`, error);
+            }
           }
-        } else {
-          console.warn("DOCX file was not created!");
         }
-
-        // Generate PDF
-        const pdfPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.pdf`);
-        console.log(`Generating PDF at: ${pdfPath}`);
-        await generatePdfDocument({
-          projectName: rft.name,
-          sections,
-          outputPath: pdfPath,
-        });
+      } else {
+        // Legacy path: Generate documents on-the-fly for RFTs not published from drafts
+        console.log(`⚠️ RFT not from draft - generating documents on-the-fly`);
         
-        // Verify file exists and has content before adding to archive
-        if (fs.existsSync(pdfPath)) {
-          const stats = fs.statSync(pdfPath);
-          console.log(`PDF file size: ${stats.size} bytes`);
-          if (stats.size > 0) {
-            archive.file(pdfPath, { name: `${sanitizedName}_RFT.pdf` });
-            tempFiles.push(pdfPath);
+        const sections = (rft.sections as any)?.sections || [];
+        const tempFiles: string[] = [];
+        
+        if (sections.length > 0) {
+          const { generateDocxDocument, generatePdfDocument } = await import("./services/rft/documentGenerator");
+          
+          // Generate DOCX
+          const docPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.docx`);
+          console.log(`Generating DOCX at: ${docPath}`);
+          await generateDocxDocument({
+            projectName: rft.name,
+            sections,
+            outputPath: docPath,
+          });
+          
+          // Verify file exists and has content before adding to archive
+          if (fs.existsSync(docPath)) {
+            const stats = fs.statSync(docPath);
+            console.log(`DOCX file size: ${stats.size} bytes`);
+            if (stats.size > 0) {
+              archive.file(docPath, { name: `${sanitizedName}_RFT.docx` });
+              tempFiles.push(docPath);
+            } else {
+              console.warn("DOCX file is empty!");
+            }
           } else {
-            console.warn("PDF file is empty!");
+            console.warn("DOCX file was not created!");
           }
-        } else {
-          console.warn("PDF file was not created!");
-        }
-      }
 
-      // Add questionnaires
-      const questionnaires = [
-        { path: rft.productQuestionnairePath, name: "Product_Questionnaire.xlsx" },
-        { path: rft.nfrQuestionnairePath, name: "NFR_Questionnaire.xlsx" },
-        { path: rft.cybersecurityQuestionnairePath, name: "Cybersecurity_Questionnaire.xlsx" },
-        { path: rft.agileQuestionnairePath, name: "Agile_Delivery_Questionnaire.xlsx" },
-      ];
-
-      for (const q of questionnaires) {
-        if (q.path && fs.existsSync(q.path)) {
-          archive.file(q.path, { name: q.name });
+          // Generate PDF
+          const pdfPath = path.join(process.cwd(), "uploads", "documents", `RFT_${id}_temp.pdf`);
+          console.log(`Generating PDF at: ${pdfPath}`);
+          await generatePdfDocument({
+            projectName: rft.name,
+            sections,
+            outputPath: pdfPath,
+          });
+          
+          // Verify file exists and has content before adding to archive
+          if (fs.existsSync(pdfPath)) {
+            const stats = fs.statSync(pdfPath);
+            console.log(`PDF file size: ${stats.size} bytes`);
+            if (stats.size > 0) {
+              archive.file(pdfPath, { name: `${sanitizedName}_RFT.pdf` });
+              tempFiles.push(pdfPath);
+            } else {
+              console.warn("PDF file is empty!");
+            }
+          } else {
+            console.warn("PDF file was not created!");
+          }
         }
+
+        // Add questionnaires from local paths
+        const questionnaires = [
+          { path: rft.productQuestionnairePath, name: "Product_Questionnaire.xlsx" },
+          { path: rft.nfrQuestionnairePath, name: "NFR_Questionnaire.xlsx" },
+          { path: rft.cybersecurityQuestionnairePath, name: "Cybersecurity_Questionnaire.xlsx" },
+          { path: rft.agileQuestionnairePath, name: "Agile_Delivery_Questionnaire.xlsx" },
+        ];
+
+        for (const q of questionnaires) {
+          if (q.path && fs.existsSync(q.path)) {
+            archive.file(q.path, { name: q.name });
+          }
+        }
+        
+        // Clean up temp files after a delay
+        setTimeout(() => {
+          for (const tempFile of tempFiles) {
+            if (fs.existsSync(tempFile)) {
+              fs.unlinkSync(tempFile);
+            }
+          }
+        }, 2000);
       }
 
       // Finalize archive
       await archive.finalize();
-
-      // Clean up temp files after a delay
-      setTimeout(() => {
-        for (const tempFile of tempFiles) {
-          if (fs.existsSync(tempFile)) {
-            fs.unlinkSync(tempFile);
-          }
-        }
-      }, 2000);
+      console.log(`✓ ZIP package sent for RFT ${id}`);
 
     } catch (error) {
       console.error("Error creating ZIP:", error);
