@@ -26,6 +26,7 @@ export class RAGRetrievalService {
     options?: {
       topK?: number;
       sourceType?: string;
+      category?: string;
       tags?: string[];
     }
   ): Promise<RAGContext> {
@@ -38,6 +39,13 @@ export class RAGRetrievalService {
       if (options?.sourceType) {
         filter = `sourceType eq '${options.sourceType}'`;
       }
+      
+      // Category filtering: include both agent's category AND shared category
+      if (options?.category) {
+        const categoryFilter = `(category eq '${options.category}') or (category eq 'shared')`;
+        filter = filter ? `${filter} and (${categoryFilter})` : categoryFilter;
+      }
+      
       if (options?.tags && options.tags.length > 0) {
         const tagFilters = options.tags.map(tag => `metadata/tags/any(t: t eq '${tag}')`).join(' or ');
         filter = filter ? `${filter} and (${tagFilters})` : tagFilters;
@@ -87,6 +95,7 @@ export class RAGRetrievalService {
     requirements: string[],
     options?: {
       topKPerRequirement?: number;
+      category?: string;
     }
   ): Promise<RAGContext> {
     const topK = options?.topKPerRequirement || 3;
@@ -98,6 +107,7 @@ export class RAGRetrievalService {
       const context = await this.retrieveRelevantContext(requirement, {
         topK,
         sourceType: 'compliance-standard',
+        category: options?.category,
       });
 
       // Add unique chunks only

@@ -14,7 +14,7 @@ export const standards = pgTable("standards", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
-  category: text("category").notNull().default("general"), // 'architecture', 'delivery', 'procurement', 'development', 'security', 'general'
+  category: text("category").notNull().default("shared"), // 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security', 'shared' (aligned with AI agent roles)
   sections: jsonb("sections").notNull(),
   tags: text("tags").array(),
   fileName: text("file_name"),
@@ -353,14 +353,15 @@ export const rftGenerationDrafts = pgTable("rft_generation_drafts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Document categories for Knowledge Base
+// Document categories for Knowledge Base (aligned with AI agent roles)
 export const documentCategories = [
-  "architecture",
   "delivery",
+  "product",
+  "architecture",
+  "engineering",
   "procurement",
-  "development",
   "security",
-  "general",
+  "shared",
 ] as const;
 
 export const documentCategorySchema = z.enum(documentCategories);
@@ -370,7 +371,7 @@ export const insertStandardSchema = createInsertSchema(standards).omit({
   id: true,
   createdAt: true,
 }).extend({
-  category: documentCategorySchema.default("general"),
+  category: documentCategorySchema.default("shared"),
 });
 
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({

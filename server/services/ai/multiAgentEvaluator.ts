@@ -188,8 +188,37 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
 **IMPORTANT:** Your evaluation must explicitly address how the vendor meets (or fails to meet) EACH of these organization-specific requirements. These are mandatory, not optional.`;
   }
 
-  // Add RAG context if available
-  if (ragContext) {
+  // Retrieve category-specific RAG context for this agent
+  let agentRagContext: string | undefined;
+  try {
+    const isRAGConfigured = await ragRetrievalService.isConfigured();
+    if (isRAGConfigured) {
+      const techReqs = requirements.technicalRequirements || [];
+      if (techReqs.length > 0) {
+        const retrievalQueries = techReqs.slice(0, 5);
+        const ragContextData = await ragRetrievalService.retrieveComplianceStandards(
+          retrievalQueries,
+          { 
+            topKPerRequirement: 2,
+            category: role // Use agent role as category filter
+          }
+        );
+        
+        if (ragContextData.chunks.length > 0) {
+          agentRagContext = ragRetrievalService.formatForAIContext(ragContextData);
+          console.log(`   📚 [${role}] Retrieved ${ragContextData.chunks.length} category-specific document sections`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`   ❌ [${role}] Category-specific RAG retrieval failed:`, error);
+  }
+
+  // Add agent-specific RAG context if available (prioritize over global ragContext)
+  if (agentRagContext) {
+    standardsContext += `\n\n${agentRagContext}`;
+  } else if (ragContext) {
+    // Fallback to global RAG context if agent-specific retrieval failed
     standardsContext += `\n\n${ragContext}`;
   }
 

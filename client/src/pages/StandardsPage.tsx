@@ -26,30 +26,31 @@ interface Section {
 // Helper function to get category display info
 const getCategoryInfo = (category: string) => {
   const categories: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-    architecture: { label: "Architecture", variant: "default" },
-    delivery: { label: "Delivery & PM", variant: "secondary" },
+    delivery: { label: "Delivery Manager", variant: "secondary" },
+    product: { label: "Product Manager", variant: "default" },
+    architecture: { label: "Solution Architect", variant: "default" },
+    engineering: { label: "Engineering Lead", variant: "secondary" },
     procurement: { label: "Procurement", variant: "outline" },
-    development: { label: "Development", variant: "default" },
-    security: { label: "Security", variant: "secondary" },
-    general: { label: "General", variant: "outline" },
+    security: { label: "Cybersecurity", variant: "secondary" },
+    shared: { label: "Shared", variant: "outline" },
   };
-  return categories[category] || { label: "General", variant: "outline" };
+  return categories[category] || { label: "Shared", variant: "outline" };
 };
 
-// Stakeholder grouping configuration
+// Stakeholder grouping configuration (aligned with AI agent roles)
 const stakeholderGroups = [
   {
     id: "technical",
     name: "Technical Teams",
     description: "For CTO, Architects, and Engineering Teams",
-    categories: ["architecture", "development"] as DocumentCategory[],
+    categories: ["architecture", "engineering"] as DocumentCategory[],
     icon: Settings
   },
   {
     id: "delivery",
-    name: "Delivery & Operations",
-    description: "For Project Managers and Operations Teams",
-    categories: ["delivery"] as DocumentCategory[],
+    name: "Delivery & Product",
+    description: "For Delivery Managers and Product Teams",
+    categories: ["delivery", "product"] as DocumentCategory[],
     icon: Rocket
   },
   {
@@ -67,13 +68,34 @@ const stakeholderGroups = [
     icon: Shield
   },
   {
-    id: "general",
-    name: "General Resources",
+    id: "shared",
+    name: "Shared Resources",
     description: "For All Stakeholders",
-    categories: ["general"] as DocumentCategory[],
+    categories: ["shared"] as DocumentCategory[],
     icon: BookOpen
   }
 ];
+
+// Type guard for metadata
+const isMetadataRecord = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+};
+
+// Helper to render metadata badges
+const renderMetadataBadges = (metadata: unknown) => {
+  if (!isMetadataRecord(metadata)) return null;
+  
+  const entries = Object.entries(metadata);
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      {entries.slice(0, 3).map(([key, value]) => (
+        <span key={key} className="px-2 py-1 bg-muted rounded text-muted-foreground">
+          {key}: {String(value ?? '')}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 // Helper to group standards by stakeholder needs
 const groupStandardsByStakeholder = (standards: Standard[]) => {
@@ -84,7 +106,7 @@ const groupStandardsByStakeholder = (standards: Standard[]) => {
   });
   
   standards.forEach(standard => {
-    const category = standard.category as DocumentCategory || "general";
+    const category = standard.category as DocumentCategory || "shared";
     const stakeholderGroup = stakeholderGroups.find(g => g.categories.includes(category));
     if (stakeholderGroup) {
       grouped.get(stakeholderGroup.id)?.push(standard);
@@ -106,7 +128,7 @@ export default function StandardsPage() {
   const [standardFormData, setStandardFormData] = useState({
     name: "",
     description: "",
-    category: "general" as DocumentCategory,
+    category: "shared" as DocumentCategory,
     sections: [] as Section[],
     tags: [] as string[],
     file: null as File | null,
@@ -313,7 +335,7 @@ export default function StandardsPage() {
 
   // Standards handlers
   const resetStandardForm = () => {
-    setStandardFormData({ name: "", description: "", category: "general", sections: [], tags: [], file: null, url: "" });
+    setStandardFormData({ name: "", description: "", category: "shared", sections: [], tags: [], file: null, url: "" });
     setNewSection({ name: "", description: "" });
     setNewTag("");
     setEditingStandard(null);
@@ -325,7 +347,7 @@ export default function StandardsPage() {
     setStandardFormData({
       name: standard.name,
       description: standard.description || "",
-      category: (standard.category as DocumentCategory) || "general",
+      category: (standard.category as DocumentCategory) || "shared",
       sections: (standard.sections as Section[]) || [],
       tags: (standard.tags as string[]) || [],
       file: null,
@@ -617,12 +639,13 @@ export default function StandardsPage() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="architecture">Architecture Guidelines</SelectItem>
-                          <SelectItem value="delivery">Delivery & Project Management</SelectItem>
-                          <SelectItem value="procurement">Procurement & SLA Standards</SelectItem>
-                          <SelectItem value="development">Development Standards & Frameworks</SelectItem>
-                          <SelectItem value="security">Security Standards & Policies</SelectItem>
-                          <SelectItem value="general">General Documentation</SelectItem>
+                          <SelectItem value="delivery">Delivery Manager</SelectItem>
+                          <SelectItem value="product">Product Manager</SelectItem>
+                          <SelectItem value="architecture">Solution Architect</SelectItem>
+                          <SelectItem value="engineering">Engineering Lead</SelectItem>
+                          <SelectItem value="procurement">Procurement</SelectItem>
+                          <SelectItem value="security">Cybersecurity & Compliance</SelectItem>
+                          <SelectItem value="shared">Shared (All Agents)</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
@@ -1059,15 +1082,7 @@ export default function StandardsPage() {
                               <span>Created {new Date(doc.createdAt).toLocaleDateString()}</span>
                             </div>
                             
-                            {doc.metadata && typeof doc.metadata === 'object' && (
-                              <div className="flex items-center gap-2 text-xs">
-                                {Object.entries(doc.metadata as Record<string, unknown>).slice(0, 3).map(([key, value]) => (
-                                  <span key={key} className="px-2 py-1 bg-muted rounded text-muted-foreground">
-                                    {key}: {String(value !== null && value !== undefined ? value : 'N/A')}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            {renderMetadataBadges(doc.metadata)}
                           </div>
                         </div>
 
