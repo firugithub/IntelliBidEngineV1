@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 interface DocumentIngestionOptions {
   sourceType: "standard" | "proposal" | "requirement" | "confluence" | "sharepoint";
   sourceId?: string;
+  category?: "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security" | "shared";
   fileName: string;
   content: Buffer;
   textContent: string;
@@ -80,6 +81,7 @@ export class DocumentIngestionService {
           id: documentId,
           sourceType: options.sourceType,
           sourceId: options.sourceId,
+          category: options.category || "shared",
           fileName: options.fileName,
           blobUrl: "",
           blobName: null,
@@ -108,15 +110,18 @@ export class DocumentIngestionService {
         // Re-indexing: blob metadata already loaded in Step 0
         console.log(`[RAG] Re-indexing: Reusing existing blob for: ${options.fileName}`);
       } else {
-        // New document: Upload to blob storage
-        console.log(`[RAG] Uploading document to Blob Storage: ${options.fileName}`);
+        // New document: Upload to blob storage with category-based path
+        const category = options.category || "shared";
+        const categoryPath = `knowledge-base/${category}/${options.fileName}`;
+        console.log(`[RAG] Uploading document to Blob Storage: ${categoryPath}`);
         const blobResult = await azureBlobStorageService.uploadDocument(
-          options.fileName,
+          categoryPath,
           options.content,
           {
             sourceType: options.sourceType,
             sourceId: options.sourceId || "",
             documentId,
+            category,
           }
         );
         blobUrl = blobResult.blobUrl;

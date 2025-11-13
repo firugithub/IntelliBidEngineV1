@@ -7,6 +7,7 @@ interface SearchDocument {
   embedding: number[];
   sourceType: string;
   sourceId?: string;
+  category?: string;
   fileName: string;
   chunkIndex: number;
   metadata: Record<string, any>;
@@ -72,6 +73,12 @@ export class AzureAISearchService {
               name: "sourceId",
               type: "Edm.String",
               filterable: true,
+            },
+            {
+              name: "category",
+              type: "Edm.String",
+              filterable: true,
+              facetable: true,
             },
             {
               name: "fileName",
