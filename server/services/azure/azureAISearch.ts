@@ -37,8 +37,102 @@ export class AzureAISearchService {
     }
 
     try {
-      await this.indexClient.getIndex(this.indexName);
+      const existingIndex = await this.indexClient.getIndex(this.indexName);
       console.log(`Index '${this.indexName}' already exists`);
+      
+      // Check if category field exists
+      const hasCategoryField = existingIndex.fields.some(field => field.name === 'category');
+      
+      if (!hasCategoryField) {
+        console.log(`Index '${this.indexName}' is missing 'category' field. Updating index...`);
+        
+        // Update the index to include the category field
+        await this.indexClient.createOrUpdateIndex({
+          name: this.indexName,
+          fields: [
+            {
+              name: "id",
+              type: "Edm.String",
+              key: true,
+              filterable: true,
+            },
+            {
+              name: "content",
+              type: "Edm.String",
+              searchable: true,
+            },
+            {
+              name: "embedding",
+              type: "Collection(Edm.Single)",
+              searchable: true,
+              vectorSearchDimensions: 1536,
+              vectorSearchProfileName: "vector-profile",
+            },
+            {
+              name: "sourceType",
+              type: "Edm.String",
+              filterable: true,
+              facetable: true,
+            },
+            {
+              name: "sourceId",
+              type: "Edm.String",
+              filterable: true,
+            },
+            {
+              name: "category",
+              type: "Edm.String",
+              filterable: true,
+              facetable: true,
+            },
+            {
+              name: "fileName",
+              type: "Edm.String",
+              filterable: true,
+              searchable: true,
+            },
+            {
+              name: "chunkIndex",
+              type: "Edm.Int32",
+              filterable: true,
+              sortable: true,
+            },
+            {
+              name: "metadata",
+              type: "Edm.ComplexType",
+              fields: [
+                { name: "sectionTitle", type: "Edm.String", searchable: true },
+                { name: "pageNumber", type: "Edm.Int32", filterable: true },
+                { name: "tags", type: "Collection(Edm.String)", filterable: true, facetable: true },
+                { name: "vendor", type: "Edm.String", filterable: true, facetable: true },
+                { name: "project", type: "Edm.String", filterable: true, facetable: true },
+              ],
+            },
+            {
+              name: "createdAt",
+              type: "Edm.DateTimeOffset",
+              filterable: true,
+              sortable: true,
+            },
+          ],
+          vectorSearch: {
+            profiles: [
+              {
+                name: "vector-profile",
+                algorithmConfigurationName: "hnsw-config",
+              },
+            ],
+            algorithms: [
+              {
+                name: "hnsw-config",
+                kind: "hnsw",
+              },
+            ],
+          },
+        });
+        
+        console.log(`Index '${this.indexName}' updated with 'category' field`);
+      }
     } catch (error: any) {
       if (error.statusCode === 404) {
         console.log(`Creating index '${this.indexName}'...`);
