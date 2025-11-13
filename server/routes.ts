@@ -3729,6 +3729,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Publish RFT draft to portfolio (creates generatedRft from draft)
+  app.post("/api/drafts/:id/publish", async (req, res) => {
+    try {
+      const draft = await storage.getRftGenerationDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ error: "Draft not found" });
+      }
+
+      const metadata = (draft.metadata as any) || {};
+      const pack = metadata.pack;
+
+      // Verify pack is completed
+      if (!pack || pack.status !== "completed") {
+        return res.status(400).json({
+          error: "RFT pack must be completed before publishing",
+          status: pack?.status || "pending",
+        });
+      }
+
+      // Get business case for RFT name
+      const businessCase = await storage.getBusinessCase(draft.businessCaseId);
+      const rftName = businessCase?.name 
+        ? `${businessCase.name} - RFT` 
+        : `RFT ${new Date().toLocaleDateString()}`;
+
+      // Transform draft sections to generatedRft format
+      const sections = {
+        sections: (draft.generatedSections as any[]).map((s: any) => ({
+          sectionId: s.sectionId,
+          sectionTitle: s.sectionTitle,
+          content: s.content,
+          category: s.category,
+          assignedTo: s.assignedTo,
+        }))
+      };
+
+      // Create generatedRft record
+      const generatedRft = await storage.createGeneratedRft({
+        projectId: draft.projectId,
+        businessCaseId: draft.businessCaseId,
+        templateId: draft.templateId || "draft-generated",
+        name: rftName,
+        status: "published",
+        sections,
+        // Copy all pack file URLs from draft
+        docxBlobUrl: pack.docxBlobUrl,
+        pdfBlobUrl: pack.pdfBlobUrl,
+        productQuestionnaireBlobUrl: pack.productQuestionnaireBlobUrl,
+        nfrQuestionnaireBlobUrl: pack.nfrQuestionnaireBlobUrl,
+        cybersecurityQuestionnaireBlobUrl: pack.cybersecurityQuestionnaireBlobUrl,
+        agileQuestionnaireBlobUrl: pack.agileQuestionnaireBlobUrl,
+        publishedAt: new Date(),
+      });
+
+      // Update project link to generated RFT
+      await storage.updateProject(draft.projectId, {
+        generatedRftId: generatedRft.id,
+      });
+
+      console.log(`✅ Draft ${req.params.id} published to portfolio as RFT ${generatedRft.id}`);
+
+      res.json({
+        success: true,
+        generatedRftId: generatedRft.id,
+        message: "RFT published to portfolio successfully",
+      });
+    } catch (error) {
+      console.error("Error publishing draft:", error);
+      res.status(500).json({ error: "Failed to publish draft to portfolio" });
+    }
+  });
+
   // Generate business case with AI
   app.post("/api/business-cases/generate", async (req, res) => {
     try {
