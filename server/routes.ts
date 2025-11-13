@@ -4582,6 +4582,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download vendor responses (generates mock data and returns as ZIP)
+  app.get("/api/generated-rfts/:id/download-vendor-responses", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const rft = await storage.getGeneratedRft(id);
+      if (!rft) {
+        return res.status(404).json({ error: "RFT not found" });
+      }
+
+      const project = await storage.getProject(rft.projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Import Azure Blob Storage service
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+      
+      // Scope vendor responses to this specific RFT (not project-wide)
+      const vendorResponsesPrefix = `project-${project.id}/RFT_Responses/${rft.id}`;
+      let blobNames = await azureBlobStorageService.listDocuments(vendorResponsesPrefix);
+      
+      // If no vendor responses exist for this RFT, generate them
+      if (blobNames.length === 0) {
+        console.log(`No vendor responses found for RFT ${id}. Generating mock vendor responses...`);
+        const { generateVendorResponses } = await import("./services/rft/rftMockDataGenerator");
+        await generateVendorResponses(id);
+        
+        // List again after generation
+        blobNames = await azureBlobStorageService.listDocuments(vendorResponsesPrefix);
+        
+        // Verify vendor responses were created
+        if (blobNames.length === 0) {
+          return res.status(500).json({ 
+            error: "Failed to generate vendor responses. Please try again or contact support." 
+          });
+        }
+        
+        console.log(`✓ Generated ${blobNames.length} vendor response files for RFT ${id}`);
+      } else {
+        console.log(`Found ${blobNames.length} existing vendor response files for RFT ${id}`);
+      }
+
+      // Download all files first to verify they exist
+      const files: { buffer: Buffer; relativePath: string }[] = [];
+      for (const blobName of blobNames) {
+        try {
+          const buffer = await azureBlobStorageService.downloadDocument(blobName);
+          
+          // Extract the path relative to the folder prefix to preserve vendor folder structure
+          // For example: "project-123/RFT_Responses/rft-456/VendorA/file.xlsx" -> "VendorA/file.xlsx"
+          const relativePath = blobName.replace(vendorResponsesPrefix + '/', '');
+          
+          files.push({ buffer, relativePath });
+          console.log(`✓ Downloaded ${relativePath} (${buffer.length} bytes)`);
+        } catch (error) {
+          console.error(`⚠️ Error downloading file ${blobName}:`, error);
+          // Continue with other files instead of failing completely
+        }
+      }
+
+      // Verify we have at least some files before creating archive
+      if (files.length === 0) {
+        console.error("No files could be downloaded for vendor responses");
+        return res.status(500).json({ 
+          error: "Failed to create vendor responses ZIP. No files could be retrieved." 
+        });
+      }
+
+      // Create ZIP archive AFTER verifying files exist
+      const archiver = (await import("archiver")).default;
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      const sanitizedName = rft.name.replace(/[^a-zA-Z0-9]/g, "_");
+      res.attachment(`${sanitizedName}_Vendor_Responses.zip`);
+      res.setHeader('Content-Type', 'application/zip');
+
+      // Handle archiver errors and warnings
+      archive.on('error', (err) => {
+        console.error("Archive error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to create ZIP file" });
+        } else {
+          // Archive already piped, abort and destroy response
+          archive.abort();
+          res.destroy();
+        }
+      });
+
+      archive.on('warning', (err) => {
+        if (err.code === 'ENOENT') {
+          console.warn("Archive warning (file not found):", err);
+        } else {
+          console.error("Archive warning (critical):", err);
+          archive.abort();
+          res.destroy();
+        }
+      });
+
+      // Pipe archive to response AFTER setting headers and AFTER verifying files
+      archive.pipe(res);
+      
+      // Add all downloaded files to the archive
+      try {
+        for (const file of files) {
+          archive.append(file.buffer, { name: file.relativePath });
+        }
+
+        // Finalize archive
+        await archive.finalize();
+        console.log(`✓ Vendor responses ZIP package sent for RFT ${id} (${files.length} files)`);
+      } catch (error) {
+        console.error("Error appending files to archive:", error);
+        archive.abort();
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to create ZIP file" });
+        } else {
+          res.destroy();
+        }
+      }
+
+    } catch (error) {
+      console.error("Error creating vendor responses ZIP:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to create vendor responses ZIP file" });
+      }
+    }
+  });
+
   // Helper function to trigger project evaluation in the background
   async function triggerProjectEvaluation(projectId: string, rft: any) {
     try {

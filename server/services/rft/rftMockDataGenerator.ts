@@ -413,22 +413,23 @@ export async function generateVendorResponses(rftId: string) {
 
     // Upload filled questionnaires to Azure Blob Storage
     // Use underscores for consistency and avoid encoding issues
+    // Scope responses to specific RFT to avoid mixing responses from different RFTs
     const vendorPathSafe = vendorName.replace(/[^a-zA-Z0-9]/g, '_');
     const [productUpload, nfrUpload, securityUpload, agileUpload] = await Promise.all([
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Product_Response.xlsx`,
+        `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Product_Response.xlsx`,
         productResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Responses/${vendorPathSafe}/NFR_Response.xlsx`,
+        `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/NFR_Response.xlsx`,
         nfrResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Cybersecurity_Response.xlsx`,
+        `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Cybersecurity_Response.xlsx`,
         securityResponse
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Responses/${vendorPathSafe}/Agile_Response.xlsx`,
+        `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Agile_Response.xlsx`,
         agileResponse
       ),
     ]);
@@ -477,7 +478,7 @@ export async function generateVendorResponses(rftId: string) {
     success: true,
     rftId: rft.id,
     vendorCount: vendors.length,
-    folder: `project-${project.id}/RFT Responses`
+    folder: `project-${project.id}/RFT_Responses/${rftId}`
   };
 }
 

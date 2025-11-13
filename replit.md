@@ -6,60 +6,6 @@ IntelliBid is an AI-powered platform designed to streamline and objectively tran
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### November 13, 2025 - Blob Storage Refactor: Migrated from SAS URLs to Blob Names
-**Issue:** Storing full SAS URLs in database was causing reliability and security issues. SAS tokens expire, URLs can be URL-encoded, and extracting blob names from URLs is error-prone.
-
-**Solution:** Migrated blob storage architecture to store blob names instead of full URLs:
-1. **Database Schema**: Added `blob_name` columns to 3 tables (organization_templates, proposals, generated_rfts with 6 columns for pack files)
-2. **Dual-Write Mode**: Template uploads now store BOTH `blobUrl` (legacy) and `blobName` (new standard) for backward compatibility
-3. **Normalization Helper**: Created `normalizeBlobIdentifiers()` utility that treats empty strings as null, ensuring legacy data with blank identifiers is handled gracefully
-4. **Service Updates**: Updated templateService.ts and templateMergeService.ts with:
-   - Prefer `blobName` over `blobUrl` (fallback to extracting from URL for legacy records)
-   - Soft-fail for delete operations (skip blob deletion if no identifier, log message, continue with DB deletion)
-   - Hard-fail for download/merge operations (throw descriptive errors requesting file re-upload)
-   - Comprehensive validation with URL decoding and empty string normalization
-
-**Backward Compatibility:**
-- ✅ Legacy records with only `blobUrl` → Extract blob name from URL
-- ✅ Legacy records with empty string identifiers → Normalize to null, handle appropriately
-- ✅ Malformed URLs → Throw descriptive validation errors
-- ✅ New uploads → Store blob name directly for reliable access
-
-**Next Steps:** Update RFT pack generation and proposal ingestion services to use blob names, create migration utility to backfill blob names from existing URLs.
-
-### November 13, 2025 - Fixed Production Deployment Path Resolution
-**Issue:** Application crashes on Azure VM/production environments with `ENOENT: no such file or directory, open '/home/azureuser/prompts/delivery-agent.md'`
-
-**Root Cause:** Multi-agent evaluator used `__dirname` to resolve prompt file paths, which breaks in production when TypeScript is compiled and bundled into `dist/index.js`. The `__dirname` variable points to the compiled file location, not the project root.
-
-**Fix:** Updated `server/services/ai/multiAgentEvaluator.ts` to use `process.cwd()` instead of `__dirname`:
-```typescript
-// Before (broken in production):
-const promptPath = join(__dirname, "../../prompts", `${role}-agent.md`);
-
-// After (works in dev and production):
-const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
-```
-
-**Deployment Notes:** 
-- Ensure `server/prompts/` directory and all 6 agent prompt files are included in production deployments
-- When running `npm start` on Azure VM, execute from project root where prompts directory is accessible
-- Works correctly in both development (`npm run dev`) and production (`npm start`) environments
-
-### November 13, 2025 - Fixed Portfolio RFT Download from Azure Blob Storage
-**Issue:** "Download All as ZIP" from Portfolio RFT Tab producing empty ZIP files (22 bytes).
-
-**Root Causes & Fixes:**
-1. **Storage Path Mismatch**: Files saved to `RFT_Pack/` instead of `RFT_Generated/` (fixed in draftPackGenerator.ts)
-2. **Metadata Structure**: Download route accessed wrong nested structure `pack.docxBlobUrl` instead of `pack.files.docx.url` (fixed in server/routes.ts)
-3. **Import Error**: Used default export instead of named export for Azure service (fixed in server/routes.ts)
-4. **Backward Compatibility**: Added fallback logic for legacy draft metadata to support both old and new structures
-5. **Publish Route Bug**: Publish endpoint not extracting blob URLs from correct pack metadata structure (fixed in server/routes.ts)
-
-**Result:** ZIP downloads now work correctly, containing all 6 files (DOCX, PDF, 4 Excel questionnaires) with actual content (~150KB+ total). Complete workflow verified: Draft → Pack Generation → Publish → Portfolio Download.
-
 ## System Architecture
 
 ### Frontend
@@ -68,8 +14,8 @@ const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
 **Key Features:**
 -   **9-menu structure:** Home, Executive Summary, Smart RFT Builder, Template Management, RFT Draft Review, Knowledge Base, KB Chatbot, Generate Mock Data, Admin Config, and Agent Metrics.
 -   **Template Management:** DOCX template management with drag-and-drop upload, metadata configuration, sortable catalog, section-to-stakeholder assignment, intelligent auto-section detection, and full integration with template API routes.
--   **RFT Draft Review:** Stakeholder-based collaborative review interface with draft selector, role filtering, section content editor, approval workflow, real-time progress visualization, and comprehensive RFT pack management. Features automatic pack generation (DOCX, PDF, 4 Excel questionnaires) via background jobs, auto-refresh polling for real-time completion updates, attractive progress bar during generation, "Download All as ZIP" for convenient package downloads, and "Publish to Portfolio" workflow that converts finalized drafts into published RFTs visible in the Portfolio RFT Tab.
--   **Smart RFT Builder Integration:** 3-step draft generation workflow with tabbed template selection (AI Templates vs. Organization Templates), generation mode switching (AI generation vs. template merge), and automatic redirection to RFT Draft Review.
+-   **RFT Draft Review:** Stakeholder-based collaborative review interface with draft selector, role filtering, section content editor, approval workflow, real-time progress visualization, and comprehensive RFT pack management. Features automatic pack generation (DOCX, PDF, 4 Excel questionnaires) via background jobs, "Download All as ZIP" for convenient package downloads, and "Publish to Portfolio" workflow.
+-   **Smart RFT Builder Integration:** 3-step draft generation workflow with tabbed template selection, generation mode switching (AI generation vs. template merge), and automatic redirection to RFT Draft Review.
 -   **Executive Summary Dashboard:** Global overview with KPI cards, vendor rankings, stage distribution charts, and activity stream.
 
 ### Backend
@@ -80,26 +26,13 @@ const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
 
 ### AI Analysis Pipeline
 **Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Cybersecurity & Compliance) for objective vendor proposal evaluation with externalized prompts.
-**Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking (execution time, token usage, cost, success rates).
+**Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking.
 
 ### Smart RFT Builder
-**Business Case Form Fields:** Project Name, Business Objective, Scope, Timeline, Budget, Functional Requirements (required), Non-functional Requirements (optional), and Success Criteria. Functional requirements describe system capabilities; non-functional requirements specify quality attributes (performance, security, scalability).
-**Dual-Path RFT Generation:**
--   **AI-generated:** AI creates structured RFT sections with stakeholder assignments.
--   **Template Merge:** Fully functional token substitution system that merges business case data with organization DOCX templates. Supports placeholders: {{PROJECT_NAME}}, {{AIRLINE_NAME}}, {{DESCRIPTION}}, {{BUDGET}}, {{TIMELINE}}, {{FUNCTIONAL_REQUIREMENTS}}, {{NON_FUNCTIONAL_REQUIREMENTS}}, {{REQUIREMENTS}} (combined), {{DEADLINE}}.
-**Workflow:** A 3-step "Draft-First" process (Business Case → Template Selection → Draft Generation) leading to collaborative drafts with stakeholder assignments.
-**Intelligent Template Processing:** 
--   **Text Extraction with Formatting:** Custom DOCX parser (`extractTextWithFormatting`) preserves paragraph structure by parsing XML `<w:p>` tags, joining paragraphs with `\n\n` for readable output instead of blob text.
--   **Multi-Pattern Section Detection:** Auto-detection tries multiple regex patterns (numbered uppercase, numbered mixed case, unnumbered uppercase) to handle varied heading formats. Successfully detects 9+ sections from professional templates.
--   **Smart Section Content Extraction:** Analyzes merged document to find heading positions, extracts content between headings for section-specific drafts. High-confidence extractions provide targeted content; low-confidence falls back to full document with warning.
--   **Valid Category Mapping:** All section categories strictly mapped to allowed types (business/technical/security/procurement/other). Security and compliance sections → "security", evaluation/terms sections → "procurement".
--   **Template Storage:** Business case form data stored in extractedData JSONB for template merge access. Templates without section mappings generate single-section drafts.
-**Token Substitution:** Business case fields are stored in extractedData and mapped to template placeholders during merge. Robust error handling for malformed templates with user-friendly guidance.
-**Universal AI Enhancement (All Dynamic Sections):**
--   **Scope:** AI enhancement applies to ALL dynamic content sections (Executive Summary, Background, Scope of Work, Requirements, Evaluation Criteria, etc.), not just technical sections.
--   **Adaptive Prompts:** Two intelligent prompt templates - (1) Structured requirements with 20+ items and acceptance criteria for technical/requirements sections, (2) Narrative expansion (300-500 words) for content sections like Executive Summary and Background.
--   **Smart Skipping:** Administrative/boilerplate sections (Contact Information, Terms & Conditions) correctly bypassed to control costs.
--   **Section Metadata:** Each section tracked with `aiEnhanced` (boolean), `enhancementStatus` (success/skipped/error), and `extractionConfidence` (high/low) for transparency and debugging.
+**Business Case Form Fields:** Project Name, Business Objective, Scope, Timeline, Budget, Functional Requirements, Non-functional Requirements, and Success Criteria.
+**Dual-Path RFT Generation:** AI-generated structured RFT sections with stakeholder assignments or template merge using token substitution.
+**Intelligent Template Processing:** Custom DOCX parser preserves formatting, multi-pattern section detection for varied heading formats, smart section content extraction, and valid category mapping.
+**Universal AI Enhancement:** AI enhancement applies to all dynamic content sections with adaptive prompts, smart skipping of boilerplate sections, and tracking of enhancement status and extraction confidence.
 
 ### Advanced AI Features
 Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and Conversational AI Assistant, all leveraging shared AI infrastructure with RAG.
@@ -107,14 +40,14 @@ Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated
 ### Knowledge Base & RAG Infrastructure
 **Purpose:** Centralized repository for organizational documents and guidelines, enhancing AI evaluation accuracy.
 **RAG Infrastructure:** Utilizes Azure Embedding Service, Intelligent Chunking Service, Azure Blob Storage, and Azure AI Search (vector database with hybrid search) for document ingestion, processing, and retrieval.
-**Features:** Admin interface for document upload (PDF/TXT/DOC/DOCX/URL) with AI-powered section extraction and a Knowledge Base Chatbot for testing RAG/MCP integrations.
+**Features:** Admin interface for document upload (PDF/TXT/DOC/DOCX/URL) with AI-powered section extraction and a Knowledge Base Chatbot.
 
 ### Data Management
 **Mock Data Generation:** Dedicated page for creating persistent RFT scenarios with pre-defined airline industry topics, generating RFTs, RFT packs, vendor responses, and evaluation reports. All generated documents are stored in Azure Blob Storage.
 
 ### Configuration Management
 **System:** Exclusively uses environment variables for AI service credentials (OpenAI, Azure OpenAI, Azure Search, Azure Storage) via Replit Secrets.
-**Shared Client Usage:** Centralized client factories (`getOpenAIClient()`, `getAzureOpenAIConfig()`) and a `ConfigHelper` utility ensure consistent configuration across services.
+**Shared Client Usage:** Centralized client factories and a `ConfigHelper` utility ensure consistent configuration across services.
 **Caching:** OpenAI client instances are cached, with automatic invalidation upon configuration changes.
 **Admin Config Page:** Provides Azure connectivity tests, data wiping functionality, and instructions for setting environment variables.
 

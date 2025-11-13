@@ -297,19 +297,33 @@ export default function PortfolioPage() {
                       </Button>
                       
                       {rft.status === "published" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedRftId(rft.id);
-                            setUploadDialogOpen(true);
-                          }}
-                          data-testid={`button-upload-responses-${rft.id}`}
-                          className="w-full"
-                        >
-                          <Upload className="w-3 h-3 mr-1" />
-                          Upload Vendor Responses
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.open(`/api/generated-rfts/${rft.id}/download-vendor-responses`, "_blank");
+                            }}
+                            data-testid={`button-download-responses-${rft.id}`}
+                            className="w-full"
+                          >
+                            <Download className="w-3 h-3 mr-1" />
+                            Download Response
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedRftId(rft.id);
+                              setUploadDialogOpen(true);
+                            }}
+                            data-testid={`button-upload-responses-${rft.id}`}
+                            className="w-full"
+                          >
+                            <Upload className="w-3 h-3 mr-1" />
+                            Upload Vendor Responses
+                          </Button>
+                        </>
                       )}
                     </CardContent>
                   </Card>
