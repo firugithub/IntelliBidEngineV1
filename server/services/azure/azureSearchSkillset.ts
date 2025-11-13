@@ -8,6 +8,7 @@ import { ConfigHelper } from "../core/configHelpers";
 export class AzureSearchSkillsetService {
   private indexerClient: SearchIndexerClient | null = null;
   private searchIndexClient: any = null; // For creating indexes
+  private ocrSearchClient: any = null; // For querying OCR staging index
   private ocrIndexName = "intellibid-blob-ocr"; // Dedicated staging index for OCR results
   private dataSourceName = "intellibid-blob-datasource";
   private skillsetName = "intellibid-ocr-skillset";
@@ -18,9 +19,10 @@ export class AzureSearchSkillsetService {
     const credential = new AzureKeyCredential(apiKey);
     this.indexerClient = new SearchIndexerClient(endpoint, credential);
     
-    // Import SearchIndexClient for creating indexes
-    const { SearchIndexClient } = await import("@azure/search-documents");
+    // Import SearchIndexClient and SearchClient
+    const { SearchIndexClient, SearchClient } = await import("@azure/search-documents");
     this.searchIndexClient = new SearchIndexClient(endpoint, credential);
+    this.ocrSearchClient = new SearchClient(endpoint, this.ocrIndexName, credential);
 
     // Setup complete pipeline: OCR index → data source → skillset → indexer
     await this.createOrUpdateOcrIndex();
@@ -311,6 +313,82 @@ export class AzureSearchSkillsetService {
 
   isConfigured(): boolean {
     return this.indexerClient !== null;
+  }
+
+  /**
+   * Retrieve OCR-enriched document by blob name from staging index
+   */
+  async getOcrDocumentByBlob(blobName: string): Promise<{ mergedText?: string; content?: string; metadataPath?: string } | null> {
+    if (!this.ocrSearchClient) {
+      console.log("[Skillset] OCR search client not initialized, attempting to initialize...");
+      try {
+        await this.initialize();
+      } catch (error) {
+        console.warn("[Skillset] Failed to initialize OCR search client:", error);
+        return null;
+      }
+    }
+
+    try {
+      // Search for document by blob name
+      const searchResults = await this.ocrSearchClient.search("*", {
+        filter: `metadata_storage_name eq '${blobName}'`,
+        select: ["merged_text", "content", "metadata_storage_path"],
+        top: 1,
+      });
+
+      // Get first result
+      for await (const result of searchResults.results) {
+        return {
+          mergedText: result.document.merged_text,
+          content: result.document.content,
+          metadataPath: result.document.metadata_storage_path,
+        };
+      }
+
+      // No results found
+      return null;
+    } catch (error: any) {
+      console.warn(`[Skillset] Failed to query OCR index for blob '${blobName}':`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Wait for OCR merged text with polling and timeout
+   * Returns merged text if available within timeout, or null if not found
+   */
+  async waitForOcrMergedText(options: {
+    blobName: string;
+    timeoutMs?: number;
+    pollIntervalMs?: number;
+  }): Promise<string | null> {
+    const { blobName, timeoutMs = 45000, pollIntervalMs = 5000 } = options;
+    const startTime = Date.now();
+
+    console.log(`[Skillset] Waiting for OCR results for blob '${blobName}' (timeout: ${timeoutMs}ms)`);
+
+    while (Date.now() - startTime < timeoutMs) {
+      const ocrDoc = await this.getOcrDocumentByBlob(blobName);
+
+      if (ocrDoc?.mergedText) {
+        const elapsedMs = Date.now() - startTime;
+        console.log(`[Skillset] OCR merged text retrieved for '${blobName}' after ${elapsedMs}ms`);
+        return ocrDoc.mergedText;
+      }
+
+      // Wait before next poll
+      if (Date.now() - startTime + pollIntervalMs < timeoutMs) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      } else {
+        // Not enough time for another poll
+        break;
+      }
+    }
+
+    const elapsedMs = Date.now() - startTime;
+    console.warn(`[Skillset] OCR merged text not available for '${blobName}' after ${elapsedMs}ms (timeout)`);
+    return null;
   }
 }
 

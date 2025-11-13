@@ -35,14 +35,49 @@ interface IngestionResult {
 
 export class DocumentIngestionService {
   /**
+   * Get effective text content for chunking, preferring OCR-enriched text if available
+   * Falls back to original text if OCR not available within timeout
+   */
+  private async getEffectiveContent(options: {
+    blobName: string;
+    defaultText: string;
+    timeoutMs?: number;
+  }): Promise<{ content: string; ocrEnriched: boolean }> {
+    const { blobName, defaultText, timeoutMs = 30000 } = options;
+
+    try {
+      // Attempt to retrieve OCR-enriched text from staging index
+      const mergedText = await azureSearchSkillsetService.waitForOcrMergedText({
+        blobName,
+        timeoutMs,
+        pollIntervalMs: 3000,
+      });
+
+      if (mergedText) {
+        console.log(`[RAG] Using OCR-enriched text for chunking: ${blobName}`);
+        return { content: mergedText, ocrEnriched: true };
+      }
+
+      // OCR not available, fall back to original text
+      console.log(`[RAG] OCR text not available, using original text: ${blobName}`);
+      return { content: defaultText, ocrEnriched: false };
+    } catch (error: any) {
+      console.warn(`[RAG] Error retrieving OCR text for ${blobName}:`, error.message);
+      console.log("[RAG] Falling back to original text");
+      return { content: defaultText, ocrEnriched: false };
+    }
+  }
+
+  /**
    * Ingest a document into the RAG system
    * 1. Create initial record with "processing" status
    * 2. Upload to Azure Blob Storage
-   * 3. Chunk the document
-   * 4. Generate embeddings
-   * 5. Index in Azure AI Search
-   * 6. Store chunks in database
-   * 7. Update record with "indexed" status
+   * 3. Get OCR-enriched text if available (or fall back to original)
+   * 4. Chunk the document
+   * 5. Generate embeddings
+   * 6. Index in Azure AI Search
+   * 7. Store chunks in database
+   * 8. Update record with "indexed" status
    */
   async ingestDocument(options: DocumentIngestionOptions): Promise<IngestionResult> {
     const documentId = options.documentId || randomUUID();
@@ -137,10 +172,29 @@ export class DocumentIngestionService {
         });
       }
 
-      // Step 2: Chunk the document
-      console.log(`[RAG] Chunking document: ${options.fileName}`);
+      // Step 2: Get effective content (OCR-enriched if available, otherwise original)
+      let effectiveTextContent = options.textContent;
+      let ocrEnriched = false;
+
+      if (blobName) {
+        // Extract just the filename from the full blob path for OCR lookup
+        // blobName is full path like "knowledge-base/shared/doc.pdf"
+        // metadata_storage_name in Azure stores only "doc.pdf"
+        const fileName = blobName.split('/').pop() || blobName;
+        
+        const contentResult = await this.getEffectiveContent({
+          blobName: fileName,
+          defaultText: options.textContent,
+          timeoutMs: 30000, // 30 second timeout for OCR retrieval
+        });
+        effectiveTextContent = contentResult.content;
+        ocrEnriched = contentResult.ocrEnriched;
+      }
+
+      // Step 3: Chunk the document using effective content (may include OCR text)
+      console.log(`[RAG] Chunking document: ${options.fileName} (OCR-enriched: ${ocrEnriched})`);
       const chunks = chunkDocument(
-        [{ title: options.fileName, content: options.textContent }],
+        [{ title: options.fileName, content: effectiveTextContent }],
         { sectionTitle: options.metadata?.sectionTitle, pageNumber: options.metadata?.pageNumber }
       );
 
@@ -148,12 +202,12 @@ export class DocumentIngestionService {
         throw new Error("No chunks generated from document");
       }
 
-      // Step 3: Generate embeddings for all chunks
+      // Step 4: Generate embeddings for all chunks
       console.log(`[RAG] Generating embeddings for ${chunks.length} chunks`);
       const chunkTexts = chunks.map(c => c.content);
       const embeddingResult = await azureEmbeddingService.generateBatchEmbeddings(chunkTexts);
 
-      // Step 4: Prepare documents for Azure AI Search and track chunk IDs
+      // Step 5: Prepare documents for Azure AI Search and track chunk IDs
       searchChunkIds = chunks.map((chunk, index) => 
         `${documentId}-chunk-${chunk.metadata?.chunkIndex || index}`
       );
@@ -178,11 +232,11 @@ export class DocumentIngestionService {
         createdAt: new Date().toISOString(),
       }));
 
-      // Step 5: Index in Azure AI Search
+      // Step 6: Index in Azure AI Search
       console.log(`[RAG] Indexing ${searchDocuments.length} chunks in Azure AI Search`);
       await azureAISearchService.indexDocuments(searchDocuments);
 
-      // Step 6: Store chunks in database with searchChunkIds
+      // Step 7: Store chunks in database with searchChunkIds
       console.log(`[RAG] Storing chunks in database`);
       const ragChunks: InsertRagChunk[] = chunks.map((chunk, index) => ({
         documentId,
@@ -198,8 +252,8 @@ export class DocumentIngestionService {
 
       await storage.createRagChunks(ragChunks);
 
-      // Step 7: Update record with success status
-      console.log(`[RAG] Updating document record with indexed status`);
+      // Step 8: Update record with success status
+      console.log(`[RAG] Updating document record with indexed status (OCR-enriched: ${ocrEnriched})`);
       await storage.updateRagDocument(documentId, {
         searchDocId: documentId,
         totalChunks: chunks.length,
