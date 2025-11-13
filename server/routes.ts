@@ -1148,10 +1148,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error("No document source available for RAG ingestion");
         }
 
-        // Ingest into RAG system
+        // Ingest into RAG system with category-based folder organization
         const ragResult = await documentIngestionService.ingestDocument({
           sourceType: "standard",
           sourceId: standard.id,
+          category: category as "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security" | "shared" || "shared",
           fileName: fileName || "document.txt",
           content: documentBuffer,
           textContent: parsedDocument.text,
