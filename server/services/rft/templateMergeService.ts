@@ -87,8 +87,9 @@ export class TemplateMergeService {
   }
 
   private async downloadTemplateFile(blobUrl: string): Promise<Buffer> {
-    // Remove query parameters (SAS tokens) from the URL first
-    const urlWithoutQuery = blobUrl.split('?')[0];
+    // Decode URL first (handles %3F, %26, etc.), then remove query parameters (SAS tokens)
+    const decodedUrl = decodeURIComponent(blobUrl);
+    const urlWithoutQuery = decodedUrl.split('?')[0];
     
     const urlParts = urlWithoutQuery.split("/");
     const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
