@@ -90,6 +90,8 @@ export default function AdminConfigPage() {
         title: "Skillset Initialized",
         description: data.message || "OCR skillset and indexer created successfully",
       });
+      // Automatically show status polling after successful initialization
+      setShowIndexerStatus(true);
     },
     onError: (error: any) => {
       toast({
@@ -309,6 +311,12 @@ export default function AdminConfigPage() {
             {showIndexerStatus && indexerStatusQuery.isLoading && (
               <div className="mt-4 p-4 rounded-lg border bg-card">
                 <div className="text-sm text-muted-foreground">Loading status...</div>
+              </div>
+            )}
+
+            {showIndexerStatus && indexerStatusQuery.isError && (
+              <div className="mt-4 p-4 rounded-lg border bg-card border-destructive/50">
+                <div className="text-sm text-destructive">Failed to load indexer status</div>
               </div>
             )}
           </CardContent>

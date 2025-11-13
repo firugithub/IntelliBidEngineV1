@@ -7,7 +7,8 @@ import { ConfigHelper } from "../core/configHelpers";
  */
 export class AzureSearchSkillsetService {
   private indexerClient: SearchIndexerClient | null = null;
-  private indexName = "intellibid-rag";
+  private searchIndexClient: any = null; // For creating indexes
+  private ocrIndexName = "intellibid-blob-ocr"; // Dedicated staging index for OCR results
   private dataSourceName = "intellibid-blob-datasource";
   private skillsetName = "intellibid-ocr-skillset";
   private indexerName = "intellibid-ocr-indexer";
@@ -16,11 +17,79 @@ export class AzureSearchSkillsetService {
     const { endpoint, apiKey } = ConfigHelper.getAzureSearchConfig();
     const credential = new AzureKeyCredential(apiKey);
     this.indexerClient = new SearchIndexerClient(endpoint, credential);
+    
+    // Import SearchIndexClient for creating indexes
+    const { SearchIndexClient } = await import("@azure/search-documents");
+    this.searchIndexClient = new SearchIndexClient(endpoint, credential);
 
-    // Setup complete pipeline: data source → skillset → indexer
+    // Setup complete pipeline: OCR index → data source → skillset → indexer
+    await this.createOrUpdateOcrIndex();
     await this.createOrUpdateDataSource();
     await this.createOrUpdateSkillset();
     await this.createOrUpdateIndexer();
+  }
+
+  /**
+   * Create or update dedicated OCR index for blob processing
+   * This staging index receives OCR-enriched text from the skillset
+   */
+  private async createOrUpdateOcrIndex(): Promise<void> {
+    if (!this.searchIndexClient) {
+      throw new Error("Search index client not initialized");
+    }
+
+    const indexSchema = {
+      name: this.ocrIndexName,
+      fields: [
+        {
+          name: "id",
+          type: "Edm.String",
+          key: true,
+          searchable: false,
+        },
+        {
+          name: "content",
+          type: "Edm.String",
+          searchable: true,
+        },
+        {
+          name: "merged_text",
+          type: "Edm.String",
+          searchable: true,
+        },
+        {
+          name: "metadata_storage_name",
+          type: "Edm.String",
+          searchable: false,
+          filterable: true,
+        },
+        {
+          name: "metadata_storage_path",
+          type: "Edm.String",
+          key: false,
+          searchable: false,
+          filterable: true,
+          retrievable: true, // Must be retrievable for queries to project the blob path
+        },
+        {
+          name: "metadata_storage_last_modified",
+          type: "Edm.DateTimeOffset",
+          searchable: false,
+          filterable: true,
+          sortable: true,
+        },
+      ],
+    };
+
+    try {
+      // Use createOrUpdateIndex to handle both creation and schema updates
+      // This ensures existing indexes get the updated schema (e.g., retrievable metadata fields)
+      await this.searchIndexClient.createOrUpdateIndex(indexSchema);
+      console.log(`[Skillset] OCR staging index '${this.ocrIndexName}' created/updated with latest schema`);
+    } catch (error: any) {
+      console.error(`[Skillset] Failed to create/update OCR index:`, error.message);
+      throw error;
+    }
   }
 
   /**
@@ -138,7 +207,7 @@ export class AzureSearchSkillsetService {
         name: this.indexerName,
         description: "Indexer with OCR skillset for document processing",
         dataSourceName: this.dataSourceName,
-        targetIndexName: this.indexName,
+        targetIndexName: this.ocrIndexName, // Target the dedicated OCR staging index
         skillsetName: this.skillsetName,
         parameters: {
           configuration: {
@@ -149,18 +218,19 @@ export class AzureSearchSkillsetService {
         },
         fieldMappings: [
           {
-            sourceFieldName: "metadata_storage_name",
-            targetFieldName: "fileName",
+            sourceFieldName: "metadata_storage_path",
+            targetFieldName: "id",
           },
           {
-            sourceFieldName: "metadata_storage_last_modified",
-            targetFieldName: "createdAt",
+            sourceFieldName: "content",
+            targetFieldName: "content",
           },
         ],
         outputFieldMappings: [
+          // Map the skillset's merged text output (OCR + document content)
           {
             sourceFieldName: "/document/merged_text",
-            targetFieldName: "content",
+            targetFieldName: "merged_text",
           },
         ],
       });

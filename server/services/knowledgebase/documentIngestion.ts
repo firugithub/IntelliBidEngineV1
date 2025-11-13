@@ -208,11 +208,16 @@ export class DocumentIngestionService {
 
       console.log(`[RAG] Document ingestion completed: ${options.fileName}`);
       
-      // Trigger indexer run in background for OCR processing
-      // This runs asynchronously and doesn't block the response
-      azureSearchSkillsetService.runIndexer()
-        .then(() => console.log("[RAG] Indexer triggered for OCR processing"))
-        .catch((err) => console.warn("[RAG] Indexer trigger failed (non-blocking):", err.message));
+      // Trigger indexer run in background for OCR processing (fire-and-forget)
+      // This runs completely asynchronously without blocking ingestion
+      void (async () => {
+        try {
+          await azureSearchSkillsetService.runIndexer();
+          console.log("[RAG] Indexer triggered for OCR processing");
+        } catch (err: any) {
+          console.warn("[RAG] Indexer trigger failed (non-blocking):", err?.message);
+        }
+      })();
       
       return {
         documentId,

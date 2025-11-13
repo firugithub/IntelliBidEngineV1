@@ -1538,8 +1538,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Skillset API] Failed to initialize skillset:", error);
       res.status(500).json({ 
-        error: "Failed to initialize skillset", 
-        details: error.message 
+        success: false,
+        message: error.message || "Failed to initialize skillset"
       });
     }
   });
@@ -1556,8 +1556,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Skillset API] Failed to run indexer:", error);
       res.status(500).json({ 
-        error: "Failed to run indexer", 
-        details: error.message 
+        success: false,
+        message: error.message || "Failed to run indexer"
       });
     }
   });
@@ -1574,8 +1574,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Skillset API] Failed to get indexer status:", error);
       res.status(500).json({ 
-        error: "Failed to get indexer status", 
-        details: error.message 
+        success: false,
+        message: error.message || "Failed to get indexer status"
       });
     }
   });
@@ -1592,8 +1592,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Skillset API] Failed to reset indexer:", error);
       res.status(500).json({ 
-        error: "Failed to reset indexer", 
-        details: error.message 
+        success: false,
+        message: error.message || "Failed to reset indexer"
       });
     }
   });
