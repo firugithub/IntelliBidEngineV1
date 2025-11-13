@@ -131,17 +131,17 @@ export class AzureSearchSkillsetService {
 
     const cognitiveServicesKey = ConfigHelper.getAzureCognitiveServicesKey();
 
-    // Build skillset definition with explicit odataType property
+    // Build skillset definition with correct lowercase odatatype property
     const skillsetDefinition: any = {
       name: this.skillsetName,
       description: "Extract text from images using OCR and merge with document content",
       skills: [
         // OCR Skill - Extract text from images
         {
-          odataType: "#Microsoft.Skills.Vision.OcrSkill",
+          odatatype: "#Microsoft.Skills.Vision.OcrSkill",
           context: "/document/normalized_images/*",
           defaultLanguageCode: "en",
-          detectOrientation: true,
+          shouldDetectOrientation: true,
           inputs: [
             {
               name: "image",
@@ -157,7 +157,7 @@ export class AzureSearchSkillsetService {
         },
         // Merge Skill - Combine OCR text with document content
         {
-          odataType: "#Microsoft.Skills.Text.MergeSkill",
+          odatatype: "#Microsoft.Skills.Text.MergeSkill",
           description: "Merge OCR text with document content",
           context: "/document",
           insertPreTag: " ",
@@ -185,7 +185,7 @@ export class AzureSearchSkillsetService {
         },
       ],
       cognitiveServicesAccount: {
-        odataType: "#Microsoft.Azure.Search.CognitiveServicesByKey",
+        odatatype: "#Microsoft.Azure.Search.CognitiveServicesByKey",
         key: cognitiveServicesKey,
       },
     };
