@@ -503,10 +503,18 @@ ON CONFLICT DO NOTHING;
 -- ====================================================
 -- ORGANIZATION TEMPLATES (Sample - Optional)
 -- ====================================================
--- Note: Organization templates require actual DOCX files in Azure Blob Storage
--- Update the 'blob_url' values below with your actual Azure Blob Storage URLs
--- Or upload templates via the Template Management UI instead
+-- IMPORTANT: These templates are DISABLED by default because they require
+-- actual DOCX files in Azure Blob Storage. 
+-- 
+-- TO ENABLE: 
+--   1. Upload DOCX files to Azure Blob Storage
+--   2. Update the blob_url values below with actual URLs
+--   3. Uncomment the INSERT statement
+--
+-- RECOMMENDED: Upload templates via Template Management UI instead
+-- This ensures files are properly uploaded to blob storage automatically
 
+/*
 INSERT INTO organization_templates (
     name,
     description,
@@ -673,6 +681,7 @@ INSERT INTO organization_templates (
         'system'
     )
 ON CONFLICT (name) DO NOTHING;
+*/
 
 -- ====================================================
 -- SUCCESS MESSAGE
@@ -697,9 +706,12 @@ BEGIN
     RAISE NOTICE '📊 Summary:';
     RAISE NOTICE '  • Portfolios: % (Aviation industry defaults)', portfolio_count;
     RAISE NOTICE '  • AI RFT Templates: % (Multi-stakeholder templates)', ai_template_count;
-    RAISE NOTICE '  • Organization Templates: % (DOCX templates)', org_template_count;
+    RAISE NOTICE '  • Organization Templates: % (commented out - upload via UI)', org_template_count;
     RAISE NOTICE '  • System Config: % entries (Azure & AI credentials)', config_count;
     RAISE NOTICE '  • Compliance Standards: % (IOSA, ISO 27001, GDPR, PCI DSS)', standards_count;
+    RAISE NOTICE '';
+    RAISE NOTICE '⚠️  IMPORTANT: Organization templates are DISABLED in seed data';
+    RAISE NOTICE '   They require actual DOCX files in Azure Blob Storage';
     RAISE NOTICE '';
     RAISE NOTICE '🚀 Next Steps:';
     RAISE NOTICE '  1. Configure Azure credentials in Admin Config page or via environment variables';
@@ -707,9 +719,10 @@ BEGIN
     RAISE NOTICE '  3. Verify server/prompts/ directory contains all 6 AI agent prompt files:';
     RAISE NOTICE '     - delivery-agent.md, product-agent.md, architecture-agent.md';
     RAISE NOTICE '     - engineering-agent.md, procurement-agent.md, security-agent.md';
-    RAISE NOTICE '  4. Organization Templates - Choose ONE:';
-    RAISE NOTICE '     a) Update blob_url in organization_templates table with your Azure Blob URLs';
-    RAISE NOTICE '     b) Upload new DOCX templates via Template Management page (recommended)';
+    RAISE NOTICE '  4. Upload Organization Templates:';
+    RAISE NOTICE '     → Go to Template Management page in the app';
+    RAISE NOTICE '     → Click "Upload Template" button';
+    RAISE NOTICE '     → Upload DOCX files with placeholders like {{PROJECT_NAME}}';
     RAISE NOTICE '  5. Import additional compliance standards if needed';
     RAISE NOTICE '';
     RAISE NOTICE '✅ Database ready for production deployment!';
