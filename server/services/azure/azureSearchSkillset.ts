@@ -131,64 +131,67 @@ export class AzureSearchSkillsetService {
 
     const cognitiveServicesKey = ConfigHelper.getAzureCognitiveServicesKey();
 
+    // Build skillset definition with explicit odataType property
+    const skillsetDefinition: any = {
+      name: this.skillsetName,
+      description: "Extract text from images using OCR and merge with document content",
+      skills: [
+        // OCR Skill - Extract text from images
+        {
+          odataType: "#Microsoft.Skills.Vision.OcrSkill",
+          context: "/document/normalized_images/*",
+          defaultLanguageCode: "en",
+          detectOrientation: true,
+          inputs: [
+            {
+              name: "image",
+              source: "/document/normalized_images/*",
+            },
+          ],
+          outputs: [
+            {
+              name: "text",
+              targetName: "text",
+            },
+          ],
+        },
+        // Merge Skill - Combine OCR text with document content
+        {
+          odataType: "#Microsoft.Skills.Text.MergeSkill",
+          description: "Merge OCR text with document content",
+          context: "/document",
+          insertPreTag: " ",
+          insertPostTag: " ",
+          inputs: [
+            {
+              name: "text",
+              source: "/document/content",
+            },
+            {
+              name: "itemsToInsert",
+              source: "/document/normalized_images/*/text",
+            },
+            {
+              name: "offsets",
+              source: "/document/normalized_images/*/contentOffset",
+            },
+          ],
+          outputs: [
+            {
+              name: "mergedText",
+              targetName: "merged_text",
+            },
+          ],
+        },
+      ],
+      cognitiveServicesAccount: {
+        odataType: "#Microsoft.Azure.Search.CognitiveServicesByKey",
+        key: cognitiveServicesKey,
+      },
+    };
+
     try {
-      await this.indexerClient.createOrUpdateSkillset({
-        name: this.skillsetName,
-        description: "Extract text from images using OCR and merge with document content",
-        skills: [
-          // OCR Skill - Extract text from images
-          {
-            "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
-            context: "/document/normalized_images/*",
-            defaultLanguageCode: "en",
-            detectOrientation: true,
-            inputs: [
-              {
-                name: "image",
-                source: "/document/normalized_images/*",
-              },
-            ],
-            outputs: [
-              {
-                name: "text",
-                targetName: "text",
-              },
-            ],
-          } as any,
-          // Merge Skill - Combine OCR text with document content
-          {
-            "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
-            description: "Merge OCR text with document content",
-            context: "/document",
-            insertPreTag: " ",
-            insertPostTag: " ",
-            inputs: [
-              {
-                name: "text",
-                source: "/document/content",
-              },
-              {
-                name: "itemsToInsert",
-                source: "/document/normalized_images/*/text",
-              },
-              {
-                name: "offsets",
-                source: "/document/normalized_images/*/contentOffset",
-              },
-            ],
-            outputs: [
-              {
-                name: "mergedText",
-                targetName: "merged_text",
-              },
-            ],
-          } as any,
-        ],
-        cognitiveServicesAccount: {
-          "@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey",
-          key: cognitiveServicesKey,
-        } as any,
-      });
+      await this.indexerClient.createOrUpdateSkillset(skillsetDefinition);
       console.log(`[Skillset] Skillset '${this.skillsetName}' created/updated`);
     } catch (error: any) {
       console.error(`[Skillset] Failed to create skillset:`, error.message);
