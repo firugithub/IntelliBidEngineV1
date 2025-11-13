@@ -1,6 +1,7 @@
 import { type RftGenerationDraft, type OrganizationTemplate } from "@shared/schema";
 import { storage } from "../../storage";
 import { AzureBlobStorageService } from "../azure/azureBlobStorage";
+import { normalizeBlobIdentifiers } from "./templateService";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 
@@ -51,7 +52,28 @@ export class TemplateMergeService {
       throw new Error(`Draft ${draftId} not found`);
     }
 
-    const templateBuffer = await this.downloadTemplateFile(template.blobUrl);
+    // Normalize blob identifiers (handles legacy empty strings)
+    const { 
+      blobName: normalizedBlobName, 
+      blobUrl: normalizedBlobUrl, 
+      hasIdentifier 
+    } = normalizeBlobIdentifiers(
+      template.blobName,
+      template.blobUrl
+    );
+
+    // Validate template has a blob identifier (required for merge)
+    if (!hasIdentifier) {
+      throw new Error(
+        `Template ${templateId} has no associated file to merge. ` +
+        `This may be legacy data that needs remediation. ` +
+        `Please re-upload the template file.`
+      );
+    }
+
+    // Prefer blob name over blob URL (blob name is the new standard)
+    const blobIdentifier = normalizedBlobName || normalizedBlobUrl;
+    const templateBuffer = await this.downloadTemplateFile(blobIdentifier);
 
     const mergeData = this.prepareMergeData(
       draft.generatedSections as GeneratedSection[],
@@ -86,20 +108,55 @@ export class TemplateMergeService {
     };
   }
 
-  private async downloadTemplateFile(blobUrl: string): Promise<Buffer> {
-    // Decode URL first (handles %3F, %26, etc.), then remove query parameters (SAS tokens)
-    const decodedUrl = decodeURIComponent(blobUrl);
-    const urlWithoutQuery = decodedUrl.split('?')[0];
+  /**
+   * Download template file from Azure Blob Storage
+   * Supports both blob name (preferred) and blob URL (legacy) formats
+   * @param blobNameOrUrl - Either blob name (templates/abc/file.docx) or full blob URL with SAS tokens
+   * @note Caller must validate identifier is not null/empty before calling this method
+   */
+  private async downloadTemplateFile(blobNameOrUrl: string): Promise<Buffer> {
+    // Caller has already validated identifier is not null/empty via normalizeBlobIdentifiers helper
+    const normalizedIdentifier = blobNameOrUrl.trim();
+
+    // If it looks like a blob URL (starts with http), extract the blob name
+    if (normalizedIdentifier.startsWith('http://') || normalizedIdentifier.startsWith('https://')) {
+      // Decode URL first (handles %3F, %26, etc.), then remove query parameters (SAS tokens)
+      const decodedUrl = decodeURIComponent(normalizedIdentifier);
+      const urlWithoutQuery = decodedUrl.split('?')[0];
+      
+      const urlParts = urlWithoutQuery.split("/");
+      const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
+      
+      if (containerIndex === -1 || containerIndex >= urlParts.length - 1) {
+        throw new Error(
+          `Invalid blob URL format: ${normalizedIdentifier}. ` +
+          `Expected URL to contain '/intellibid-documents/' container path.`
+        );
+      }
+
+      const blobName = urlParts.slice(containerIndex + 1).join("/");
+      
+      // Validate extracted blob name is not empty
+      if (!blobName || blobName.trim() === '') {
+        throw new Error(
+          `Extracted blob name is empty from URL: ${normalizedIdentifier}. ` +
+          `URL may be malformed or missing file path after container name.`
+        );
+      }
+
+      return blobStorageService.downloadDocument(blobName);
+    }
     
-    const urlParts = urlWithoutQuery.split("/");
-    const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
-    
-    if (containerIndex === -1 || containerIndex >= urlParts.length - 1) {
-      throw new Error(`Invalid blob URL format: ${blobUrl}`);
+    // Otherwise, assume it's already a blob name (e.g., "templates/abc123/file.docx")
+    // Validate blob name format (should contain forward slashes for path)
+    if (!normalizedIdentifier.includes('/')) {
+      throw new Error(
+        `Invalid blob name format: "${normalizedIdentifier}". ` +
+        `Expected path format like "templates/abc123/file.docx".`
+      );
     }
 
-    const blobName = urlParts.slice(containerIndex + 1).join("/");
-    return blobStorageService.downloadDocument(blobName);
+    return blobStorageService.downloadDocument(normalizedIdentifier);
   }
 
   private prepareMergeData(

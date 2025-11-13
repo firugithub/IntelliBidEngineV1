@@ -8,6 +8,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### November 13, 2025 - Blob Storage Refactor: Migrated from SAS URLs to Blob Names
+**Issue:** Storing full SAS URLs in database was causing reliability and security issues. SAS tokens expire, URLs can be URL-encoded, and extracting blob names from URLs is error-prone.
+
+**Solution:** Migrated blob storage architecture to store blob names instead of full URLs:
+1. **Database Schema**: Added `blob_name` columns to 3 tables (organization_templates, proposals, generated_rfts with 6 columns for pack files)
+2. **Dual-Write Mode**: Template uploads now store BOTH `blobUrl` (legacy) and `blobName` (new standard) for backward compatibility
+3. **Normalization Helper**: Created `normalizeBlobIdentifiers()` utility that treats empty strings as null, ensuring legacy data with blank identifiers is handled gracefully
+4. **Service Updates**: Updated templateService.ts and templateMergeService.ts with:
+   - Prefer `blobName` over `blobUrl` (fallback to extracting from URL for legacy records)
+   - Soft-fail for delete operations (skip blob deletion if no identifier, log message, continue with DB deletion)
+   - Hard-fail for download/merge operations (throw descriptive errors requesting file re-upload)
+   - Comprehensive validation with URL decoding and empty string normalization
+
+**Backward Compatibility:**
+- ✅ Legacy records with only `blobUrl` → Extract blob name from URL
+- ✅ Legacy records with empty string identifiers → Normalize to null, handle appropriately
+- ✅ Malformed URLs → Throw descriptive validation errors
+- ✅ New uploads → Store blob name directly for reliable access
+
+**Next Steps:** Update RFT pack generation and proposal ingestion services to use blob names, create migration utility to backfill blob names from existing URLs.
+
 ### November 13, 2025 - Fixed Production Deployment Path Resolution
 **Issue:** Application crashes on Azure VM/production environments with `ENOENT: no such file or directory, open '/home/azureuser/prompts/delivery-agent.md'`
 

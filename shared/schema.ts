@@ -79,7 +79,8 @@ export const proposals = pgTable("proposals", {
   vendorName: text("vendor_name").notNull(),
   documentType: text("document_type").notNull(),
   fileName: text("file_name").notNull(),
-  blobUrl: text("blob_url"), // Azure Blob Storage URL for the document
+  blobUrl: text("blob_url"), // Azure Blob Storage URL for the document (DEPRECATED - use blobName)
+  blobName: text("blob_name"), // Azure Blob Storage object path (templates/abc123/file.docx)
   extractedData: jsonb("extracted_data"),
   standardId: varchar("standard_id"),
   taggedSections: jsonb("tagged_sections"),
@@ -299,12 +300,18 @@ export const generatedRfts = pgTable("generated_rfts", {
   nfrQuestionnairePath: text("nfr_questionnaire_path"), // Local path to NFR Excel (50 questions)
   cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Local path to Cybersecurity Excel (20 questions)
   agileQuestionnairePath: text("agile_questionnaire_path"), // Local path to Agile Delivery Excel (20 questions)
-  docxBlobUrl: text("docx_blob_url"), // Azure Blob Storage URL for DOCX file
-  pdfBlobUrl: text("pdf_blob_url"), // Azure Blob Storage URL for PDF file
-  productQuestionnaireBlobUrl: text("product_questionnaire_blob_url"), // Azure URL for Product Excel
-  nfrQuestionnaireBlobUrl: text("nfr_questionnaire_blob_url"), // Azure URL for NFR Excel
-  cybersecurityQuestionnaireBlobUrl: text("cybersecurity_questionnaire_blob_url"), // Azure URL for Cybersecurity Excel
-  agileQuestionnaireBlobUrl: text("agile_questionnaire_blob_url"), // Azure URL for Agile Excel
+  docxBlobUrl: text("docx_blob_url"), // Azure Blob Storage URL for DOCX file (DEPRECATED - use docxBlobName)
+  pdfBlobUrl: text("pdf_blob_url"), // Azure Blob Storage URL for PDF file (DEPRECATED - use pdfBlobName)
+  productQuestionnaireBlobUrl: text("product_questionnaire_blob_url"), // Azure URL for Product Excel (DEPRECATED - use productQuestionnaireBlobName)
+  nfrQuestionnaireBlobUrl: text("nfr_questionnaire_blob_url"), // Azure URL for NFR Excel (DEPRECATED - use nfrQuestionnaireBlobName)
+  cybersecurityQuestionnaireBlobUrl: text("cybersecurity_questionnaire_blob_url"), // Azure URL for Cybersecurity Excel (DEPRECATED - use cybersecurityQuestionnaireBlobName)
+  agileQuestionnaireBlobUrl: text("agile_questionnaire_blob_url"), // Azure URL for Agile Excel (DEPRECATED - use agileQuestionnaireBlobName)
+  docxBlobName: text("docx_blob_name"), // Azure Blob Storage path for DOCX file
+  pdfBlobName: text("pdf_blob_name"), // Azure Blob Storage path for PDF file
+  productQuestionnaireBlobName: text("product_questionnaire_blob_name"), // Azure path for Product Excel
+  nfrQuestionnaireBlobName: text("nfr_questionnaire_blob_name"), // Azure path for NFR Excel
+  cybersecurityQuestionnaireBlobName: text("cybersecurity_questionnaire_blob_name"), // Azure path for Cybersecurity Excel
+  agileQuestionnaireBlobName: text("agile_questionnaire_blob_name"), // Azure path for Agile Excel
   status: text("status").notNull().default("draft"), // 'draft', 'review', 'published', 'archived'
   version: integer("version").notNull().default(1),
   publishedAt: timestamp("published_at"),
@@ -319,7 +326,8 @@ export const organizationTemplates = pgTable("organization_templates", {
   description: text("description"),
   category: text("category").notNull(), // 'RFT', 'RFI', 'RFP', 'Custom'
   templateType: text("template_type").notNull().default("docx"), // 'docx', 'xlsx'
-  blobUrl: text("blob_url").notNull(), // Azure Blob Storage URL for template file
+  blobUrl: text("blob_url").notNull(), // Azure Blob Storage URL for template file (DEPRECATED - use blobName)
+  blobName: text("blob_name"), // Azure Blob Storage object path (templates/abc123/file.docx)
   placeholders: jsonb("placeholders").notNull(), // List of detected placeholders: [{name: "PROJECT_NAME", type: "simple", description: "..."}]
   sectionMappings: jsonb("section_mappings"), // SectionMapping[] from stakeholderConfig: [{sectionId: "section-1", sectionTitle: "Introduction", defaultAssignee: "technical_pm", category: "business"}]
   isActive: text("is_active").notNull().default("true"),

@@ -19,7 +19,26 @@ interface TemplateUploadResult {
   placeholders: PlaceholderInfo[];
 }
 
-export class TemplateService {
+/**
+ * Normalize blob identifiers by treating empty strings as null
+ * This ensures backward compatibility with legacy data that may have blank identifiers
+ * @returns normalized blob name or null if both identifiers are empty/null
+ */
+export function normalizeBlobIdentifiers(
+  blobName: string | null | undefined,
+  blobUrl: string | null | undefined
+): { blobName: string | null; blobUrl: string | null; hasIdentifier: boolean } {
+  const normalizedBlobName = blobName && blobName.trim() ? blobName.trim() : null;
+  const normalizedBlobUrl = blobUrl && blobUrl.trim() ? blobUrl.trim() : null;
+  
+  return {
+    blobName: normalizedBlobName,
+    blobUrl: normalizedBlobUrl,
+    hasIdentifier: !!(normalizedBlobName || normalizedBlobUrl),
+  };
+}
+
+class TemplateService {
   async uploadTemplate(
     file: Buffer,
     fileName: string,
@@ -66,7 +85,8 @@ export class TemplateService {
     const templateId = crypto.randomUUID();
     const blobPath = `templates/${templateId}/${fileName}`;
 
-    const { blobUrl } = await blobStorageService.uploadDocument(
+    // Upload to Azure Blob Storage - returns both SAS URL and blob name
+    const { blobUrl, blobName } = await blobStorageService.uploadDocument(
       blobPath,
       file,
       {
@@ -77,12 +97,14 @@ export class TemplateService {
       }
     );
 
+    // Dual-write: Store both blobUrl (for backward compat) and blobName (new standard)
     const templateData: InsertOrganizationTemplate = {
       name: metadata.name,
       description: metadata.description || null,
       category: metadata.category,
       templateType: metadata.templateType,
-      blobUrl,
+      blobUrl, // Legacy SAS URL (will be deprecated)
+      blobName, // New standard: blob path (e.g., "templates/abc123/file.docx")
       placeholders: placeholders as any,
       sectionMappings: suggestedSections.length > 0 ? (suggestedSections as any) : null,
       isActive: "true",
@@ -570,30 +592,72 @@ export class TemplateService {
       throw new Error(`Template with ID ${templateId} not found`);
     }
 
-    if (template.blobUrl) {
+    // Normalize blob identifiers (handles legacy empty strings)
+    const { blobName, blobUrl, hasIdentifier } = normalizeBlobIdentifiers(
+      template.blobName,
+      template.blobUrl
+    );
+
+    // Delete blob from Azure Blob Storage (soft-fail for legacy data with no blob)
+    if (hasIdentifier) {
       try {
-        const blobName = this.extractBlobName(template.blobUrl);
-        await blobStorageService.deleteDocument(blobName);
+        const blobNameToDelete = blobName 
+          ? blobName  // Use blob name directly if available
+          : this.extractBlobName(blobUrl);  // Extract from URL for legacy records
+        await blobStorageService.deleteDocument(blobNameToDelete);
       } catch (error) {
         console.warn(
           `Failed to delete blob for template ${templateId}:`,
           error instanceof Error ? error.message : String(error)
         );
       }
+    } else {
+      // Legacy template with no blob file - log for remediation
+      console.log(
+        `Template ${templateId} has no blob file to delete (legacy data). ` +
+        `Proceeding with database record deletion only.`
+      );
     }
 
     await storage.deleteOrganizationTemplate(templateId);
   }
 
-  private extractBlobName(blobUrl: string): string {
-    const urlParts = blobUrl.split("/");
+  private extractBlobName(blobUrl: string | null | undefined): string {
+    // Normalize empty strings to null (legacy data compatibility)
+    const normalizedUrl = blobUrl && blobUrl.trim() ? blobUrl.trim() : null;
+    
+    // Validate input is not null or empty
+    if (!normalizedUrl) {
+      throw new Error(
+        'Blob URL is missing. Cannot extract blob name from empty URL.'
+      );
+    }
+
+    // Decode URL first (handles %3F, %26, etc.), then remove query parameters (SAS tokens)
+    const decodedUrl = decodeURIComponent(normalizedUrl);
+    const urlWithoutQuery = decodedUrl.split('?')[0];
+
+    const urlParts = urlWithoutQuery.split("/");
     const containerIndex = urlParts.findIndex((part) => part === "intellibid-documents");
     
     if (containerIndex === -1 || containerIndex >= urlParts.length - 1) {
-      throw new Error(`Invalid blob URL format: ${blobUrl}`);
+      throw new Error(
+        `Invalid blob URL format: ${normalizedUrl}. ` +
+        `Expected URL to contain '/intellibid-documents/' container path.`
+      );
     }
 
-    return urlParts.slice(containerIndex + 1).join("/");
+    const blobName = urlParts.slice(containerIndex + 1).join("/");
+    
+    // Validate extracted blob name is not empty
+    if (!blobName || blobName.trim() === '') {
+      throw new Error(
+        `Extracted blob name is empty from URL: ${normalizedUrl}. ` +
+        `URL may be malformed or missing file path after container name.`
+      );
+    }
+
+    return blobName;
   }
 
   async downloadTemplate(templateId: string): Promise<{ buffer: Buffer; fileName: string }> {
@@ -603,12 +667,36 @@ export class TemplateService {
       throw new Error(`Template with ID ${templateId} not found`);
     }
 
-    if (!template.blobUrl) {
-      throw new Error(`Template ${templateId} has no associated file`);
+    // Normalize blob identifiers (handles legacy empty strings)
+    const { blobName, blobUrl, hasIdentifier } = normalizeBlobIdentifiers(
+      template.blobName,
+      template.blobUrl
+    );
+
+    // Check if template has an associated file (required for download)
+    if (!hasIdentifier) {
+      throw new Error(
+        `Template ${templateId} has no associated file to download. ` +
+        `This may be legacy data that needs remediation. ` +
+        `Please re-upload the template file.`
+      );
     }
 
-    const blobName = this.extractBlobName(template.blobUrl);
-    const buffer = await blobStorageService.downloadDocument(blobName);
+    // Prefer blob name (new) over extracting from blob URL (legacy)
+    // Note: If hasIdentifier is true, at least one of blobName or blobUrl is non-null
+    let blobNameToDownload: string;
+    if (blobName) {
+      blobNameToDownload = blobName;  // Use blob name directly if available
+    } else if (blobUrl) {
+      blobNameToDownload = this.extractBlobName(blobUrl);  // Extract from URL for legacy records
+    } else {
+      // This should never happen if normalizeBlobIdentifiers works correctly
+      throw new Error(
+        `Template ${templateId} normalization error: hasIdentifier is true but both identifiers are null.`
+      );
+    }
+
+    const buffer = await blobStorageService.downloadDocument(blobNameToDownload);
 
     const fileName =
       template.metadata && typeof template.metadata === "object" && "originalFileName" in template.metadata
