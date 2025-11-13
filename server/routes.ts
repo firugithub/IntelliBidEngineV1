@@ -3667,13 +3667,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get all 6 pack files from Azure Blob Storage
+      // New structure: pack.files.docx.url, pack.files.pdf.url, pack.files.questionnaires.product.url
+      // Legacy structure: pack.docxBlobUrl, pack.pdfBlobUrl, pack.productQuestionnaireBlobUrl
+      const packFiles = pack.files || {};
       const files = [
-        { blobUrl: pack.docxBlobUrl, name: "RFT_Document.docx" },
-        { blobUrl: pack.pdfBlobUrl, name: "RFT_Document.pdf" },
-        { blobUrl: pack.productQuestionnaireBlobUrl, name: "Product_Questionnaire.xlsx" },
-        { blobUrl: pack.nfrQuestionnaireBlobUrl, name: "NFR_Questionnaire.xlsx" },
-        { blobUrl: pack.cybersecurityQuestionnaireBlobUrl, name: "Cybersecurity_Questionnaire.xlsx" },
-        { blobUrl: pack.agileQuestionnaireBlobUrl, name: "Agile_Delivery_Questionnaire.xlsx" },
+        { 
+          blobUrl: packFiles.docx?.url || pack.docxBlobUrl, 
+          name: "RFT_Document.docx" 
+        },
+        { 
+          blobUrl: packFiles.pdf?.url || pack.pdfBlobUrl, 
+          name: "RFT_Document.pdf" 
+        },
+        { 
+          blobUrl: packFiles.questionnaires?.product?.url || pack.productQuestionnaireBlobUrl, 
+          name: "Product_Questionnaire.xlsx" 
+        },
+        { 
+          blobUrl: packFiles.questionnaires?.nfr?.url || pack.nfrQuestionnaireBlobUrl, 
+          name: "NFR_Questionnaire.xlsx" 
+        },
+        { 
+          blobUrl: packFiles.questionnaires?.cybersecurity?.url || pack.cybersecurityQuestionnaireBlobUrl, 
+          name: "Cybersecurity_Questionnaire.xlsx" 
+        },
+        { 
+          blobUrl: packFiles.questionnaires?.agile?.url || pack.agileQuestionnaireBlobUrl, 
+          name: "Agile_Delivery_Questionnaire.xlsx" 
+        },
       ];
 
       // Create ZIP archive
@@ -3695,22 +3716,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       archive.pipe(res);
 
       // Download and add each file to the archive
-      const { default: azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
       
       for (const file of files) {
         if (file.blobUrl) {
           try {
             // Extract blob name from URL
-            const urlParts = file.blobUrl.split("/");
-            const containerIndex = urlParts.findIndex((part: string) => part === "intellibid-documents");
-            const blobName = urlParts.slice(containerIndex + 1).join("/");
+            // URL format: https://intellibidstorage.blob.core.windows.net/intellibid-documents/project-XXX/RFT_Generated/file.docx?sas
+            const url = new URL(file.blobUrl.split('?')[0]); // Remove SAS token
+            const pathname = url.pathname; // e.g., /intellibid-documents/project-XXX/RFT_Generated/file.docx
+            const parts = pathname.split('/').filter(Boolean); // ['intellibid-documents', 'project-XXX', 'RFT_Generated', 'file.docx']
+            
+            // Skip container name, join the rest
+            const blobName = parts.slice(1).join('/'); // project-XXX/RFT_Generated/file.docx
+            
+            console.log(`📥 Downloading ${file.name} from blob: ${blobName}`);
             
             // Download from Azure
             const buffer = await azureBlobStorageService.downloadDocument(blobName);
             
             // Add to archive
             archive.append(buffer, { name: file.name });
-            console.log(`✓ Added ${file.name} to ZIP`);
+            console.log(`✓ Added ${file.name} to ZIP (${buffer.length} bytes)`);
           } catch (error) {
             console.warn(`Could not add ${file.name} to ZIP:`, error);
           }

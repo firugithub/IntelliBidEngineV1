@@ -122,27 +122,27 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
     // Upload all files to Azure Blob Storage
     const uploadResults = await Promise.all([
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/RFT_Document.docx`,
+        `project-${project.id}/RFT_Generated/RFT_Document.docx`,
         docxBuffer
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/RFT_Document.pdf`,
+        `project-${project.id}/RFT_Generated/RFT_Document.pdf`,
         pdfBuffer
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/Product_Questionnaire.xlsx`,
+        `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.productPath)
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/NFR_Questionnaire.xlsx`,
+        `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.nfrPath)
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/Cybersecurity_Questionnaire.xlsx`,
+        `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.cybersecurityPath)
       ),
       azureBlobStorageService.uploadDocument(
-        `project-${project.id}/RFT_Pack/Agile_Questionnaire.xlsx`,
+        `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.agilePath)
       ),
     ]);

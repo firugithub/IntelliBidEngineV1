@@ -6,6 +6,19 @@ IntelliBid is an AI-powered platform designed to streamline and objectively tran
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### November 13, 2025 - Fixed Empty ZIP Download Bug
+**Issue:** "Download All as ZIP" from RFT Draft Review producing empty ZIP files (22 bytes).
+
+**Root Causes & Fixes:**
+1. **Storage Path Mismatch**: Files saved to `RFT_Pack/` instead of `RFT_Generated/` (fixed in draftPackGenerator.ts)
+2. **Metadata Structure**: Download route accessed wrong nested structure `pack.docxBlobUrl` instead of `pack.files.docx.url` (fixed in server/routes.ts)
+3. **Import Error**: Used default export instead of named export for Azure service (fixed in server/routes.ts)
+4. **Backward Compatibility**: Added fallback logic for legacy draft metadata to support both old and new structures
+
+**Result:** ZIP downloads now work correctly, containing all 6 files (DOCX, PDF, 4 Excel questionnaires) with actual content (~150KB+ total).
+
 ## System Architecture
 
 ### Frontend
