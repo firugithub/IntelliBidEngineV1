@@ -448,7 +448,9 @@ function IndexerStatus({ status }: { status: any }) {
         <div className="text-xs text-destructive mt-2">
           <div className="font-semibold mb-1">Errors:</div>
           {status.lastResult.errors.map((error: any, i: number) => (
-            <div key={i} className="ml-2">• {error.message || error}</div>
+            <div key={i} className="ml-2">
+              • {typeof error === 'string' ? error : error.errorMessage || error.message || JSON.stringify(error)}
+            </div>
           ))}
         </div>
       )}
