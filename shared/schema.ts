@@ -164,6 +164,7 @@ export const ragDocuments = pgTable("rag_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sourceType: text("source_type").notNull(), // 'standard', 'proposal', 'requirement', 'confluence', 'sharepoint'
   sourceId: varchar("source_id"), // ID of the source record (e.g., standard_id, proposal_id)
+  category: text("category").notNull().default("shared"), // 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security', 'shared'
   fileName: text("file_name").notNull(),
   blobUrl: text("blob_url"), // Azure Blob Storage URL
   blobName: text("blob_name"), // Azure Blob Storage object name (for reliable deletion)
