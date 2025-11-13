@@ -173,20 +173,18 @@ export default function RftDraftReviewPage() {
       const response = await apiRequest("POST", `/api/drafts/${selectedDraftId}/publish`, {});
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "RFT Published Successfully!",
         description: "Your RFT is now available in the Portfolio RFT Tab"
       });
-      // Get project/portfolio info for navigation
-      if (selectedDraft?.projectId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
-        // Redirect to portfolio page
-        const project = queryClient.getQueryData(["/api/projects", selectedDraft.projectId]);
-        if (project && (project as any).portfolioId) {
-          setLocation(`/portfolio/${(project as any).portfolioId}`);
-        }
+      // Invalidate portfolio queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+      
+      // Redirect to portfolio page if portfolioId is provided
+      if (data.portfolioId) {
+        setLocation(`/portfolio/${data.portfolioId}`);
       }
     },
     onError: (error: any) => {

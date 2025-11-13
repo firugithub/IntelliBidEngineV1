@@ -3783,16 +3783,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         publishedAt: new Date(),
       });
 
-      // Update project link to generated RFT
-      await storage.updateProject(draft.projectId, {
-        generatedRftId: generatedRft.id,
-      });
-
       console.log(`✅ Draft ${req.params.id} published to portfolio as RFT ${generatedRft.id}`);
 
       res.json({
         success: true,
         generatedRftId: generatedRft.id,
+        portfolioId: (await storage.getProject(draft.projectId))?.portfolioId,
         message: "RFT published to portfolio successfully",
       });
     } catch (error) {
