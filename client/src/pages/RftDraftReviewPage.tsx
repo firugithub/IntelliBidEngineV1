@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive } from "lucide-react";
+import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive, Upload } from "lucide-react";
+import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 
@@ -55,6 +56,7 @@ const STAKEHOLDER_ROLES = [
 
 export default function RftDraftReviewPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedDraftId, setSelectedDraftId] = useState<string>("");
   const [selectedStakeholder, setSelectedStakeholder] = useState<string>("all");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -165,7 +167,36 @@ export default function RftDraftReviewPage() {
     }
   });
 
-
+  // Publish draft to portfolio mutation
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/drafts/${selectedDraftId}/publish`, {});
+      return response;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "RFT Published Successfully!",
+        description: "Your RFT is now available in the Portfolio RFT Tab"
+      });
+      // Get project/portfolio info for navigation
+      if (selectedDraft?.projectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolios"] });
+        // Redirect to portfolio page
+        const project = queryClient.getQueryData(["/api/projects", selectedDraft.projectId]);
+        if (project && (project as any).portfolioId) {
+          setLocation(`/portfolio/${(project as any).portfolioId}`);
+        }
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Publish RFT",
+        description: error.message || "Please ensure the RFT pack is completed first",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleEditSection = (section: DraftSection) => {
     setEditingSectionId(section.sectionId);
@@ -317,6 +348,18 @@ export default function RftDraftReviewPage() {
                 >
                   <Archive className="h-4 w-4 mr-2" />
                   Download All as ZIP
+                </Button>
+                
+                {/* Publish to Portfolio Button */}
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={() => publishMutation.mutate()}
+                  disabled={publishMutation.isPending}
+                  data-testid="button-publish-to-portfolio"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {publishMutation.isPending ? "Publishing..." : "Publish to Portfolio"}
                 </Button>
                 
                 <Separator className="my-4" />
