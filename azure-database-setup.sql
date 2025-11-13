@@ -3,6 +3,7 @@
 -- ====================================================
 -- This script creates all tables required for IntelliBid
 -- Compatible with Azure PostgreSQL Flexible Server
+-- Updated: November 13, 2025
 -- ====================================================
 
 -- Enable UUID generation extension (if not already enabled)
@@ -66,7 +67,7 @@ CREATE TABLE IF NOT EXISTS "business_cases" (
     "updated_at" timestamp DEFAULT now() NOT NULL
 );
 
--- RFT Templates: Predefined templates for RFT generation
+-- RFT Templates: AI-defined templates for RFT generation
 CREATE TABLE IF NOT EXISTS "rft_templates" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "name" text NOT NULL,
@@ -81,7 +82,41 @@ CREATE TABLE IF NOT EXISTS "rft_templates" (
     CONSTRAINT "rft_templates_name_unique" UNIQUE("name")
 );
 
--- Generated RFTs: AI-generated RFT documents with questionnaires
+-- Organization Templates: DOCX templates uploaded by users
+CREATE TABLE IF NOT EXISTS "organization_templates" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "name" text NOT NULL,
+    "description" text,
+    "category" text NOT NULL,
+    "template_type" text DEFAULT 'docx' NOT NULL,
+    "blob_url" text NOT NULL,
+    "placeholders" jsonb NOT NULL,
+    "section_mappings" jsonb,
+    "is_active" text DEFAULT 'true' NOT NULL,
+    "is_default" text DEFAULT 'false' NOT NULL,
+    "metadata" jsonb,
+    "created_by" text DEFAULT 'system' NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL,
+    CONSTRAINT "organization_templates_name_unique" UNIQUE("name")
+);
+
+-- RFT Generation Drafts: Collaborative review workspace for RFT creation
+CREATE TABLE IF NOT EXISTS "rft_generation_drafts" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "project_id" varchar NOT NULL,
+    "business_case_id" varchar NOT NULL,
+    "template_id" varchar,
+    "generation_mode" text NOT NULL,
+    "generated_sections" jsonb NOT NULL,
+    "status" text DEFAULT 'draft' NOT NULL,
+    "approval_progress" jsonb,
+    "metadata" jsonb,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- Generated RFTs: Final published RFT documents with questionnaires
 CREATE TABLE IF NOT EXISTS "generated_rfts" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "project_id" varchar NOT NULL,
@@ -170,6 +205,51 @@ CREATE TABLE IF NOT EXISTS "evaluation_criteria" (
     "created_at" timestamp DEFAULT now() NOT NULL,
     "updated_at" timestamp DEFAULT now() NOT NULL
 );
+
+-- Vendor Shortlisting Stages: Track vendor progress through procurement stages
+CREATE TABLE IF NOT EXISTS "vendor_shortlisting_stages" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "project_id" varchar NOT NULL,
+    "vendor_name" text NOT NULL,
+    "current_stage" integer DEFAULT 1 NOT NULL,
+    "stage_statuses" jsonb NOT NULL,
+    "rfi_initiated_date" timestamp,
+    "rfi_response_received_date" timestamp,
+    "rfi_evaluation_completed_date" timestamp,
+    "rft_initiated_date" timestamp,
+    "rft_response_received_date" timestamp,
+    "vendor_demo_completed_date" timestamp,
+    "rft_evaluation_completed_date" timestamp,
+    "poc_initiated_date" timestamp,
+    "sow_submitted_date" timestamp,
+    "sow_reviewed_date" timestamp,
+    "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+-- Agent Metrics: Multi-agent AI evaluation performance tracking
+CREATE TABLE IF NOT EXISTS "agent_metrics" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "evaluation_id" varchar NOT NULL,
+    "project_id" varchar NOT NULL,
+    "agent_role" text NOT NULL,
+    "vendor_name" text NOT NULL,
+    "execution_time_ms" integer NOT NULL,
+    "token_usage" integer NOT NULL,
+    "estimated_cost_usd" numeric(10, 6) NOT NULL,
+    "success" boolean NOT NULL,
+    "error_type" text,
+    "error_message" text,
+    "timestamp" timestamp DEFAULT now() NOT NULL
+);
+
+-- Indexes for Agent Metrics (performance optimization)
+CREATE INDEX IF NOT EXISTS "agent_metrics_evaluation_idx" ON "agent_metrics" ("evaluation_id");
+CREATE INDEX IF NOT EXISTS "agent_metrics_project_idx" ON "agent_metrics" ("project_id");
+CREATE INDEX IF NOT EXISTS "agent_metrics_agent_role_idx" ON "agent_metrics" ("agent_role");
+CREATE INDEX IF NOT EXISTS "agent_metrics_timestamp_idx" ON "agent_metrics" ("timestamp" DESC);
+CREATE INDEX IF NOT EXISTS "agent_metrics_timeseries_idx" ON "agent_metrics" ("project_id", "agent_role", "timestamp" DESC);
 
 -- ====================================================
 -- ADVANCED AI FEATURES
@@ -330,9 +410,19 @@ CREATE TABLE IF NOT EXISTS "mcp_connectors" (
 DO $$
 BEGIN
     RAISE NOTICE '✓ IntelliBid database schema created successfully!';
-    RAISE NOTICE '✓ 20 tables created';
+    RAISE NOTICE '✓ 24 tables created (including new Draft workflow tables)';
+    RAISE NOTICE '';
+    RAISE NOTICE 'Key Features:';
+    RAISE NOTICE '  • Core RFT Generation & Evaluation';
+    RAISE NOTICE '  • Draft-First Collaborative Workflow';
+    RAISE NOTICE '  • Organization Template Management';
+    RAISE NOTICE '  • Multi-Agent AI Analysis with Metrics';
+    RAISE NOTICE '  • RAG Knowledge Base Integration';
+    RAISE NOTICE '  • Advanced AI Features (Gaps, Questions, Comparisons)';
+    RAISE NOTICE '';
     RAISE NOTICE 'Next steps:';
-    RAISE NOTICE '  1. Run azure-database-indexes.sql to create performance indexes';
+    RAISE NOTICE '  1. Run azure-database-indexes.sql (optional performance boost)';
     RAISE NOTICE '  2. Run azure-database-seed.sql to insert initial data';
-    RAISE NOTICE '  3. Configure Azure service credentials in Admin Config page';
+    RAISE NOTICE '  3. Configure Azure credentials via Admin Config page';
+    RAISE NOTICE '  4. Ensure server/prompts/ directory contains 6 AI agent prompt files';
 END $$;
