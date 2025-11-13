@@ -225,6 +225,9 @@ export class AzureSearchSkillsetService {
           {
             sourceFieldName: "metadata_storage_path",
             targetFieldName: "id",
+            mappingFunction: {
+              name: "base64Encode",
+            },
           },
           {
             sourceFieldName: "content",
