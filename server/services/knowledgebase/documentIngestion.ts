@@ -157,12 +157,14 @@ export class DocumentIngestionService {
         `${documentId}-chunk-${chunk.metadata?.chunkIndex || index}`
       );
       
+      const category = options.category || "shared";
       const searchDocuments = chunks.map((chunk, index) => ({
         id: searchChunkIds[index],
         content: chunk.content,
         embedding: embeddingResult.embeddings[index],
         sourceType: options.sourceType,
         sourceId: options.sourceId,
+        category,
         fileName: options.fileName,
         chunkIndex: chunk.metadata?.chunkIndex || index,
         metadata: {
