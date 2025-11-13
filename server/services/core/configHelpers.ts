@@ -139,4 +139,38 @@ export class ConfigHelper {
       baseUrl,
     };
   }
+
+  /**
+   * Get Azure Document Intelligence (Form Recognizer) configuration from environment variables
+   * Falls back to Azure OpenAI credentials if dedicated Document Intelligence credentials are not set
+   */
+  static getAzureDocumentIntelligenceConfig(): {
+    endpoint: string;
+    apiKey: string;
+    apiVersion?: string;
+  } {
+    // Try dedicated Document Intelligence credentials first
+    let endpoint = this.getConfigValue("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT");
+    let apiKey = this.getConfigValue("AZURE_DOCUMENT_INTELLIGENCE_KEY");
+    
+    // Fall back to Azure Cognitive Services or Azure OpenAI credentials
+    if (!endpoint || !apiKey) {
+      endpoint = this.getConfigValue("AZURE_COGNITIVE_SERVICES_ENDPOINT") || 
+                 this.getConfigValue("AZURE_OPENAI_ENDPOINT");
+      apiKey = this.getConfigValue("AZURE_COGNITIVE_SERVICES_KEY") || 
+               this.getConfigValue("AZURE_OPENAI_KEY");
+    }
+
+    if (!endpoint || !apiKey) {
+      throw new Error(
+        "Azure Document Intelligence not configured. Please set AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT and AZURE_DOCUMENT_INTELLIGENCE_KEY, " +
+        "or use existing Azure Cognitive Services/OpenAI credentials in Replit Secrets."
+      );
+    }
+
+    // Use latest stable API version for Document Intelligence
+    const apiVersion = this.getConfigValue("AZURE_DOCUMENT_INTELLIGENCE_API_VERSION") || "2024-11-30";
+
+    return { endpoint, apiKey, apiVersion };
+  }
 }
