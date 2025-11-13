@@ -36,6 +36,7 @@ function Router() {
       <Route path="/admin-config" component={AdminConfigPage} />
       <Route path="/agent-metrics" component={AgentMetricsPage} />
       <Route path="/standards" component={StandardsPage} />
+      <Route path="/knowledge-base" component={StandardsPage} />
       <Route path="/portfolio/:id" component={PortfolioPage} />
       <Route path="/portfolio/:id/new-project" component={NewProjectPage} />
       <Route path="/portfolio/:id/upload" component={UploadPage} />
