@@ -1,6 +1,7 @@
 import { azureBlobStorageService } from "../azure/azureBlobStorage";
 import { azureAISearchService } from "../azure/azureAISearch";
 import { azureEmbeddingService } from "../azure/azureEmbedding";
+import { azureSearchSkillsetService } from "../azure/azureSearchSkillset";
 import { chunkDocument } from "./chunkingService";
 import { storage } from "../../storage";
 import type { InsertRagDocument, InsertRagChunk } from "@shared/schema";
@@ -206,6 +207,13 @@ export class DocumentIngestionService {
       });
 
       console.log(`[RAG] Document ingestion completed: ${options.fileName}`);
+      
+      // Trigger indexer run in background for OCR processing
+      // This runs asynchronously and doesn't block the response
+      azureSearchSkillsetService.runIndexer()
+        .then(() => console.log("[RAG] Indexer triggered for OCR processing"))
+        .catch((err) => console.warn("[RAG] Indexer trigger failed (non-blocking):", err.message));
+      
       return {
         documentId,
         blobUrl: blobUrl,

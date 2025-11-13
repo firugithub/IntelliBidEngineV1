@@ -14,6 +14,7 @@ import { getStakeholderRole } from "./services/rft/stakeholderConfig";
 import { azureEmbeddingService } from "./services/azure/azureEmbedding";
 import { azureAISearchService } from "./services/azure/azureAISearch";
 import { azureBlobStorageService } from "./services/azure/azureBlobStorage";
+import { azureSearchSkillsetService } from "./services/azure/azureSearchSkillset";
 import { evaluationProgressService } from "./services/core/evaluationProgress";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
@@ -1522,6 +1523,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? "Some Azure services are working, but not all. Check the details below."
           : "Azure services are not configured or not working. Please check your configuration.",
     });
+  });
+
+  // Azure AI Search Skillset and Indexer routes
+  // Initialize skillset and indexer with OCR capabilities
+  app.post("/api/skillset/initialize", async (req, res) => {
+    try {
+      console.log("[Skillset API] Initializing skillset and indexer...");
+      await azureSearchSkillsetService.initialize();
+      res.json({ 
+        success: true, 
+        message: "Skillset and indexer initialized successfully with OCR capabilities" 
+      });
+    } catch (error: any) {
+      console.error("[Skillset API] Failed to initialize skillset:", error);
+      res.status(500).json({ 
+        error: "Failed to initialize skillset", 
+        details: error.message 
+      });
+    }
+  });
+
+  // Run indexer manually to process documents
+  app.post("/api/skillset/run", async (req, res) => {
+    try {
+      console.log("[Skillset API] Running indexer...");
+      await azureSearchSkillsetService.runIndexer();
+      res.json({ 
+        success: true, 
+        message: "Indexer started successfully. OCR processing initiated for documents with images." 
+      });
+    } catch (error: any) {
+      console.error("[Skillset API] Failed to run indexer:", error);
+      res.status(500).json({ 
+        error: "Failed to run indexer", 
+        details: error.message 
+      });
+    }
+  });
+
+  // Get indexer status
+  app.get("/api/skillset/status", async (req, res) => {
+    try {
+      console.log("[Skillset API] Getting indexer status...");
+      const status = await azureSearchSkillsetService.getIndexerStatus();
+      res.json({ 
+        success: true, 
+        status 
+      });
+    } catch (error: any) {
+      console.error("[Skillset API] Failed to get indexer status:", error);
+      res.status(500).json({ 
+        error: "Failed to get indexer status", 
+        details: error.message 
+      });
+    }
+  });
+
+  // Reset indexer (reprocess all documents)
+  app.post("/api/skillset/reset", async (req, res) => {
+    try {
+      console.log("[Skillset API] Resetting indexer...");
+      await azureSearchSkillsetService.resetIndexer();
+      res.json({ 
+        success: true, 
+        message: "Indexer reset successfully. All documents will be reprocessed on next run." 
+      });
+    } catch (error: any) {
+      console.error("[Skillset API] Failed to reset indexer:", error);
+      res.status(500).json({ 
+        error: "Failed to reset indexer", 
+        details: error.message 
+      });
+    }
   });
 
   // Create a new project
