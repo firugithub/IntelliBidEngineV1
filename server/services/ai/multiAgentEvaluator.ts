@@ -17,7 +17,8 @@ type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "proc
 
 // Load agent prompts from MD files
 function loadAgentPrompt(role: AgentRole): { system: string; userTemplate: string } {
-  const promptPath = join(__dirname, "../../prompts", `${role}-agent.md`);
+  // Use process.cwd() for production compatibility (works with bundled builds)
+  const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
   const content = readFileSync(promptPath, "utf-8");
   
   // Split by markdown headers

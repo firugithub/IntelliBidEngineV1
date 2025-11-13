@@ -8,16 +8,36 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 13, 2025 - Fixed Empty ZIP Download Bug
-**Issue:** "Download All as ZIP" from RFT Draft Review producing empty ZIP files (22 bytes).
+### November 13, 2025 - Fixed Production Deployment Path Resolution
+**Issue:** Application crashes on Azure VM/production environments with `ENOENT: no such file or directory, open '/home/azureuser/prompts/delivery-agent.md'`
+
+**Root Cause:** Multi-agent evaluator used `__dirname` to resolve prompt file paths, which breaks in production when TypeScript is compiled and bundled into `dist/index.js`. The `__dirname` variable points to the compiled file location, not the project root.
+
+**Fix:** Updated `server/services/ai/multiAgentEvaluator.ts` to use `process.cwd()` instead of `__dirname`:
+```typescript
+// Before (broken in production):
+const promptPath = join(__dirname, "../../prompts", `${role}-agent.md`);
+
+// After (works in dev and production):
+const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
+```
+
+**Deployment Notes:** 
+- Ensure `server/prompts/` directory and all 6 agent prompt files are included in production deployments
+- When running `npm start` on Azure VM, execute from project root where prompts directory is accessible
+- Works correctly in both development (`npm run dev`) and production (`npm start`) environments
+
+### November 13, 2025 - Fixed Portfolio RFT Download from Azure Blob Storage
+**Issue:** "Download All as ZIP" from Portfolio RFT Tab producing empty ZIP files (22 bytes).
 
 **Root Causes & Fixes:**
 1. **Storage Path Mismatch**: Files saved to `RFT_Pack/` instead of `RFT_Generated/` (fixed in draftPackGenerator.ts)
 2. **Metadata Structure**: Download route accessed wrong nested structure `pack.docxBlobUrl` instead of `pack.files.docx.url` (fixed in server/routes.ts)
 3. **Import Error**: Used default export instead of named export for Azure service (fixed in server/routes.ts)
 4. **Backward Compatibility**: Added fallback logic for legacy draft metadata to support both old and new structures
+5. **Publish Route Bug**: Publish endpoint not extracting blob URLs from correct pack metadata structure (fixed in server/routes.ts)
 
-**Result:** ZIP downloads now work correctly, containing all 6 files (DOCX, PDF, 4 Excel questionnaires) with actual content (~150KB+ total).
+**Result:** ZIP downloads now work correctly, containing all 6 files (DOCX, PDF, 4 Excel questionnaires) with actual content (~150KB+ total). Complete workflow verified: Draft → Pack Generation → Publish → Portfolio Download.
 
 ## System Architecture
 
