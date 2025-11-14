@@ -46,6 +46,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built artifacts from previous stages
 COPY --from=backend-builder /app/dist ./dist
 
+# Copy prompt files needed at runtime
+COPY --from=backend-builder /app/server/prompts ./server/prompts
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
