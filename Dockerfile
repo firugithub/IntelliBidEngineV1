@@ -13,8 +13,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build frontend
-RUN npm run build
+# Build frontend only (not backend)
+RUN npx vite build
 
 # Stage 2: Build the backend
 FROM node:20-alpine AS backend-builder
@@ -31,8 +31,8 @@ RUN npm ci
 COPY --from=frontend-builder /app/dist ./dist
 COPY . .
 
-# Build backend
-RUN npm run build
+# Build backend using esbuild config (excludes vite from production bundle)
+RUN node esbuild.config.mjs
 
 # Stage 3: Production image
 FROM node:20-alpine

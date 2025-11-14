@@ -1,5 +1,6 @@
 import * as esbuild from 'esbuild';
 
+console.log('Building backend with esbuild (excluding vite from production)...');
 await esbuild.build({
   entryPoints: ['server/index.ts'],
   bundle: true,
@@ -7,7 +8,7 @@ await esbuild.build({
   format: 'esm',
   outdir: 'dist',
   packages: 'external',
-  // Exclude dev-only modules from production bundle
+  // Exclude dev-only vite modules from production bundle
   external: [
     './vite.js',
     './vite',
@@ -15,3 +16,5 @@ await esbuild.build({
     '../vite.config'
   ],
 });
+
+console.log('\n✅ Backend build completed successfully!');
