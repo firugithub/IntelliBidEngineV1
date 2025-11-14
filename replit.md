@@ -53,6 +53,27 @@ Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated
 **Caching:** OpenAI client instances are cached, with automatic invalidation upon configuration changes.
 **Admin Config Page:** Provides Azure connectivity tests, data wiping functionality, and instructions for setting environment variables.
 
+### Production Deployment (Azure App Service)
+**Deployment Model:** Custom Docker container deployed to Azure App Service (Linux) with multi-stage build.
+**Docker Build Strategy:** Three-stage Dockerfile separates frontend build, backend build, and production runtime for optimized image size. Backend bundle excludes Vite dependencies using esbuild configuration. AI agent prompt files (6 markdown files in `server/prompts/`) are copied to production image.
+
+**Private Endpoint Connectivity:**
+- **Challenge:** Custom Docker containers on Azure App Service use Docker's internal DNS resolver (127.0.0.11) by default, preventing resolution of Azure Private DNS zones required for PostgreSQL private endpoints.
+- **Solution:** Startup script (`startup.sh`) runs as root at container start to configure `/etc/resolv.conf` with Azure DNS (168.63.129.16), then drops privileges to `nodejs` user before starting the application using `su-exec`.
+- **Security:** Container starts as root for DNS configuration only, then immediately drops to non-root `nodejs` user for application runtime.
+
+**VNet Integration Requirements:**
+- **Two Subnets Required:** Private endpoint subnet (for PostgreSQL inbound connections) and integration subnet (for App Service outbound connections, delegated to `Microsoft.Web/serverFarms`).
+- **App Service Configuration:** Requires `WEBSITE_DNS_SERVER=168.63.129.16` and `WEBSITE_VNET_ROUTE_ALL=1` application settings.
+- **Private DNS Zone:** Azure Private DNS zone (`privatelink.postgres.database.azure.com`) must be linked to VNet with A record mapping hostname to private IP.
+- **Connection String:** DATABASE_URL format remains unchanged (`postgresql://user:pass@host:5432/db?sslmode=require`); Azure DNS automatically resolves to private IP.
+
+**Key Files:**
+- `Dockerfile`: Multi-stage build with DNS configuration support
+- `startup.sh`: DNS configuration and privilege-dropping script
+- `esbuild.config.mjs`: Backend bundling configuration excluding Vite
+- `drizzle.config.ts`: Database migration configuration
+
 ## External Dependencies
 
 ### Third-Party Services

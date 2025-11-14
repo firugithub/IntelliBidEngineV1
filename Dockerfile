@@ -39,6 +39,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install su-exec for secure privilege dropping (lightweight alternative to gosu)
+RUN apk add --no-cache su-exec
+
 # Install production dependencies only
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
@@ -49,6 +52,10 @@ COPY --from=backend-builder /app/dist ./dist
 # Copy prompt files needed at runtime
 COPY --from=backend-builder /app/server/prompts ./server/prompts
 
+# Copy startup script for DNS configuration
+COPY startup.sh /startup.sh
+RUN chmod +x /startup.sh
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
@@ -56,8 +63,8 @@ RUN addgroup -g 1001 -S nodejs && \
 # Change ownership of app directory
 RUN chown -R nodejs:nodejs /app
 
-# Switch to non-root user
-USER nodejs
+# NOTE: Container starts as root to allow DNS configuration in startup.sh
+# The startup script drops privileges to nodejs user before running the app
 
 # Expose port (Azure App Service uses PORT env variable)
 EXPOSE 5000
@@ -66,5 +73,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application via startup script (runs as root, then drops to nodejs user)
+CMD ["/startup.sh"]
