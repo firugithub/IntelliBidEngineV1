@@ -68,11 +68,25 @@ Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated
 - **Private DNS Zone:** Azure Private DNS zone (`privatelink.postgres.database.azure.com`) must be linked to VNet with A record mapping hostname to private IP.
 - **Connection String:** DATABASE_URL format remains unchanged (`postgresql://user:pass@host:5432/db?sslmode=require`); Azure DNS automatically resolves to private IP.
 
+**Database Setup:**
+- **Schema Management:** Uses Drizzle ORM with `npm run db:push` for schema synchronization (no manual SQL migrations)
+- **Initialization Scripts:**
+  - `setup-database.sh`: Interactive bash script for local database setup (requires DATABASE_URL environment variable)
+  - `init-db.js`: Node.js script for automated database initialization in Docker containers
+- **Deployment Process:**
+  1. Set DATABASE_URL to Azure PostgreSQL connection string (with private endpoint hostname)
+  2. Run `npm run db:push` or `node init-db.js` to create/update schema
+  3. Schema is automatically deployed on first app startup if using init-db.js
+- **Schema File:** All table definitions in `shared/schema.ts`
+- **Migration History:** Stored in `migrations/` directory (managed by drizzle-kit)
+
 **Key Files:**
 - `Dockerfile`: Multi-stage build with DNS configuration support
 - `startup.sh`: DNS configuration and privilege-dropping script
 - `esbuild.config.mjs`: Backend bundling configuration excluding Vite
 - `drizzle.config.ts`: Database migration configuration
+- `setup-database.sh`: Interactive database setup script
+- `init-db.js`: Automated database initialization script
 
 ## External Dependencies
 
