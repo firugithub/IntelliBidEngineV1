@@ -1,0 +1,1006 @@
+Logs
+
+
+Instances
+Lookback period
+Connected!
+2025-11-14T21:14:24.0041787Z 9:14:24 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:27.0806818Z 9:14:27 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:27.1972042Z Agent delivery failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 11 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:14:27.1972574Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:14:27.1972615Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:14:27.1972642Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:14:27.1972665Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:27.1972688Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:14:27.197277Z     at async Promise.allSettled (index 0)
+2025-11-14T21:14:27.1972793Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:27.1972815Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:27.1972837Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:27.1972857Z   status: 429,
+2025-11-14T21:14:27.1972879Z   headers: Headers {
+2025-11-14T21:14:27.1972901Z     'content-length': '384',
+2025-11-14T21:14:27.1972921Z     'content-type': 'application/json',
+2025-11-14T21:14:27.1972942Z     'retry-after': '11',
+2025-11-14T21:14:27.1972963Z     'x-ratelimit-reset-tokens': '11',
+2025-11-14T21:14:27.1972985Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:14:27.1973019Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:14:27.1973042Z     'apim-request-id': '42153c88-cf39-4e7c-b520-6332c509ec88',
+2025-11-14T21:14:27.1973065Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:14:27.1973087Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:14:27.1973111Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:14:27.1973132Z     'x-ms-region': 'UAE North',
+2025-11-14T21:14:27.1973153Z     'x-ratelimit-remaining-requests': '184',
+2025-11-14T21:14:27.1973175Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:14:27.1973196Z     date: 'Fri, 14 Nov 2025 21:14:26 GMT'
+2025-11-14T21:14:27.1973218Z   },
+2025-11-14T21:14:27.1973239Z   requestID: null,
+2025-11-14T21:14:27.1973268Z   error: {
+2025-11-14T21:14:27.1973292Z     code: 'RateLimitReached',
+2025-11-14T21:14:27.1973328Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 11 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:14:27.1973348Z   },
+2025-11-14T21:14:27.197337Z   code: 'RateLimitReached',
+2025-11-14T21:14:27.1973392Z   param: undefined,
+2025-11-14T21:14:27.1973414Z   type: undefined
+2025-11-14T21:14:27.1973435Z }
+2025-11-14T21:14:27.2001164Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:14:27.2001356Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:14:27.2001418Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:27.2001452Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:14:27.2001478Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:14:27.2001504Z     at async Promise.allSettled (index 0)
+2025-11-14T21:14:27.2001529Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:27.2001555Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:27.2001584Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:27.200161Z   length: 378,
+2025-11-14T21:14:27.2001633Z   severity: 'ERROR',
+2025-11-14T21:14:27.2001655Z   code: '23503',
+2025-11-14T21:14:27.2001681Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:14:27.2001713Z   hint: undefined,
+2025-11-14T21:14:27.2001736Z   position: undefined,
+2025-11-14T21:14:27.200176Z   internalPosition: undefined,
+2025-11-14T21:14:27.2001786Z   internalQuery: undefined,
+2025-11-14T21:14:27.200181Z   where: undefined,
+2025-11-14T21:14:27.2001832Z   schema: 'public',
+2025-11-14T21:14:27.2001855Z   table: 'agent_metrics',
+2025-11-14T21:14:27.2001879Z   column: undefined,
+2025-11-14T21:14:27.2001901Z   dataType: undefined,
+2025-11-14T21:14:27.2001925Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:14:27.2001947Z   file: 'ri_triggers.c',
+2025-11-14T21:14:27.2001972Z   line: '2599',
+2025-11-14T21:14:27.2002016Z   routine: 'ri_ReportViolation'
+2025-11-14T21:14:27.2002041Z }
+2025-11-14T21:14:29.5682304Z    📊 procurement agent scores: {"overall":12,"support":0}
+2025-11-14T21:14:29.5901589Z {"level":"info","type":"agent_execution","agentRole":"procurement","vendorName":"GlobalSoft Systems","executionTimeMs":14369,"tokenUsage":15059,"estimatedCostUsd":0.07153,"success":true,"timestamp":"2025-11-14T21:14:29.590Z"}
+2025-11-14T21:14:30.1588493Z 9:14:30 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 3ms :: {"id":"1e4…
+2025-11-14T21:14:31.4895607Z 9:14:31 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50/evaluations 304 in 330ms…
+2025-11-14T21:14:33.1982172Z 9:14:33 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:36.2486473Z 9:14:36 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:38.7384631Z Agent procurement failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 60 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:14:38.7385026Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:14:38.7385064Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:14:38.7385095Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:14:38.7385128Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:38.7385156Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:14:38.7385185Z     at async Promise.allSettled (index 4)
+2025-11-14T21:14:38.7385214Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:38.738524Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:38.7385268Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:38.7385314Z   status: 429,
+2025-11-14T21:14:38.738534Z   headers: Headers {
+2025-11-14T21:14:38.7385386Z     'content-length': '384',
+2025-11-14T21:14:38.7385413Z     'content-type': 'application/json',
+2025-11-14T21:14:38.7385437Z     'retry-after': '60',
+2025-11-14T21:14:38.7385462Z     'x-ratelimit-reset-tokens': '60',
+2025-11-14T21:14:38.7385486Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:14:38.7385511Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:14:38.7385538Z     'apim-request-id': '45d73e95-ea34-4da3-8db5-78bc8dc80db6',
+2025-11-14T21:14:38.7385564Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:14:38.7385587Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:14:38.7385628Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:14:38.7385654Z     'x-ms-region': 'UAE North',
+2025-11-14T21:14:38.7385678Z     'x-ratelimit-remaining-requests': '181',
+2025-11-14T21:14:38.7385703Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:14:38.7385727Z     date: 'Fri, 14 Nov 2025 21:14:38 GMT'
+2025-11-14T21:14:38.738575Z   },
+2025-11-14T21:14:38.7385772Z   requestID: null,
+2025-11-14T21:14:38.7385794Z   error: {
+2025-11-14T21:14:38.738582Z     code: 'RateLimitReached',
+2025-11-14T21:14:38.7385858Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 60 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:14:38.7385885Z   },
+2025-11-14T21:14:38.7385921Z   code: 'RateLimitReached',
+2025-11-14T21:14:38.7385947Z   param: undefined,
+2025-11-14T21:14:38.7385971Z   type: undefined
+2025-11-14T21:14:38.7385994Z }
+2025-11-14T21:14:38.7404893Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:14:38.7405127Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:14:38.7405169Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:38.74052Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:14:38.7405226Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:14:38.7405249Z     at async Promise.allSettled (index 4)
+2025-11-14T21:14:38.7405295Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:38.7405323Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:38.7405347Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:38.740537Z   length: 381,
+2025-11-14T21:14:38.7405393Z   severity: 'ERROR',
+2025-11-14T21:14:38.7405417Z   code: '23503',
+2025-11-14T21:14:38.7405445Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:14:38.7405469Z   hint: undefined,
+2025-11-14T21:14:38.7405495Z   position: undefined,
+2025-11-14T21:14:38.7405521Z   internalPosition: undefined,
+2025-11-14T21:14:38.7405546Z   internalQuery: undefined,
+2025-11-14T21:14:38.7405584Z   where: undefined,
+2025-11-14T21:14:38.7405612Z   schema: 'public',
+2025-11-14T21:14:38.7405636Z   table: 'agent_metrics',
+2025-11-14T21:14:38.7405659Z   column: undefined,
+2025-11-14T21:14:38.7405684Z   dataType: undefined,
+2025-11-14T21:14:38.740571Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:14:38.7405735Z   file: 'ri_triggers.c',
+2025-11-14T21:14:38.7405763Z   line: '2599',
+2025-11-14T21:14:38.7405788Z   routine: 'ri_ReportViolation'
+2025-11-14T21:14:38.7405812Z }
+2025-11-14T21:14:38.7462892Z Agent architecture failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 60 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:14:38.7463154Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:14:38.7463189Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:14:38.7463216Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:14:38.7463243Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:38.7463269Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:14:38.7463292Z     at async Promise.allSettled (index 2)
+2025-11-14T21:14:38.7463316Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:38.7463342Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:38.7463369Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:38.746339Z   status: 429,
+2025-11-14T21:14:38.7463428Z   headers: Headers {
+2025-11-14T21:14:38.7463454Z     'content-length': '384',
+2025-11-14T21:14:38.7463479Z     'content-type': 'application/json',
+2025-11-14T21:14:38.7463503Z     'retry-after': '60',
+2025-11-14T21:14:38.7463528Z     'x-ratelimit-reset-tokens': '60',
+2025-11-14T21:14:38.7463554Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:14:38.7463579Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:14:38.7463605Z     'apim-request-id': 'dff9b69f-c4b8-42b0-848c-3266e7b31fa9',
+2025-11-14T21:14:38.7463631Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:14:38.7463705Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:14:38.7463733Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:14:38.7463768Z     'x-ms-region': 'UAE North',
+2025-11-14T21:14:38.7463794Z     'x-ratelimit-remaining-requests': '180',
+2025-11-14T21:14:38.7463819Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:14:38.7463844Z     date: 'Fri, 14 Nov 2025 21:14:37 GMT'
+2025-11-14T21:14:38.7463867Z   },
+2025-11-14T21:14:38.7463892Z   requestID: null,
+2025-11-14T21:14:38.7463919Z   error: {
+2025-11-14T21:14:38.7463947Z     code: 'RateLimitReached',
+2025-11-14T21:14:38.7463987Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 60 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:14:38.7464016Z   },
+2025-11-14T21:14:38.7464043Z   code: 'RateLimitReached',
+2025-11-14T21:14:38.7464079Z   param: undefined,
+2025-11-14T21:14:38.7464103Z   type: undefined
+2025-11-14T21:14:38.7464125Z }
+2025-11-14T21:14:38.773847Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:14:38.773871Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:14:38.7738752Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:14:38.7738783Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:14:38.7738816Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:14:38.7738841Z     at async Promise.allSettled (index 2)
+2025-11-14T21:14:38.7738869Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:14:38.7738936Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:14:38.773897Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:14:38.7738994Z   length: 381,
+2025-11-14T21:14:38.7739019Z   severity: 'ERROR',
+2025-11-14T21:14:38.7739043Z   code: '23503',
+2025-11-14T21:14:38.7739075Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:14:38.7739098Z   hint: undefined,
+2025-11-14T21:14:38.7739122Z   position: undefined,
+2025-11-14T21:14:38.7739145Z   internalPosition: undefined,
+2025-11-14T21:14:38.773917Z   internalQuery: undefined,
+2025-11-14T21:14:38.7739193Z   where: undefined,
+2025-11-14T21:14:38.7739216Z   schema: 'public',
+2025-11-14T21:14:38.7739254Z   table: 'agent_metrics',
+2025-11-14T21:14:38.7739279Z   column: undefined,
+2025-11-14T21:14:38.7739301Z   dataType: undefined,
+2025-11-14T21:14:38.7739325Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:14:38.773935Z   file: 'ri_triggers.c',
+2025-11-14T21:14:38.7739374Z   line: '2599',
+2025-11-14T21:14:38.7739399Z   routine: 'ri_ReportViolation'
+2025-11-14T21:14:38.7739423Z }
+2025-11-14T21:14:39.301372Z 9:14:39 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 20ms :: {"id":"1e…
+2025-11-14T21:14:42.1623828Z    📊 product agent scores: {"overall":10,"functionalFit":5,"scalability":10,"documentation":20}
+2025-11-14T21:14:42.7918944Z {"level":"info","type":"agent_execution","agentRole":"product","vendorName":"InnovateTech Partners","executionTimeMs":25915,"tokenUsage":15131,"estimatedCostUsd":0.071872,"success":true,"timestamp":"2025-11-14T21:14:42.165Z"}
+2025-11-14T21:14:42.7919154Z 9:14:42 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:42.7919182Z    📊 product agent scores: {"overall":15,"functionalFit":10,"scalability":10,"documentation":5}
+2025-11-14T21:14:42.7919206Z {"level":"info","type":"agent_execution","agentRole":"product","vendorName":"GlobalSoft Systems","executionTimeMs":27398,"tokenUsage":15168,"estimatedCostUsd":0.072048,"success":true,"timestamp":"2025-11-14T21:14:42.600Z"}
+2025-11-14T21:14:42.7919226Z    📊 delivery agent scores: {"overall":15,"functionalFit":0,"deliveryRisk":95,"integration":0}
+2025-11-14T21:14:42.7919248Z {"level":"info","type":"agent_execution","agentRole":"delivery","vendorName":"InnovateTech Partners","executionTimeMs":26519,"tokenUsage":15156,"estimatedCostUsd":0.071991,"success":true,"timestamp":"2025-11-14T21:14:42.768Z"}
+2025-11-14T21:14:42.9987771Z    📊 security agent scores: {"overall":35,"compliance":30}
+2025-11-14T21:14:43.0022731Z    📊 architecture agent scores: {"overall":35,"technicalFit":30,"compliance":20,"integration":25,"scalability":30}
+2025-11-14T21:14:43.0023216Z {"level":"info","type":"agent_execution","agentRole":"security","vendorName":"GlobalSoft Systems","executionTimeMs":27799,"tokenUsage":15210,"estimatedCostUsd":0.072248,"success":true,"timestamp":"2025-11-14T21:14:43.002Z"}
+2025-11-14T21:14:43.0285716Z {"level":"info","type":"agent_execution","agentRole":"architecture","vendorName":"GlobalSoft Systems","executionTimeMs":27802,"tokenUsage":15137,"estimatedCostUsd":0.071901,"success":true,"timestamp":"2025-11-14T21:14:43.028Z"}
+2025-11-14T21:14:43.5490026Z    📊 engineering agent scores: {"overall":10,"technicalFit":10,"integration":5,"support":5,"documentation":0}
+2025-11-14T21:14:43.5516799Z {"level":"info","type":"agent_execution","agentRole":"engineering","vendorName":"GlobalSoft Systems","executionTimeMs":28349,"tokenUsage":15185,"estimatedCostUsd":0.072129,"success":true,"timestamp":"2025-11-14T21:14:43.551Z"}
+2025-11-14T21:14:43.5517899Z ✅ Multiagent evaluation complete in 28349ms
+2025-11-14T21:14:43.5517985Z    Successful agents: 5/6
+2025-11-14T21:14:43.5518022Z    Failed agents: 1/6
+2025-11-14T21:14:43.5518951Z    Tokens used: 75759
+2025-11-14T21:14:43.551976Z    🔢 FunctionalFit aggregation: 1 agents provided scores: product=10
+2025-11-14T21:14:43.5519885Z    📈 Average FunctionalFit: 10
+2025-11-14T21:14:43.5521419Z    ✅ Evaluation result: {"overallScore":21,"functionalFit":10,"technicalFit":20,"deliveryRisk":0,"compliance":25,"status":"risk-flagged"}
+2025-11-14T21:14:43.5551547Z ✓ Completed evaluation for GlobalSoft Systems
+2025-11-14T21:14:43.5551662Z Evaluating proposal for GlobalSoft Systems...
+2025-11-14T21:14:43.5580828Z 🚀 Using multiagent evaluation system
+2025-11-14T21:14:43.5580916Z 🤖 Starting multiagent evaluation for undefined...
+2025-11-14T21:14:43.5597225Z    🔍 Retrieving relevant compliance documents from RAG system...
+2025-11-14T21:14:43.8909894Z    ✅ Retrieved 0 relevant document sections
+2025-11-14T21:14:43.8910214Z    🔌 Retrieving external intelligence from MCP connectors...
+2025-11-14T21:14:43.9285087Z    ⚠️  No active MCP connectors found or no data retrieved
+2025-11-14T21:14:44.7025019Z    📊 engineering agent scores: {"overall":15,"technicalFit":10,"integration":5,"support":20,"documentation":0}
+2025-11-14T21:14:44.7061943Z {"level":"info","type":"agent_execution","agentRole":"engineering","vendorName":"InnovateTech Partners","executionTimeMs":28455,"tokenUsage":15198,"estimatedCostUsd":0.07219,"success":true,"timestamp":"2025-11-14T21:14:44.705Z"}
+2025-11-14T21:14:45.2651382Z    📊 security agent scores: {"overall":68,"compliance":65}
+2025-11-14T21:14:45.2679709Z {"level":"info","type":"agent_execution","agentRole":"security","vendorName":"InnovateTech Partners","executionTimeMs":29017,"tokenUsage":15183,"estimatedCostUsd":0.072119,"success":true,"timestamp":"2025-11-14T21:14:45.267Z"}
+2025-11-14T21:14:45.2680981Z ✅ Multiagent evaluation complete in 29017ms
+2025-11-14T21:14:45.2681051Z    Successful agents: 4/6
+2025-11-14T21:14:45.2681141Z    Failed agents: 2/6
+2025-11-14T21:14:45.2681248Z    Tokens used: 60668
+2025-11-14T21:14:45.2681965Z    🔢 FunctionalFit aggregation: 2 agents provided scores: delivery=0, product=5
+2025-11-14T21:14:45.268203Z    📈 Average FunctionalFit: 3
+2025-11-14T21:14:45.2683167Z    ✅ Evaluation result: {"overallScore":27,"functionalFit":3,"technicalFit":10,"deliveryRisk":95,"compliance":65,"status":"risk-flagged"}
+2025-11-14T21:14:45.2712866Z ✓ Completed evaluation for InnovateTech Partners
+2025-11-14T21:14:45.2712978Z Evaluating proposal for InnovateTech Partners...
+2025-11-14T21:14:45.2737522Z 🚀 Using multiagent evaluation system
+2025-11-14T21:14:45.2737626Z 🤖 Starting multiagent evaluation for undefined...
+2025-11-14T21:14:45.2747982Z    🔍 Retrieving relevant compliance documents from RAG system...
+2025-11-14T21:14:45.3645083Z 9:14:45 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 1ms :: {"id":"1e4…
+2025-11-14T21:14:46.4265467Z    ✅ Retrieved 0 relevant document sections
+2025-11-14T21:14:46.4265866Z    🔌 Retrieving external intelligence from MCP connectors...
+2025-11-14T21:14:46.4290827Z    ⚠️  No active MCP connectors found or no data retrieved
+2025-11-14T21:14:46.9658768Z 9:14:46 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50/evaluations 304 in 437ms…
+2025-11-14T21:14:48.4185233Z 9:14:48 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:51.4541151Z 9:14:51 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:14:54.4803517Z 9:14:54 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 1ms :: {"id":"1e4…
+2025-11-14T21:14:57.5087125Z 9:14:57 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:00.5397068Z 9:15:00 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:02.3644913Z 9:15:02 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50/evaluations 304 in 368ms…
+2025-11-14T21:15:03.5752624Z 9:15:03 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:06.7288127Z 9:15:06 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:09.7598877Z 9:15:09 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:12.794398Z 9:15:12 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 1ms :: {"id":"1e4…
+2025-11-14T21:15:14.2277916Z Agent engineering failed: Error: Agent timeout
+2025-11-14T21:15:14.2278386Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.2278422Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.2278449Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.2298932Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.2299097Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.2299132Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.2299159Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.2299185Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.2299211Z     at async Promise.allSettled (index 3)
+2025-11-14T21:15:14.2299263Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.2299291Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.229932Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.2299344Z   length: 378,
+2025-11-14T21:15:14.2299368Z   severity: 'ERROR',
+2025-11-14T21:15:14.2299392Z   code: '23503',
+2025-11-14T21:15:14.2299423Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.2299448Z   hint: undefined,
+2025-11-14T21:15:14.2299473Z   position: undefined,
+2025-11-14T21:15:14.2299498Z   internalPosition: undefined,
+2025-11-14T21:15:14.2299522Z   internalQuery: undefined,
+2025-11-14T21:15:14.2299563Z   where: undefined,
+2025-11-14T21:15:14.229959Z   schema: 'public',
+2025-11-14T21:15:14.2299615Z   table: 'agent_metrics',
+2025-11-14T21:15:14.2299638Z   column: undefined,
+2025-11-14T21:15:14.2299662Z   dataType: undefined,
+2025-11-14T21:15:14.229969Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.2299716Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.2299745Z   line: '2599',
+2025-11-14T21:15:14.2299773Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.2299797Z }
+2025-11-14T21:15:14.529954Z Agent product failed: Error: Agent timeout
+2025-11-14T21:15:14.5299925Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.5300016Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.5300054Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.5520073Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.5520302Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.5520337Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.5520363Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.5520389Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.5520415Z     at async Promise.allSettled (index 1)
+2025-11-14T21:15:14.5520442Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.5520496Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.5520526Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.5520547Z   length: 378,
+2025-11-14T21:15:14.5520588Z   severity: 'ERROR',
+2025-11-14T21:15:14.5520616Z   code: '23503',
+2025-11-14T21:15:14.5520646Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.5520669Z   hint: undefined,
+2025-11-14T21:15:14.5520696Z   position: undefined,
+2025-11-14T21:15:14.5520725Z   internalPosition: undefined,
+2025-11-14T21:15:14.5520751Z   internalQuery: undefined,
+2025-11-14T21:15:14.5520779Z   where: undefined,
+2025-11-14T21:15:14.5520803Z   schema: 'public',
+2025-11-14T21:15:14.5520839Z   table: 'agent_metrics',
+2025-11-14T21:15:14.5520864Z   column: undefined,
+2025-11-14T21:15:14.5520888Z   dataType: undefined,
+2025-11-14T21:15:14.5520916Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.5520944Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.552097Z   line: '2599',
+2025-11-14T21:15:14.5520996Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.552102Z }
+2025-11-14T21:15:14.5539764Z Agent architecture failed: Error: Agent timeout
+2025-11-14T21:15:14.5539929Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.5539964Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.5540016Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.5623083Z Agent delivery failed: Error: Agent timeout
+2025-11-14T21:15:14.5623326Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.5623376Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.5623412Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.5692817Z Agent procurement failed: Error: Agent timeout
+2025-11-14T21:15:14.5692981Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.5693018Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.5693051Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.5738133Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.5738315Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.5738352Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.573838Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.5738408Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.5738434Z     at async Promise.allSettled (index 2)
+2025-11-14T21:15:14.5738462Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.5738488Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.5738515Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.5738538Z   length: 378,
+2025-11-14T21:15:14.5738564Z   severity: 'ERROR',
+2025-11-14T21:15:14.5738604Z   code: '23503',
+2025-11-14T21:15:14.5738635Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.5738662Z   hint: undefined,
+2025-11-14T21:15:14.5738688Z   position: undefined,
+2025-11-14T21:15:14.5738716Z   internalPosition: undefined,
+2025-11-14T21:15:14.5738742Z   internalQuery: undefined,
+2025-11-14T21:15:14.5738768Z   where: undefined,
+2025-11-14T21:15:14.5738792Z   schema: 'public',
+2025-11-14T21:15:14.5738817Z   table: 'agent_metrics',
+2025-11-14T21:15:14.5738843Z   column: undefined,
+2025-11-14T21:15:14.5738867Z   dataType: undefined,
+2025-11-14T21:15:14.5738906Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.5738931Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.5738957Z   line: '2599',
+2025-11-14T21:15:14.5738982Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.5739008Z }
+2025-11-14T21:15:14.5838203Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.5838393Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.583843Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.5838458Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.5838484Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.5838509Z     at async Promise.allSettled (index 0)
+2025-11-14T21:15:14.5838558Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.5838587Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.5838614Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.583864Z   length: 378,
+2025-11-14T21:15:14.5838665Z   severity: 'ERROR',
+2025-11-14T21:15:14.5838692Z   code: '23503',
+2025-11-14T21:15:14.5838723Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.5838748Z   hint: undefined,
+2025-11-14T21:15:14.5838775Z   position: undefined,
+2025-11-14T21:15:14.5838803Z   internalPosition: undefined,
+2025-11-14T21:15:14.5838831Z   internalQuery: undefined,
+2025-11-14T21:15:14.5838869Z   where: undefined,
+2025-11-14T21:15:14.5838897Z   schema: 'public',
+2025-11-14T21:15:14.5838922Z   table: 'agent_metrics',
+2025-11-14T21:15:14.5838949Z   column: undefined,
+2025-11-14T21:15:14.5838972Z   dataType: undefined,
+2025-11-14T21:15:14.5839Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.5839025Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.5839051Z   line: '2599',
+2025-11-14T21:15:14.5839079Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.5839103Z }
+2025-11-14T21:15:14.5924903Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.5925104Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.5925141Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.592517Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.5925198Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.5925226Z     at async Promise.allSettled (index 4)
+2025-11-14T21:15:14.5925254Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.5925281Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.5925309Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.5925336Z   length: 378,
+2025-11-14T21:15:14.5925363Z   severity: 'ERROR',
+2025-11-14T21:15:14.5925401Z   code: '23503',
+2025-11-14T21:15:14.5925435Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.592546Z   hint: undefined,
+2025-11-14T21:15:14.5925485Z   position: undefined,
+2025-11-14T21:15:14.5925512Z   internalPosition: undefined,
+2025-11-14T21:15:14.5925537Z   internalQuery: undefined,
+2025-11-14T21:15:14.5925563Z   where: undefined,
+2025-11-14T21:15:14.5925589Z   schema: 'public',
+2025-11-14T21:15:14.5925615Z   table: 'agent_metrics',
+2025-11-14T21:15:14.592564Z   column: undefined,
+2025-11-14T21:15:14.5925668Z   dataType: undefined,
+2025-11-14T21:15:14.5925698Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.5925744Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.592577Z   line: '2599',
+2025-11-14T21:15:14.5925796Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.5925818Z }
+2025-11-14T21:15:14.7372882Z Agent security failed: Error: Agent timeout
+2025-11-14T21:15:14.7373094Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:14.737313Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:14.7373157Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:14.7573535Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:14.7573721Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:14.7573782Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:14.7573814Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:14.7573842Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:14.757387Z     at async Promise.allSettled (index 5)
+2025-11-14T21:15:14.7573899Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:14.7573926Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:14.7573955Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:14.7573978Z   length: 378,
+2025-11-14T21:15:14.7575415Z ✅ Multiagent evaluation complete in 30809ms
+2025-11-14T21:15:14.7575485Z    Successful agents: 0/6
+2025-11-14T21:15:14.7575515Z    Failed agents: 6/6
+2025-11-14T21:15:14.7575543Z    Tokens used: 0
+2025-11-14T21:15:14.7574005Z   severity: 'ERROR',
+2025-11-14T21:15:14.7575889Z   code: '23503',
+2025-11-14T21:15:14.7575923Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:14.757597Z   hint: undefined,
+2025-11-14T21:15:14.7575996Z   position: undefined,
+2025-11-14T21:15:14.757602Z   internalPosition: undefined,
+2025-11-14T21:15:14.7576043Z   internalQuery: undefined,
+2025-11-14T21:15:14.7576067Z   where: undefined,
+2025-11-14T21:15:14.7576092Z   schema: 'public',
+2025-11-14T21:15:14.7576117Z   table: 'agent_metrics',
+2025-11-14T21:15:14.7576141Z   column: undefined,
+2025-11-14T21:15:14.7576163Z   dataType: undefined,
+2025-11-14T21:15:14.7576187Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:14.7576207Z   file: 'ri_triggers.c',
+2025-11-14T21:15:14.7576239Z   line: '2599',
+2025-11-14T21:15:14.7576261Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:14.7576281Z }
+2025-11-14T21:15:14.7580777Z    🔢 FunctionalFit aggregation: 0 agents provided scores:
+2025-11-14T21:15:14.7580858Z    📈 Average FunctionalFit: 0
+2025-11-14T21:15:14.7580902Z    ✅ Evaluation result: {"overallScore":0,"functionalFit":0,"technicalFit":0,"deliveryRisk":0,"compliance":0,"status":"under-review"}
+2025-11-14T21:15:14.7752443Z ✓ Completed evaluation for GlobalSoft Systems
+2025-11-14T21:15:14.7752696Z Evaluating proposal for GlobalSoft Systems...
+2025-11-14T21:15:14.7779162Z 🚀 Using multiagent evaluation system
+2025-11-14T21:15:14.7779397Z 🤖 Starting multiagent evaluation for undefined...
+2025-11-14T21:15:14.7795583Z    🔍 Retrieving relevant compliance documents from RAG system...
+2025-11-14T21:15:15.1197928Z    ✅ Retrieved 0 relevant document sections
+2025-11-14T21:15:15.1198317Z    🔌 Retrieving external intelligence from MCP connectors...
+2025-11-14T21:15:15.1567931Z    ⚠️  No active MCP connectors found or no data retrieved
+2025-11-14T21:15:15.9573887Z 9:15:15 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:16.8351634Z Agent delivery failed: Error: Agent timeout
+2025-11-14T21:15:16.8352402Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:16.8352443Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:16.8352474Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:16.8359559Z Agent engineering failed: Error: Agent timeout
+2025-11-14T21:15:16.8359722Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:16.835976Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:16.8359789Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:16.838324Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:16.8383406Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:16.8383443Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:16.8383471Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:16.8383496Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:16.838352Z     at async Promise.allSettled (index 3)
+2025-11-14T21:15:16.8383548Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:16.8383575Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:16.8383601Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:16.8383646Z   length: 381,
+2025-11-14T21:15:16.8383671Z   severity: 'ERROR',
+2025-11-14T21:15:16.8383695Z   code: '23503',
+2025-11-14T21:15:16.8383724Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:16.8383748Z   hint: undefined,
+2025-11-14T21:15:16.8383773Z   position: undefined,
+2025-11-14T21:15:16.8383798Z   internalPosition: undefined,
+2025-11-14T21:15:16.8383823Z   internalQuery: undefined,
+2025-11-14T21:15:16.8383849Z   where: undefined,
+2025-11-14T21:15:16.8383873Z   schema: 'public',
+2025-11-14T21:15:16.8383897Z   table: 'agent_metrics',
+2025-11-14T21:15:16.838392Z   column: undefined,
+2025-11-14T21:15:16.8383952Z   dataType: undefined,
+2025-11-14T21:15:16.8383977Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:16.8383999Z   file: 'ri_triggers.c',
+2025-11-14T21:15:16.8384021Z   line: '2599',
+2025-11-14T21:15:16.8384045Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:16.838407Z }
+2025-11-14T21:15:16.8394083Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:16.8394246Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:16.8394281Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:16.8394311Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:16.8394358Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:16.8394579Z     at async Promise.allSettled (index 0)
+2025-11-14T21:15:16.8394615Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:16.8394644Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:16.8394672Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:16.8394698Z   length: 381,
+2025-11-14T21:15:16.8394722Z   severity: 'ERROR',
+2025-11-14T21:15:16.8394746Z   code: '23503',
+2025-11-14T21:15:16.8394775Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:16.8394799Z   hint: undefined,
+2025-11-14T21:15:16.8394824Z   position: undefined,
+2025-11-14T21:15:16.8394864Z   internalPosition: undefined,
+2025-11-14T21:15:16.839489Z   internalQuery: undefined,
+2025-11-14T21:15:16.8394919Z   where: undefined,
+2025-11-14T21:15:16.8394944Z   schema: 'public',
+2025-11-14T21:15:16.839497Z   table: 'agent_metrics',
+2025-11-14T21:15:16.8395071Z   column: undefined,
+2025-11-14T21:15:16.8395097Z   dataType: undefined,
+2025-11-14T21:15:16.8395126Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:16.8395151Z   file: 'ri_triggers.c',
+2025-11-14T21:15:16.8395184Z   line: '2599',
+2025-11-14T21:15:16.8395212Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:16.8395236Z }
+2025-11-14T21:15:16.8397989Z Agent product failed: Error: Agent timeout
+2025-11-14T21:15:16.8398065Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:16.8398097Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:16.8398124Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:16.8406772Z Agent architecture failed: Error: Agent timeout
+2025-11-14T21:15:16.8406941Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:16.8406972Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:16.8406998Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:16.8421865Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:16.8422049Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:16.8422083Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:16.842211Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:16.8422137Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:16.8422162Z     at async Promise.allSettled (index 1)
+2025-11-14T21:15:16.842219Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:16.8422216Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:16.8422244Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:16.842227Z   length: 381,
+2025-11-14T21:15:16.8422295Z   severity: 'ERROR',
+2025-11-14T21:15:16.842232Z   code: '23503',
+2025-11-14T21:15:16.8422363Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:16.8422389Z   hint: undefined,
+2025-11-14T21:15:16.8422529Z   position: undefined,
+2025-11-14T21:15:16.8422557Z   internalPosition: undefined,
+2025-11-14T21:15:16.8422582Z   internalQuery: undefined,
+2025-11-14T21:15:16.8422605Z   where: undefined,
+2025-11-14T21:15:16.8422629Z   schema: 'public',
+2025-11-14T21:15:16.8422653Z   table: 'agent_metrics',
+2025-11-14T21:15:16.8422677Z   column: undefined,
+2025-11-14T21:15:16.8422704Z   dataType: undefined,
+2025-11-14T21:15:16.8422733Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:16.8422757Z   file: 'ri_triggers.c',
+2025-11-14T21:15:16.8422793Z   line: '2599',
+2025-11-14T21:15:16.8422821Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:16.8422845Z }
+2025-11-14T21:15:16.8435519Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:16.8435672Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:16.8435706Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:16.8435734Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:16.843576Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:16.8435785Z     at async Promise.allSettled (index 2)
+2025-11-14T21:15:16.8435811Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:16.8435972Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:16.8435999Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:16.8436023Z   length: 381,
+2025-11-14T21:15:16.8436046Z   severity: 'ERROR',
+2025-11-14T21:15:16.8436071Z   code: '23503',
+2025-11-14T21:15:16.8436101Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:16.8436124Z   hint: undefined,
+2025-11-14T21:15:16.8436148Z   position: undefined,
+2025-11-14T21:15:16.8436172Z   internalPosition: undefined,
+2025-11-14T21:15:16.8436195Z   internalQuery: undefined,
+2025-11-14T21:15:16.8436218Z   where: undefined,
+2025-11-14T21:15:16.843625Z   schema: 'public',
+2025-11-14T21:15:16.8436274Z   table: 'agent_metrics',
+2025-11-14T21:15:16.8436298Z   column: undefined,
+2025-11-14T21:15:16.8436321Z   dataType: undefined,
+2025-11-14T21:15:16.8436347Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:16.8436371Z   file: 'ri_triggers.c',
+2025-11-14T21:15:16.8436394Z   line: '2599',
+2025-11-14T21:15:16.8436418Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:16.8436441Z }
+2025-11-14T21:15:16.8456013Z Agent procurement failed: Error: Agent timeout
+2025-11-14T21:15:16.845618Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:16.8456234Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:16.8456262Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:16.8468341Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:16.8468518Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:16.8468553Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:16.8468584Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:16.846861Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:16.8468638Z     at async Promise.allSettled (index 4)
+2025-11-14T21:15:16.8468665Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:16.8468692Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:16.8468742Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:16.8468768Z   length: 381,
+2025-11-14T21:15:16.8468791Z   severity: 'ERROR',
+2025-11-14T21:15:16.8468814Z   code: '23503',
+2025-11-14T21:15:16.8468844Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:16.8468875Z   hint: undefined,
+2025-11-14T21:15:16.84689Z   position: undefined,
+2025-11-14T21:15:16.8468927Z   internalPosition: undefined,
+2025-11-14T21:15:16.8468951Z   internalQuery: undefined,
+2025-11-14T21:15:16.8468976Z   where: undefined,
+2025-11-14T21:15:16.8468999Z   schema: 'public',
+2025-11-14T21:15:16.8469035Z   table: 'agent_metrics',
+2025-11-14T21:15:16.8469064Z   column: undefined,
+2025-11-14T21:15:16.8469087Z   dataType: undefined,
+2025-11-14T21:15:16.8469114Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:16.8469142Z   file: 'ri_triggers.c',
+2025-11-14T21:15:16.8469166Z   line: '2599',
+2025-11-14T21:15:16.8469194Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:16.8469218Z }
+2025-11-14T21:15:17.0045005Z Agent security failed: Error: Agent timeout
+2025-11-14T21:15:17.0045205Z     at Timeout._onTimeout (file:///app/dist/index.js:3614:48)
+2025-11-14T21:15:17.0045239Z     at listOnTimeout (node:internal/timers:581:17)
+2025-11-14T21:15:17.0045311Z     at process.processTimers (node:internal/timers:519:7)
+2025-11-14T21:15:17.008409Z ✅ Multiagent evaluation complete in 30575ms
+2025-11-14T21:15:17.008418Z    Successful agents: 0/6
+2025-11-14T21:15:17.0084217Z    Failed agents: 6/6
+2025-11-14T21:15:17.0084241Z    Tokens used: 0
+2025-11-14T21:15:17.008427Z    🔢 FunctionalFit aggregation: 0 agents provided scores:
+2025-11-14T21:15:17.0084296Z    📈 Average FunctionalFit: 0
+2025-11-14T21:15:17.0084327Z    ✅ Evaluation result: {"overallScore":0,"functionalFit":0,"technicalFit":0,"deliveryRisk":0,"compliance":0,"status":"under-review"}
+2025-11-14T21:15:17.7998751Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:17.7998952Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:17.7998981Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:17.7999007Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:17.7999031Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:17.7999055Z     at async Promise.allSettled (index 5)
+2025-11-14T21:15:17.7999095Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:17.799912Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:17.7999145Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:17.7999166Z   length: 381,
+2025-11-14T21:15:17.7999189Z   severity: 'ERROR',
+2025-11-14T21:15:17.799921Z   code: '23503',
+2025-11-14T21:15:17.7999238Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-InnovateTech Partners) is not present in table "evaluations".',
+2025-11-14T21:15:17.7999259Z   hint: undefined,
+2025-11-14T21:15:17.7999281Z   position: undefined,
+2025-11-14T21:15:17.7999303Z   internalPosition: undefined,
+2025-11-14T21:15:17.7999324Z   internalQuery: undefined,
+2025-11-14T21:15:17.7999356Z   where: undefined,
+2025-11-14T21:15:17.7999379Z   schema: 'public',
+2025-11-14T21:15:17.7999401Z   table: 'agent_metrics',
+2025-11-14T21:15:17.7999423Z   column: undefined,
+2025-11-14T21:15:17.7999446Z   dataType: undefined,
+2025-11-14T21:15:17.799947Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:17.7999491Z   file: 'ri_triggers.c',
+2025-11-14T21:15:17.7999512Z   line: '2599',
+2025-11-14T21:15:17.7999533Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:17.7999554Z }
+2025-11-14T21:15:20.7998555Z ✓ Completed evaluation for InnovateTech Partners
+2025-11-14T21:15:20.7998788Z Evaluating proposal for GlobalSoft_Systems...
+2025-11-14T21:15:20.799882Z   ⚠️ No extractedData found for GlobalSoft_Systems, creating from metadata...
+2025-11-14T21:15:20.7998845Z 🚀 Using multiagent evaluation system
+2025-11-14T21:15:20.7998867Z 🤖 Starting multiagent evaluation for GlobalSoft_Systems...
+2025-11-14T21:15:20.799889Z    🔍 Retrieving relevant compliance documents from RAG system...
+2025-11-14T21:15:20.7998912Z    ✅ Retrieved 0 relevant document sections
+2025-11-14T21:15:20.7998935Z    🔌 Retrieving external intelligence from MCP connectors...
+2025-11-14T21:15:20.7998957Z    ⚠️  No active MCP connectors found or no data retrieved
+2025-11-14T21:15:20.7998982Z 9:15:17 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50/evaluations 200 in 419ms…
+2025-11-14T21:15:20.7999005Z 9:15:19 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:22.1971279Z 9:15:22 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:25.2302623Z 9:15:25 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:28.3601269Z 9:15:28 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:31.4022771Z 9:15:31 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:33.3233056Z 9:15:33 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50/evaluations 304 in 301ms…
+2025-11-14T21:15:34.4838701Z 9:15:34 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:37.6056157Z 9:15:37 PM [express] GET /api/projects/1e47b11a-6468-4974-8755-e806a03f2f50 304 in 2ms :: {"id":"1e4…
+2025-11-14T21:15:40.2424354Z Agent delivery failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.2424703Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.2424739Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.2424766Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.2424792Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.2424818Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.2424843Z     at async Promise.allSettled (index 0)
+2025-11-14T21:15:40.242487Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.2424897Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.2424923Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.2424963Z   status: 429,
+2025-11-14T21:15:40.2424987Z   headers: Headers {
+2025-11-14T21:15:40.2425009Z     'content-length': '384',
+2025-11-14T21:15:40.2425032Z     'content-type': 'application/json',
+2025-11-14T21:15:40.2425054Z     'retry-after': '59',
+2025-11-14T21:15:40.2425077Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.24251Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.2425123Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.2425147Z     'apim-request-id': '1c6fc391-b270-4a89-8bac-ba643574b4de',
+2025-11-14T21:15:40.2425173Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.2425195Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.2425229Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.2425252Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.2425278Z     'x-ratelimit-remaining-requests': '200',
+2025-11-14T21:15:40.2425302Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.2425324Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.2425345Z   },
+2025-11-14T21:15:40.2425371Z   requestID: null,
+2025-11-14T21:15:40.2425394Z   error: {
+2025-11-14T21:15:40.2425421Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.2425462Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.2425489Z   },
+2025-11-14T21:15:40.2425528Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.2425553Z   param: undefined,
+2025-11-14T21:15:40.242558Z   type: undefined
+2025-11-14T21:15:40.2425603Z }
+2025-11-14T21:15:40.24538Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:40.2453958Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:40.2453995Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.2454022Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:40.2454049Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:40.2454073Z     at async Promise.allSettled (index 0)
+2025-11-14T21:15:40.245412Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.2454148Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.2454173Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.2454196Z   length: 378,
+2025-11-14T21:15:40.2454221Z   severity: 'ERROR',
+2025-11-14T21:15:40.2454245Z   code: '23503',
+2025-11-14T21:15:40.2454272Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:40.2454296Z   hint: undefined,
+2025-11-14T21:15:40.2454321Z   position: undefined,
+2025-11-14T21:15:40.2454344Z   internalPosition: undefined,
+2025-11-14T21:15:40.2454367Z   internalQuery: undefined,
+2025-11-14T21:15:40.2454402Z   where: undefined,
+2025-11-14T21:15:40.2454427Z   schema: 'public',
+2025-11-14T21:15:40.2454451Z   table: 'agent_metrics',
+2025-11-14T21:15:40.2454475Z   column: undefined,
+2025-11-14T21:15:40.2454498Z   dataType: undefined,
+2025-11-14T21:15:40.2454523Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:40.2454546Z   file: 'ri_triggers.c',
+2025-11-14T21:15:40.245457Z   line: '2599',
+2025-11-14T21:15:40.2454595Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:40.2454617Z }
+2025-11-14T21:15:40.2568425Z Agent product failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.2568642Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.2568681Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.256873Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.2568763Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.2568791Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.2568946Z     at async Promise.allSettled (index 1)
+2025-11-14T21:15:40.2568975Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.2569001Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.2569028Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.256905Z   status: 429,
+2025-11-14T21:15:40.2569088Z   headers: Headers {
+2025-11-14T21:15:40.2569113Z     'content-length': '384',
+2025-11-14T21:15:40.2569138Z     'content-type': 'application/json',
+2025-11-14T21:15:40.2569162Z     'retry-after': '59',
+2025-11-14T21:15:40.2569188Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.2569213Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.2569237Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.2569265Z     'apim-request-id': '51bffb18-6030-4bda-8366-6e3d7593fb25',
+2025-11-14T21:15:40.2569292Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.2569316Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.2569342Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.2569366Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.2569399Z     'x-ratelimit-remaining-requests': '199',
+2025-11-14T21:15:40.2569425Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.256945Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.2569474Z   },
+2025-11-14T21:15:40.2569499Z   requestID: null,
+2025-11-14T21:15:40.2569524Z   error: {
+2025-11-14T21:15:40.2569549Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.2569591Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.2569615Z   },
+2025-11-14T21:15:40.256964Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.2569672Z   param: undefined,
+2025-11-14T21:15:40.2569698Z   type: undefined
+2025-11-14T21:15:40.2569721Z }
+2025-11-14T21:15:40.2797984Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:40.2798166Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:40.2798203Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.2798229Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:40.2798253Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:40.2798276Z     at async Promise.allSettled (index 1)
+2025-11-14T21:15:40.2798303Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.2798332Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.2798385Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.2798412Z   length: 378,
+2025-11-14T21:15:40.2798437Z   severity: 'ERROR',
+2025-11-14T21:15:40.2798463Z   code: '23503',
+2025-11-14T21:15:40.2798493Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:40.279852Z   hint: undefined,
+2025-11-14T21:15:40.2798548Z   position: undefined,
+2025-11-14T21:15:40.2798573Z   internalPosition: undefined,
+2025-11-14T21:15:40.2798597Z   internalQuery: undefined,
+2025-11-14T21:15:40.2798621Z   where: undefined,
+2025-11-14T21:15:40.2798646Z   schema: 'public',
+2025-11-14T21:15:40.2798684Z   table: 'agent_metrics',
+2025-11-14T21:15:40.2798711Z   column: undefined,
+2025-11-14T21:15:40.2798736Z   dataType: undefined,
+2025-11-14T21:15:40.2798761Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:40.2798786Z   file: 'ri_triggers.c',
+2025-11-14T21:15:40.279881Z   line: '2599',
+2025-11-14T21:15:40.2798833Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:40.2798854Z }
+2025-11-14T21:15:40.2946136Z Agent engineering failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.294634Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.2946398Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.2946429Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.2946457Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.2946484Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.2946512Z     at async Promise.allSettled (index 3)
+2025-11-14T21:15:40.2946541Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.2946568Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.2946596Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.2946621Z   status: 429,
+2025-11-14T21:15:40.2946648Z   headers: Headers {
+2025-11-14T21:15:40.2946675Z     'content-length': '384',
+2025-11-14T21:15:40.294671Z     'content-type': 'application/json',
+2025-11-14T21:15:40.2946736Z     'retry-after': '59',
+2025-11-14T21:15:40.2946763Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.2946792Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.2946822Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.2946848Z     'apim-request-id': 'a7db08d8-8703-4a3f-af0c-6a72bd785955',
+2025-11-14T21:15:40.2946875Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.29469Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.2946927Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.2946955Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.294698Z     'x-ratelimit-remaining-requests': '197',
+2025-11-14T21:15:40.2947015Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.2947041Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.2947063Z   },
+2025-11-14T21:15:40.2947088Z   requestID: null,
+2025-11-14T21:15:40.2947112Z   error: {
+2025-11-14T21:15:40.2947137Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.2947179Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.2947203Z   },
+2025-11-14T21:15:40.2947227Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.2947251Z   param: undefined,
+2025-11-14T21:15:40.2947277Z   type: undefined
+2025-11-14T21:15:40.2947311Z }
+2025-11-14T21:15:40.3328817Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:40.3329869Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:40.332992Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.3329953Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:40.3329981Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:40.3330008Z     at async Promise.allSettled (index 3)
+2025-11-14T21:15:40.3330037Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.3330066Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.3330101Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.3330181Z   length: 378,
+2025-11-14T21:15:40.333021Z   severity: 'ERROR',
+2025-11-14T21:15:40.3330236Z   code: '23503',
+2025-11-14T21:15:40.3330267Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:40.3330294Z   hint: undefined,
+2025-11-14T21:15:40.3330321Z   position: undefined,
+2025-11-14T21:15:40.3330352Z   internalPosition: undefined,
+2025-11-14T21:15:40.3330378Z   internalQuery: undefined,
+2025-11-14T21:15:40.3330406Z   where: undefined,
+2025-11-14T21:15:40.3330434Z   schema: 'public',
+2025-11-14T21:15:40.333046Z   table: 'agent_metrics',
+2025-11-14T21:15:40.3330501Z   column: undefined,
+2025-11-14T21:15:40.3330531Z   dataType: undefined,
+2025-11-14T21:15:40.3330566Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:40.3330596Z   file: 'ri_triggers.c',
+2025-11-14T21:15:40.3330625Z   line: '2599',
+2025-11-14T21:15:40.3330654Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:40.3330683Z }
+2025-11-14T21:15:40.3989951Z Agent procurement failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.3990177Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.3990213Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.3990262Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.399029Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.3990317Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.3990343Z     at async Promise.allSettled (index 4)
+2025-11-14T21:15:40.3990369Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.3990396Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.3990424Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.3990449Z   status: 429,
+2025-11-14T21:15:40.3990474Z   headers: Headers {
+2025-11-14T21:15:40.39905Z     'content-length': '384',
+2025-11-14T21:15:40.3990526Z     'content-type': 'application/json',
+2025-11-14T21:15:40.3990561Z     'retry-after': '59',
+2025-11-14T21:15:40.3990589Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.3990615Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.3990641Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.3990669Z     'apim-request-id': '382eda25-ec2d-4c88-a1dc-976fe412ae22',
+2025-11-14T21:15:40.3990696Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.3990723Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.3990748Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.3990773Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.39908Z     'x-ratelimit-remaining-requests': '195',
+2025-11-14T21:15:40.3990826Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.3990862Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.3990891Z   },
+2025-11-14T21:15:40.3990917Z   requestID: null,
+2025-11-14T21:15:40.399094Z   error: {
+2025-11-14T21:15:40.3990967Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.3991013Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.3991039Z   },
+2025-11-14T21:15:40.3991063Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.3991086Z   param: undefined,
+2025-11-14T21:15:40.3991106Z   type: undefined
+2025-11-14T21:15:40.3991127Z }
+2025-11-14T21:15:40.4215165Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:40.4215364Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:40.4215399Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.4215425Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:40.4215449Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:40.4215473Z     at async Promise.allSettled (index 4)
+2025-11-14T21:15:40.4215502Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.4215528Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.4215554Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.421558Z   length: 378,
+2025-11-14T21:15:40.4215623Z   severity: 'ERROR',
+2025-11-14T21:15:40.421565Z   code: '23503',
+2025-11-14T21:15:40.4215679Z   detail: 'Key (evaluation_id)=(1e47b11a-6468-4974-8755-e806a03f2f50-GlobalSoft Systems) is not present in table "evaluations".',
+2025-11-14T21:15:40.4215706Z   hint: undefined,
+2025-11-14T21:15:40.4215732Z   position: undefined,
+2025-11-14T21:15:40.4215757Z   internalPosition: undefined,
+2025-11-14T21:15:40.421578Z   internalQuery: undefined,
+2025-11-14T21:15:40.4215801Z   where: undefined,
+2025-11-14T21:15:40.4215821Z   schema: 'public',
+2025-11-14T21:15:40.4215841Z   table: 'agent_metrics',
+2025-11-14T21:15:40.4215863Z   column: undefined,
+2025-11-14T21:15:40.4215887Z   dataType: undefined,
+2025-11-14T21:15:40.4215928Z   constraint: 'agent_metrics_evaluation_id_evaluations_id_fk',
+2025-11-14T21:15:40.4215953Z   file: 'ri_triggers.c',
+2025-11-14T21:15:40.4215976Z   line: '2599',
+2025-11-14T21:15:40.4216Z   routine: 'ri_ReportViolation'
+2025-11-14T21:15:40.4216022Z }
+2025-11-14T21:15:40.4636969Z Agent security failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.4637168Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.4637206Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.4637235Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.4637288Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.4637321Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.4637346Z     at async Promise.allSettled (index 5)
+2025-11-14T21:15:40.4637372Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.46374Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.4637427Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.4637452Z   status: 429,
+2025-11-14T21:15:40.4637477Z   headers: Headers {
+2025-11-14T21:15:40.4637502Z     'content-length': '384',
+2025-11-14T21:15:40.4637528Z     'content-type': 'application/json',
+2025-11-14T21:15:40.4637552Z     'retry-after': '59',
+2025-11-14T21:15:40.4637578Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.4637617Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.4637643Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.4637671Z     'apim-request-id': '29308f60-64eb-4602-a910-7564b9748215',
+2025-11-14T21:15:40.46377Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.4637727Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.4637755Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.463778Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.4637806Z     'x-ratelimit-remaining-requests': '194',
+2025-11-14T21:15:40.4637833Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.463786Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.4637886Z   },
+2025-11-14T21:15:40.4637926Z   requestID: null,
+2025-11-14T21:15:40.463795Z   error: {
+2025-11-14T21:15:40.4637974Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.4638011Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.4638033Z   },
+2025-11-14T21:15:40.4638056Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.463808Z   param: undefined,
+2025-11-14T21:15:40.4638105Z   type: undefined
+2025-11-14T21:15:40.4638128Z }
+2025-11-14T21:15:40.4736068Z Agent architecture failed: RateLimitError: 429 Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.
+2025-11-14T21:15:40.4736251Z     at APIError.generate (file:///app/node_modules/openai/core/error.mjs:59:20)
+2025-11-14T21:15:40.4736287Z     at OpenAI.makeStatusError (file:///app/node_modules/openai/client.mjs:162:32)
+2025-11-14T21:15:40.4736316Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:330:30)
+2025-11-14T21:15:40.4736345Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.4736372Z     at async executeAgent (file:///app/dist/index.js:3603:22)
+2025-11-14T21:15:40.4736398Z     at async Promise.allSettled (index 2)
+2025-11-14T21:15:40.4736426Z     at async evaluateProposalMultiAgent (file:///app/dist/index.js:3887:28)
+2025-11-14T21:15:40.4736453Z     at async evaluateProposal (file:///app/dist/index.js:4257:22)
+2025-11-14T21:15:40.473648Z     at async triggerProjectEvaluation (file:///app/dist/index.js:15965:45) {
+2025-11-14T21:15:40.4736516Z   status: 429,
+2025-11-14T21:15:40.4736541Z   headers: Headers {
+2025-11-14T21:15:40.4736567Z     'content-length': '384',
+2025-11-14T21:15:40.4736594Z     'content-type': 'application/json',
+2025-11-14T21:15:40.4736621Z     'retry-after': '59',
+2025-11-14T21:15:40.473665Z     'x-ratelimit-reset-tokens': '59',
+2025-11-14T21:15:40.4736675Z     'x-ratelimit-limit-tokens': '250000',
+2025-11-14T21:15:40.47367Z     'x-ms-deployment-name': 'gpt-4.1',
+2025-11-14T21:15:40.4736727Z     'apim-request-id': 'abac66fa-62ee-4ea7-951f-4fbbbd1f1761',
+2025-11-14T21:15:40.4736756Z     'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+2025-11-14T21:15:40.4736783Z     'x-content-type-options': 'nosniff',
+2025-11-14T21:15:40.4736818Z     'policy-id': 'DeploymentRatelimit-Token',
+2025-11-14T21:15:40.4736842Z     'x-ms-region': 'UAE North',
+2025-11-14T21:15:40.4736866Z     'x-ratelimit-remaining-requests': '193',
+2025-11-14T21:15:40.4736893Z     'x-ratelimit-limit-requests': '250',
+2025-11-14T21:15:40.473692Z     date: 'Fri, 14 Nov 2025 21:15:39 GMT'
+2025-11-14T21:15:40.4736943Z   },
+2025-11-14T21:15:40.4736967Z   requestID: null,
+2025-11-14T21:15:40.4736991Z   error: {
+2025-11-14T21:15:40.4737018Z     code: 'RateLimitReached',
+2025-11-14T21:15:40.4737059Z     message: 'Your requests to gpt-4.1 for gpt-4.1 in UAE North have exceeded the token rate limit for your current AIServices S0 pricing tier. This request was for ChatCompletions_Create under Azure OpenAI API version 2025-01-01-preview. Please retry after 59 seconds. To increase your default rate limit, visit: https://aka.ms/oai/quotaincrease.'
+2025-11-14T21:15:40.4737083Z   },
+2025-11-14T21:15:40.4737115Z   code: 'RateLimitReached',
+2025-11-14T21:15:40.473714Z   param: undefined,
+2025-11-14T21:15:40.4737166Z   type: undefined
+2025-11-14T21:15:40.4737189Z }
+2025-11-14T21:15:40.4871401Z [AgentMetrics] Failed to save metric: error: insert or update on table "agent_metrics" violates foreign key constraint "agent_metrics_evaluation_id_evaluations_id_fk"
+2025-11-14T21:15:40.4871586Z     at /app/node_modules/pg-pool/index.js:45:11
+2025-11-14T21:15:40.4871626Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-14T21:15:40.4871654Z     at async AgentMetricsService.trackExecution (file:///app/dist/index.js:3239:11)
+2025-11-14T21:15:40.4871681Z     at async executeAgent (file:///app/dist/index.js:3686:7)
+2025-11-14T21:15:40.4871705Z     at async Promise.allSettled (index 5)
