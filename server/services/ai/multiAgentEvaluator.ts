@@ -232,162 +232,196 @@ ${taggedSections.map(s => `- ${s.name}${s.description ? ': ' + s.description : '
     .replace('{proposal}', JSON.stringify(proposal, null, 2))
     .replace('{vendorName}', proposal.vendorName) + standardsContext;
 
-  try {
-    const client = await getOpenAIClient();
-    const response = await Promise.race([
-      client.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: prompt.system },
-          { role: "user", content: userMessage }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.4,
-      }),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("Agent timeout")), timeout)
-      )
-    ]);
-
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error("No response from agent");
-    }
-
-    const result = JSON.parse(content);
-    const executionTime = Date.now() - startTime;
-    
-    // Debug: Log what scores each agent is returning
-    console.log(`   📊 ${role} agent scores:`, JSON.stringify(result.scores || {}));
-
-    // Calculate status based on scores if not provided by AI
-    let calculatedStatus: "recommended" | "under-review" | "risk-flagged" = "under-review";
-    if (!result.status && result.scores) {
-      const overall = result.scores.overall || 0;
-      const deliveryRisk = result.scores.deliveryRisk || 0;
-      const compliance = result.scores.compliance || 0;
+  // Retry logic with exponential backoff for rate limit errors
+  const maxRetries = 3;
+  let lastError: any = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const client = await getOpenAIClient();
+      const response = await Promise.race([
+        client.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: prompt.system },
+            { role: "user", content: userMessage }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.4,
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error("Agent timeout")), timeout)
+        )
+      ]);
       
-      // Risk flagged: Low overall score OR high delivery risk OR low compliance
-      if (overall < 45 || deliveryRisk > 75 || compliance < 35) {
-        calculatedStatus = "risk-flagged";
+      // If we get here, the request succeeded - process the response
+      const content = response.choices[0].message.content;
+      if (!content) {
+        throw new Error("No response from agent");
       }
-      // Recommended: High overall score AND acceptable delivery risk
-      else if (overall >= 65 && deliveryRisk <= 50) {
-        calculatedStatus = "recommended";
-      }
-      // Otherwise: under-review
-      else {
-        calculatedStatus = "under-review";
-      }
-    }
 
-    // Track metrics for successful execution
-    const tokenUsage = response.usage?.total_tokens || 0;
-    if (vendorContext && vendorContext.evaluationId) {
-      await agentMetricsService.trackExecution({
-        evaluationId: vendorContext.evaluationId,
-        projectId: vendorContext.projectId,
-        vendorName: vendorContext.vendorName,
-        agentRole: role,
-        executionTimeMs: executionTime,
+      const result = JSON.parse(content);
+      const executionTime = Date.now() - startTime;
+      
+      // Debug: Log what scores each agent is returning
+      console.log(`   📊 ${role} agent scores:`, JSON.stringify(result.scores || {}));
+
+      // Calculate status based on scores if not provided by AI
+      let calculatedStatus: "recommended" | "under-review" | "risk-flagged" = "under-review";
+      if (!result.status && result.scores) {
+        const overall = result.scores.overall || 0;
+        const deliveryRisk = result.scores.deliveryRisk || 0;
+        const compliance = result.scores.compliance || 0;
+        
+        // Risk flagged: Low overall score OR high delivery risk OR low compliance
+        if (overall < 45 || deliveryRisk > 75 || compliance < 35) {
+          calculatedStatus = "risk-flagged";
+        }
+        // Recommended: High overall score AND acceptable delivery risk
+        else if (overall >= 65 && deliveryRisk <= 50) {
+          calculatedStatus = "recommended";
+        }
+        // Otherwise: under-review
+        else {
+          calculatedStatus = "under-review";
+        }
+      }
+
+      // Track metrics for successful execution
+      const tokenUsage = response.usage?.total_tokens || 0;
+      if (vendorContext && vendorContext.evaluationId) {
+        await agentMetricsService.trackExecution({
+          evaluationId: vendorContext.evaluationId,
+          projectId: vendorContext.projectId,
+          vendorName: vendorContext.vendorName,
+          agentRole: role,
+          executionTimeMs: executionTime,
+          tokenUsage,
+          estimatedCostUsd: agentMetricsService.estimateCost(tokenUsage),
+          success: true,
+          timestamp: new Date()
+        });
+      }
+      
+      // Emit progress: agent completed successfully
+      if (vendorContext) {
+        const roleLabels: Record<AgentRole, string> = {
+          delivery: "Delivery Manager",
+          product: "Product Manager",
+          architecture: "Solution Architect",
+          engineering: "Engineering Lead",
+          procurement: "Procurement",
+          security: "Cybersecurity"
+        };
+        
+        evaluationProgressService.emitProgress({
+          projectId: vendorContext.projectId,
+          vendorName: vendorContext.vendorName,
+          vendorIndex: vendorContext.vendorIndex,
+          totalVendors: vendorContext.totalVendors,
+          agentRole: roleLabels[role],
+          agentStatus: 'completed',
+          timestamp: Date.now(),
+        });
+      }
+      
+      return {
+        role,
+        insights: result.insights || [],
+        scores: result.scores || { overall: 0 },
+        rationale: result.rationale || "",
+        status: result.status || calculatedStatus,
+        executionTime,
         tokenUsage,
-        estimatedCostUsd: agentMetricsService.estimateCost(tokenUsage),
-        success: true,
-        timestamp: new Date()
-      });
-    }
-    
-    // Emit progress: agent completed successfully
-    if (vendorContext) {
-      const roleLabels: Record<AgentRole, string> = {
-        delivery: "Delivery Manager",
-        product: "Product Manager",
-        architecture: "Solution Architect",
-        engineering: "Engineering Lead",
-        procurement: "Procurement",
-        security: "Cybersecurity"
+        succeeded: true,
       };
       
-      evaluationProgressService.emitProgress({
-        projectId: vendorContext.projectId,
-        vendorName: vendorContext.vendorName,
-        vendorIndex: vendorContext.vendorIndex,
-        totalVendors: vendorContext.totalVendors,
-        agentRole: roleLabels[role],
-        agentStatus: 'completed',
-        timestamp: Date.now(),
-      });
-    }
-    
-    return {
-      role,
-      insights: result.insights || [],
-      scores: result.scores || { overall: 0 },
-      rationale: result.rationale || "",
-      status: result.status || calculatedStatus,
-      executionTime,
-      tokenUsage,
-      succeeded: true,
-    };
-  } catch (error) {
-    const executionTime = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorType = error instanceof Error && error.message.includes('timeout') ? 'timeout' : 'execution_error';
-    
-    console.error(`Agent ${role} failed:`, error);
-    
-    // Track metrics for failed execution
-    if (vendorContext) {
-      await agentMetricsService.trackExecution({
-        evaluationId: `${vendorContext.projectId}-${vendorContext.vendorName}`,
-        projectId: vendorContext.projectId,
-        vendorName: vendorContext.vendorName,
-        agentRole: role,
-        executionTimeMs: executionTime,
-        tokenUsage: 0,
-        estimatedCostUsd: 0,
-        success: false,
-        errorType,
-        errorMessage,
-        timestamp: new Date()
-      });
-    }
-    
-    // Emit progress: agent failed
-    if (vendorContext) {
-      const roleLabels: Record<AgentRole, string> = {
-        delivery: "Delivery Manager",
-        product: "Product Manager",
-        architecture: "Solution Architect",
-        engineering: "Engineering Lead",
-        procurement: "Procurement",
-        security: "Cybersecurity"
-      };
+    } catch (error) {
+      lastError = error;
       
-      evaluationProgressService.emitProgress({
-        projectId: vendorContext.projectId,
-        vendorName: vendorContext.vendorName,
-        vendorIndex: vendorContext.vendorIndex,
-        totalVendors: vendorContext.totalVendors,
-        agentRole: roleLabels[role],
-        agentStatus: 'failed',
-        timestamp: Date.now(),
-      });
+      // Check if it's a rate limit error (status 429)
+      const isRateLimitError = error && typeof error === 'object' && 'status' in error && error.status === 429;
+      
+      if (isRateLimitError && attempt < maxRetries) {
+        // Extract retry-after header if available
+        const retryAfter = error && typeof error === 'object' && 'headers' in error && error.headers ? 
+          (error.headers as any).get?.('retry-after') || (error.headers as any)['retry-after'] : null;
+        
+        // Calculate backoff delay: use retry-after if available, otherwise exponential backoff
+        const backoffDelay = retryAfter ? 
+          parseInt(retryAfter) * 1000 : 
+          Math.min(1000 * Math.pow(2, attempt), 60000);
+        
+        console.log(`   ⏳ [${role}] Rate limit hit (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        continue;
+      }
+      
+      // If this is the last attempt or not a rate limit error, fall through to error handling
+      if (attempt === maxRetries) {
+        break;
+      }
     }
-    
-    // Return fallback result with succeeded=false
-    const fallbackInsights = getFallbackInsights(role);
-    return {
-      role,
-      insights: fallbackInsights,
-      scores: { overall: 0 },
-      rationale: `Evaluation incomplete for ${role} perspective`,
-      status: "under-review",
-      executionTime,
-      tokenUsage: 0,
-      succeeded: false,
-    };
   }
+  
+  // If we get here, all retries failed
+  const executionTime = Date.now() - startTime;
+  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  const errorType = lastError instanceof Error && lastError.message.includes('timeout') ? 'timeout' : 'execution_error';
+  
+  console.error(`Agent ${role} failed after ${maxRetries + 1} attempts:`, lastError);
+  
+  // Track metrics for failed execution - FIX 3: Use evaluationId directly, not concatenated string
+  if (vendorContext && vendorContext.evaluationId) {
+    await agentMetricsService.trackExecution({
+      evaluationId: vendorContext.evaluationId,
+      projectId: vendorContext.projectId,
+      vendorName: vendorContext.vendorName,
+      agentRole: role,
+      executionTimeMs: executionTime,
+      tokenUsage: 0,
+      estimatedCostUsd: 0,
+      success: false,
+      errorType,
+      errorMessage,
+      timestamp: new Date()
+    });
+  }
+  
+  // Emit progress: agent failed
+  if (vendorContext) {
+    const roleLabels: Record<AgentRole, string> = {
+      delivery: "Delivery Manager",
+      product: "Product Manager",
+      architecture: "Solution Architect",
+      engineering: "Engineering Lead",
+      procurement: "Procurement",
+      security: "Cybersecurity"
+    };
+    
+    evaluationProgressService.emitProgress({
+      projectId: vendorContext.projectId,
+      vendorName: vendorContext.vendorName,
+      vendorIndex: vendorContext.vendorIndex,
+      totalVendors: vendorContext.totalVendors,
+      agentRole: roleLabels[role],
+      agentStatus: 'failed',
+      timestamp: Date.now(),
+    });
+  }
+  
+  // Return fallback result with succeeded=false
+  const fallbackInsights = getFallbackInsights(role);
+  return {
+    role,
+    insights: fallbackInsights,
+    scores: { overall: 0 },
+    rationale: `Evaluation incomplete for ${role} perspective`,
+    status: "under-review",
+    executionTime,
+    tokenUsage: 0,
+    succeeded: false,
+  };
 }
 
 // Aggregate results from all agents

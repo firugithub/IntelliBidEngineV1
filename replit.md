@@ -27,6 +27,7 @@ Preferred communication style: Simple, everyday language.
 ### AI Analysis Pipeline
 **Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Cybersecurity & Compliance) for objective vendor proposal evaluation with externalized prompts.
 **Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking.
+**Production Resilience:** Duplicate evaluation prevention (checks existing evaluations before creation), exponential backoff retry logic for Azure OpenAI rate limits (429 errors), and correct foreign key constraint handling for agent metrics tracking.
 
 ### Smart RFT Builder
 **Business Case Form Fields:** Project Name, Business Objective, Scope, Timeline, Budget, Functional Requirements, Non-functional Requirements, and Success Criteria.
