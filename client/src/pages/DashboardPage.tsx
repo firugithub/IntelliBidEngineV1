@@ -244,6 +244,8 @@ export default function DashboardPage() {
     currentStage: stage.currentStage,
     stageStatuses: stage.stageStatuses || {},
   })) || [];
+  
+  console.log('📊 Vendor Stages Data:', { vendorStages, vendorStageData });
 
   // Calculate aggregated metrics
   const avgFunctionalFit = Math.round(
