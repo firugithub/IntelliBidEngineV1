@@ -22,7 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, TrendingUp, DollarSign, Shield, Download, Upload, Loader2, X, Sparkles, RefreshCw, AlertCircle, ChevronRight, Home, Folder, FileText } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -154,6 +154,7 @@ export default function DashboardPage() {
       // Invalidate queries to trigger refresh
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "evaluations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "vendor-stages"] });
     },
     onError: (error: Error) => {
       toast({
@@ -202,6 +203,18 @@ export default function DashboardPage() {
     enabled: !!projectId,
   });
 
+  // Auto-refresh vendor stages when evaluations complete
+  useEffect(() => {
+    if (evaluations && evaluations.length > 0 && projectId) {
+      // Check if all evaluations have AI rationale (indicating completion)
+      const allComplete = evaluations.every(e => e.aiRationale);
+      if (allComplete) {
+        // Invalidate vendor stages to fetch fresh data
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "vendor-stages"] });
+      }
+    }
+  }, [evaluations, projectId]);
+
   if (projectLoading || evaluationsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -244,8 +257,6 @@ export default function DashboardPage() {
     currentStage: stage.currentStage,
     stageStatuses: stage.stageStatuses || {},
   })) || [];
-  
-  console.log('📊 Vendor Stages Data:', { vendorStages, vendorStageData });
 
   // Calculate aggregated metrics
   const avgFunctionalFit = Math.round(

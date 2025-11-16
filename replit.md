@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 -   **RFT Draft Review:** Stakeholder-based collaborative review interface with draft selector, role filtering, section content editor, approval workflow, real-time progress visualization, and comprehensive RFT pack management. Features automatic pack generation (DOCX, PDF, 4 Excel questionnaires) via background jobs, "Download All as ZIP" for convenient package downloads, and "Publish to Portfolio" workflow.
 -   **Smart RFT Builder Integration:** 3-step draft generation workflow with tabbed template selection, generation mode switching (AI generation vs. template merge), and automatic redirection to RFT Draft Review.
 -   **Executive Summary Dashboard:** Global overview with KPI cards, vendor rankings, stage distribution charts, and activity stream.
+-   **Vendor Shortlisting Dashboard:** Comprehensive vendor stage visualization with 10-stage procurement workflow matrix, automatic cache invalidation upon evaluation completion, and inline stage completion dates. Displays vendor progress cards and compact matrix grid with color-coded status indicators.
 
 ### Backend
 **Technology Stack:** Node.js with TypeScript, Express.js, Drizzle ORM (PostgreSQL), Multer, and OpenAI SDK.
