@@ -111,4 +111,22 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown handlers for container environments (Azure App Service)
+  const shutdown = (signal: string) => {
+    log(`Received ${signal}, starting graceful shutdown...`);
+    server.close(() => {
+      log(`Server closed successfully after ${signal}`);
+      process.exit(0);
+    });
+
+    // Force shutdown after 30 seconds
+    setTimeout(() => {
+      log(`Forcefully shutting down after 30s timeout`);
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 })();
