@@ -58,6 +58,7 @@ Includes 5 production-ready AI features: Compliance Gap Analysis, Auto-Generated
 ### Production Deployment (Azure App Service)
 **Deployment Model:** Custom Docker container deployed to Azure App Service (Linux) with multi-stage build.
 **Docker Build Strategy:** Three-stage Dockerfile separates frontend build, backend build, and production runtime for optimized image size. Backend bundle excludes Vite dependencies using esbuild configuration. AI agent prompt files (6 markdown files in `server/prompts/`) are copied to production image.
+**Health Monitoring:** Includes `/health` endpoint returning `{status: "ok", timestamp, uptime, environment}` for Azure App Service health checks and Docker HEALTHCHECK directive. Graceful shutdown handlers for SIGTERM/SIGINT ensure clean container stops.
 
 **Private Endpoint Connectivity:**
 - **Challenge:** Custom Docker containers on Azure App Service use Docker's internal DNS resolver (127.0.0.11) by default, preventing resolution of Azure Private DNS zones required for PostgreSQL private endpoints.
