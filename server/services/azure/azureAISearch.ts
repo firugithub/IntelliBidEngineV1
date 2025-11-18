@@ -4,6 +4,7 @@ import { ConfigHelper } from "../core/configHelpers";
 interface SearchDocument {
   id: string;
   content: string;
+  merged_text?: string;
   embedding: number[];
   sourceType: string;
   sourceId?: string;
