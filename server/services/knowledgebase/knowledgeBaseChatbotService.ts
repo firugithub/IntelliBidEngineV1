@@ -351,11 +351,20 @@ You are helping test the RAG (Retrieval Augmented Generation) system and MCP (Mo
   }> {
     const ragConfigured = await ragRetrievalService.isConfigured();
     const mcpConnectors = await storage.getActiveMcpConnectors();
-    const openAIConfigured = !!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !!process.env.AZURE_OPENAI_KEY;
+    
+    // Check for OpenAI credentials (supports both regular OpenAI and Azure OpenAI)
+    // Matches ConfigHelper.getAgentsOpenAIConfig() logic:
+    // - Regular OpenAI: AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY
+    // - Azure OpenAI: AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_DEPLOYMENT
+    const hasOpenAI = !!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !!process.env.OPENAI_API_KEY;
+    const hasAzureOpenAI = !!process.env.AZURE_OPENAI_KEY && 
+                           !!process.env.AZURE_OPENAI_ENDPOINT && 
+                           !!process.env.AZURE_OPENAI_DEPLOYMENT;
+    const openAIConfigured = hasOpenAI || hasAzureOpenAI;
 
     const missingConfiguration: string[] = [];
     if (!openAIConfigured) {
-      missingConfiguration.push("OpenAI API key (AI_INTEGRATIONS_OPENAI_API_KEY or AZURE_OPENAI_KEY)");
+      missingConfiguration.push("OpenAI credentials (AI_INTEGRATIONS_OPENAI_API_KEY or complete Azure OpenAI setup: AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_DEPLOYMENT)");
     }
     if (!ragConfigured) {
       missingConfiguration.push("Azure AI Search configuration");
