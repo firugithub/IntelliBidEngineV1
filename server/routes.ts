@@ -4883,6 +4883,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const proposal = proposals[i];
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
         
+        // Check if evaluation already exists for this proposal to prevent duplicates
+        const existingEvaluation = await storage.getEvaluationByProposal(proposal.id);
+        if (existingEvaluation) {
+          console.log(`   ⚠️  Evaluation already exists for vendor ${proposal.vendorName} (ID: ${existingEvaluation.id}), skipping duplicate creation`);
+          continue; // Skip to next proposal
+        }
+        
         let proposalAnalysis = proposal.extractedData as any;
         
         // If extractedData is null, create a minimal proposal analysis from proposal metadata
@@ -5114,9 +5121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // After successful upload, update project status and trigger evaluation
       if (uploadedVendorCount > 0) {
-        // Update project status to responses_received
-        await storage.updateProjectStatus(rft.projectId, "responses_received");
-        console.log(`✓ Project status updated to responses_received`);
+        // Update project status to eval_in_progress to show progress indicator
+        await storage.updateProjectStatus(rft.projectId, "eval_in_progress");
+        console.log(`✓ Project status updated to eval_in_progress`);
 
         // Trigger evaluation process in background (non-blocking)
         // This allows user to close the dialog while evaluation runs
