@@ -30,6 +30,14 @@ Preferred communication style: Simple, everyday language.
 **Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking.
 **Production Resilience:** Duplicate evaluation prevention (checks existing evaluations before creation), exponential backoff retry logic for Azure OpenAI rate limits (429 errors), and correct foreign key constraint handling for agent metrics tracking.
 
+### Vendor Response Diversity System
+**Purpose:** Generates realistic, differentiated vendor responses with unique characteristics to produce meaningful, credible evaluations.
+**Vendor Persona System:** Realistic aviation vendor profiles (Amadeus IT Group, Sabre Corporation, SITA) with unique market positions, technical approaches, domain strengths, and business gaps. Each persona includes innovation level, integration complexity, documentation quality, compliance approach, and scoring profiles across Product/NFR/Security/Agile dimensions.
+**AI-Powered Proposal Generator:** Uses OpenAI GPT-4o (temperature 0.8) to generate vendor-specific proposals reflecting persona characteristics. Produces executive summary, technical approach, product features, implementation plan, pricing model, and risk mitigation. Emphasizes vendor strengths, addresses gaps tactfully, maintains authenticity.
+**Enhanced Excel Questionnaire Responses:** Generates vendor-specific remarks in questionnaire responses based on persona characteristics (e.g., Amadeus: "Advanced implementation using latest industry standards", Sabre: "Requires integration effort", SITA: "Outside our core domain specialization"). Remark frequency adjusted based on documentation quality (excellent: 85%, sparse: 50%).
+**Integration:** Works across both Mock Data Generator and Smart RFT Builder workflows. Mock Data Generator creates AI-powered proposals and persona-based Excel responses. Smart RFT Builder automatically applies personas when generating vendor responses through shared excelQuestionnaireHandler.
+**Outcome:** Eliminates identical generic insights across vendors. Each evaluation now shows differentiated insights (e.g., Amadeus: NDC Level 4 excellence but premium pricing, Sabre: Real-time performance but integration complexity, SITA: Aviation compliance expertise but limited AI/ML capabilities).
+
 ### Smart RFT Builder
 **Business Case Form Fields:** Project Name, Business Objective, Scope, Timeline, Budget, Functional Requirements, Non-functional Requirements, and Success Criteria.
 **Dual-Path RFT Generation:** AI-generated structured RFT sections with stakeholder assignments or template merge using token substitution.

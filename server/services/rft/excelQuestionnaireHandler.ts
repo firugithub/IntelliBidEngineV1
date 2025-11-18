@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { getVendorPersona } from "./vendorPersonas";
 
 // Compliance score options
 export const COMPLIANCE_SCORES = ["Full", "Partial", "Not Applicable", "None"] as const;
@@ -13,40 +14,21 @@ export interface VendorProfile {
   agileStrength: number;
 }
 
-// Define realistic vendor profiles with different strengths
+// Define realistic vendor profiles with different strengths (using vendor personas)
 export function createVendorProfiles(vendorNames: string[]): VendorProfile[] {
   const profiles: VendorProfile[] = [];
   
-  for (let i = 0; i < vendorNames.length; i++) {
-    // Create varied profiles
-    if (i === 0) {
-      // First vendor: Strong in product, weak in agile
-      profiles.push({
-        name: vendorNames[i],
-        productStrength: 0.85,
-        nfrStrength: 0.70,
-        cybersecurityStrength: 0.75,
-        agileStrength: 0.60,
-      });
-    } else if (i === 1) {
-      // Second vendor: Balanced across all areas
-      profiles.push({
-        name: vendorNames[i],
-        productStrength: 0.75,
-        nfrStrength: 0.80,
-        cybersecurityStrength: 0.85,
-        agileStrength: 0.70,
-      });
-    } else {
-      // Third vendor: Strong in agile/cybersecurity, weak in product
-      profiles.push({
-        name: vendorNames[i],
-        productStrength: 0.65,
-        nfrStrength: 0.75,
-        cybersecurityStrength: 0.90,
-        agileStrength: 0.85,
-      });
-    }
+  for (const vendorName of vendorNames) {
+    // Get vendor persona with realistic characteristics
+    const persona = getVendorPersona(vendorName);
+    
+    profiles.push({
+      name: vendorName,
+      productStrength: persona.scoringProfile.productStrength,
+      nfrStrength: persona.scoringProfile.nfrStrength,
+      cybersecurityStrength: persona.scoringProfile.cybersecurityStrength,
+      agileStrength: persona.scoringProfile.agileStrength,
+    });
   }
   
   return profiles;
@@ -67,9 +49,16 @@ function getRandomComplianceScore(strength: number): ComplianceScore {
   }
 }
 
-// Generate realistic remarks based on compliance score
-function generateRemark(compliance: ComplianceScore, questionText: string): string {
-  const remarks = {
+// Generate realistic, vendor-specific remarks based on compliance score and persona
+function generateRemark(
+  compliance: ComplianceScore, 
+  questionText: string, 
+  vendorName: string
+): string {
+  const persona = getVendorPersona(vendorName);
+  
+  // Base remarks for each compliance level
+  const baseRemarks = {
     Full: [
       "Fully compliant with all requirements",
       "Meets all specified criteria",
@@ -98,14 +87,69 @@ function generateRemark(compliance: ComplianceScore, questionText: string): stri
     ],
   };
   
-  const options = remarks[compliance];
-  const shouldAddRemark = Math.random() < 0.7; // 70% chance of adding a remark
+  // Add vendor-specific flavor based on persona characteristics
+  const vendorSpecificRemarks = {
+    Full: [] as string[],
+    Partial: [] as string[],
+    None: [] as string[],
+    "Not Applicable": [] as string[]
+  };
+  
+  // Add persona-specific remarks for Full compliance
+  if (compliance === "Full") {
+    if (persona.strengths.domain.length > 0) {
+      vendorSpecificRemarks.Full.push(`Supported via ${persona.strengths.domain[0].split(' ')[0]} capabilities`);
+    }
+    if (persona.technicalApproach.innovationLevel === "cutting_edge") {
+      vendorSpecificRemarks.Full.push("Advanced implementation using latest industry standards");
+    }
+    if (persona.responseStyle.documentationQuality === "excellent") {
+      vendorSpecificRemarks.Full.push("Comprehensive documentation and examples available");
+    }
+  }
+  
+  // Add persona-specific remarks for Partial compliance
+  if (compliance === "Partial") {
+    if (persona.gaps.technical.length > 0) {
+      vendorSpecificRemarks.Partial.push(`Partial coverage - ${persona.gaps.technical[0].toLowerCase()}`);
+    }
+    if (persona.technicalApproach.integrationComplexity === "high") {
+      vendorSpecificRemarks.Partial.push("Requires integration effort to fully meet requirement");
+    }
+  }
+  
+  // Add persona-specific remarks for None compliance
+  if (compliance === "None") {
+    if (persona.gaps.technical.length > 1) {
+      vendorSpecificRemarks.None.push(`Not supported due to ${persona.gaps.technical[0].toLowerCase()}`);
+    }
+    if (persona.marketPosition === "specialist") {
+      vendorSpecificRemarks.None.push("Outside our core domain specialization");
+    }
+  }
+  
+  // Combine base and vendor-specific remarks
+  const allRemarks = [...baseRemarks[compliance], ...vendorSpecificRemarks[compliance]];
+  
+  // Adjust remark frequency based on documentation quality
+  const remarkProbability = {
+    excellent: 0.85,
+    good: 0.75,
+    adequate: 0.65,
+    sparse: 0.50,
+  }[persona.responseStyle.documentationQuality] || 0.70;
+  
+  const shouldAddRemark = Math.random() < remarkProbability;
   
   if (!shouldAddRemark && compliance === "Full") {
     return ""; // Don't always add remarks for Full compliance
   }
   
-  return options[Math.floor(Math.random() * options.length)];
+  if (allRemarks.length === 0) {
+    return "";
+  }
+  
+  return allRemarks[Math.floor(Math.random() * allRemarks.length)];
 }
 
 // Fill questionnaire with compliance scores
@@ -178,7 +222,7 @@ export async function fillQuestionnaireWithScores(
     
     // Generate and add remark if column exists
     if (remarksCol > 0) {
-      const remark = generateRemark(complianceScore, questionText);
+      const remark = generateRemark(complianceScore, questionText, vendorProfile.name);
       const remarkCell = row.getCell(remarksCol);
       remarkCell.value = remark;
     }
