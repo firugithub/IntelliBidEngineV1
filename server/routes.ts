@@ -5042,7 +5042,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Support nested structures: use the second-to-last part as vendor name
         // This handles both "VendorName/file.xlsx" and "RFT Responses/VendorName/file.xlsx"
-        const vendorName = parts[parts.length - 2];
+        // CRITICAL: Normalize vendor name to prevent duplicates (spaces vs underscores)
+        const { normalizeVendorName } = await import("./services/rft/vendorUtils");
+        const vendorName = normalizeVendorName(parts[parts.length - 2]);
         const fileName = parts[parts.length - 1];
         
         console.log(`  ✓ Vendor: ${vendorName}, File: ${fileName}`);

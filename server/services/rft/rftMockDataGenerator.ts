@@ -4,6 +4,7 @@ import { generateQuestionnaireQuestions } from "./smartRftService";
 import { generateAllQuestionnaires } from "./excelGenerator";
 import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";
 import { generateVendorProposal, formatProposalAsDocument } from "./vendorProposalGenerator";
+import { normalizeVendorName, deduplicateVendors } from "./vendorUtils";
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
@@ -370,11 +371,14 @@ export async function generateVendorResponses(rftId: string) {
   }
 
   // Use project vendorList if available, otherwise use default vendor names
-  const vendors = project.vendorList && project.vendorList.length > 0
+  const rawVendors = project.vendorList && project.vendorList.length > 0
     ? project.vendorList.slice(0, 3)
     : ["TechVendor Solutions", "GlobalSoft Systems", "InnovateTech Partners"];
   
-  console.log(`Generating vendor responses using actual RFT questionnaires...`);
+  // CRITICAL: Normalize and deduplicate vendor names to prevent duplicate proposals
+  const vendors = deduplicateVendors(rawVendors);
+  
+  console.log(`Generating vendor responses using actual RFT questionnaires for ${vendors.length} vendors:`, vendors);
   
   // Download original questionnaires from Azure Blob Storage
   // IMPORTANT: Use underscores instead of spaces to match upload paths
