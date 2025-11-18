@@ -5,7 +5,7 @@ interface SearchDocument {
   id: string;
   content: string;
   merged_text?: string;
-  embedding: number[];
+  embedding?: number[];
   sourceType: string;
   sourceId?: string;
   category?: string;
@@ -283,6 +283,7 @@ export class AzureAISearchService {
     const searchResults = await this.searchClient.search(query, {
       top: options?.top || 10,
       filter: options?.filter,
+      select: ["id", "content", "merged_text", "sourceType", "sourceId", "category", "fileName", "chunkIndex", "metadata", "createdAt"],
       vectorSearchOptions: {
         queries: [
           {
