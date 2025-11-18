@@ -351,11 +351,11 @@ You are helping test the RAG (Retrieval Augmented Generation) system and MCP (Mo
   }> {
     const ragConfigured = await ragRetrievalService.isConfigured();
     const mcpConnectors = await storage.getActiveMcpConnectors();
-    const openAIConfigured = !!process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    const openAIConfigured = !!process.env.AI_INTEGRATIONS_OPENAI_API_KEY || !!process.env.AZURE_OPENAI_KEY;
 
     const missingConfiguration: string[] = [];
     if (!openAIConfigured) {
-      missingConfiguration.push("OpenAI API key (AI_INTEGRATIONS_OPENAI_API_KEY)");
+      missingConfiguration.push("OpenAI API key (AI_INTEGRATIONS_OPENAI_API_KEY or AZURE_OPENAI_KEY)");
     }
     if (!ragConfigured) {
       missingConfiguration.push("Azure AI Search configuration");
