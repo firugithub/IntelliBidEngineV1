@@ -523,47 +523,31 @@ export async function generateEvaluation(rftId: string) {
 
     console.log(`🎭 Generating AI-powered proposal for ${vendorName}...`);
 
-    // Generate realistic, vendor-specific proposal using AI
-    let proposalContent;
-    try {
-      const aiProposal = await generateVendorProposal({
-        vendorName,
-        rftTitle: rft.name,
-        businessObjective: (rft.sections as any)?.businessCase?.businessObjective || "Enhance airline operations and digital capabilities",
-        scope: (rft.sections as any)?.businessCase?.scope || "Digital transformation initiative",
-        technicalRequirements: (rft.sections as any)?.businessCase?.functionalRequirements || 
-          sections.filter((s: any) => s.stakeholder === "technical").map((s: any) => s.content).slice(0, 8) ||
-          ["Cloud-native architecture", "API integration", "Security compliance"],
-        nonFunctionalRequirements: (rft.sections as any)?.businessCase?.nonFunctionalRequirements ||
-          ["99.9% uptime", "Scalability", "Performance"] 
-      });
+    // Generate realistic, vendor-specific proposal using AI (has internal persona-aware fallback)
+    const aiProposal = await generateVendorProposal({
+      vendorName,
+      rftTitle: rft.name,
+      businessObjective: (rft.sections as any)?.businessCase?.businessObjective || "Enhance airline operations and digital capabilities",
+      scope: (rft.sections as any)?.businessCase?.scope || "Digital transformation initiative",
+      technicalRequirements: (rft.sections as any)?.businessCase?.functionalRequirements || 
+        sections.filter((s: any) => s.stakeholder === "technical").map((s: any) => s.content).slice(0, 8) ||
+        ["Cloud-native architecture", "API integration", "Security compliance"],
+      nonFunctionalRequirements: (rft.sections as any)?.businessCase?.nonFunctionalRequirements ||
+        ["99.9% uptime", "Scalability", "Performance"] 
+    });
 
-      proposalContent = {
-        vendorName,
-        executiveSummary: aiProposal.executiveSummary,
-        technicalApproach: aiProposal.technicalApproach,
-        capabilities: aiProposal.productFeatures.split('\n').filter(Boolean).slice(0, 5),
-        integrations: ["REST API", "GraphQL", "Webhooks"],
-        security: "ISO 27001, SOC 2, GDPR compliant",
-        support: aiProposal.implementationPlan.includes("24/7") ? "24/7 support" : "Business hours support",
-        fullProposalText: formatProposalAsDocument(aiProposal)
-      };
+    const proposalContent = {
+      vendorName,
+      executiveSummary: aiProposal.executiveSummary,
+      technicalApproach: aiProposal.technicalApproach,
+      capabilities: aiProposal.productFeatures.split('\n').filter(Boolean).slice(0, 5),
+      integrations: ["REST API", "GraphQL", "Webhooks"],
+      security: "ISO 27001, SOC 2, GDPR compliant",
+      support: aiProposal.implementationPlan.includes("24/7") ? "24/7 support" : "Business hours support",
+      fullProposalText: formatProposalAsDocument(aiProposal)
+    };
 
-      console.log(`   ✅ AI proposal generated (${proposalContent.fullProposalText.length} chars)`);
-    } catch (error) {
-      console.error(`   ⚠️  AI proposal generation failed, using fallback:`, error);
-      // Fallback to generic proposal if AI fails
-      proposalContent = {
-        vendorName,
-        executiveSummary: `${vendorName} proposal for ${rft.name}`,
-        capabilities: [`Capability 1 for ${vendorName}`, `Capability 2 for ${vendorName}`],
-        technicalApproach: `Technical approach by ${vendorName}`,
-        integrations: ["REST API", "GraphQL"],
-        security: "ISO 27001, SOC 2",
-        support: "24/7 support",
-        fullProposalText: `Vendor Proposal - ${vendorName}\n\nGeneric proposal content.`
-      };
-    }
+    console.log(`   ✅ Persona-aware proposal generated (${proposalContent.fullProposalText.length} chars)`);
 
     const proposal = await storage.createProposal({
       projectId: project.id,

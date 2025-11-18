@@ -37,13 +37,14 @@ export async function generateVendorProposal(
   
   console.log(`🎭 Generating proposal for ${context.vendorName} using ${persona.marketPosition} persona`);
   
-  const client = await getOpenAIClient();
-  
-  // Build persona-specific generation prompt
-  const systemPrompt = buildSystemPrompt(persona);
-  const userPrompt = buildUserPrompt(context, persona);
-  
   try {
+    // Get OpenAI client (may fail due to misconfiguration, rate limits, network)
+    const client = await getOpenAIClient();
+    
+    // Build persona-specific generation prompt
+    const systemPrompt = buildSystemPrompt(persona);
+    const userPrompt = buildUserPrompt(context, persona);
+    
     const response = await client.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -68,8 +69,9 @@ export async function generateVendorProposal(
     
   } catch (error) {
     console.error(`❌ Failed to generate proposal for ${context.vendorName}:`, error);
+    console.log(`   🔄 Using persona-aware fallback for ${context.vendorName}`);
     
-    // Fallback to template-based proposal
+    // Fallback to persona-aware template-based proposal
     return generateFallbackProposal(context, persona);
   }
 }
