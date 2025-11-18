@@ -62,8 +62,9 @@ export class RAGRetrievalService {
       );
 
       // Convert to RetrievedChunk format
+      // Prefer merged_text (OCR-enriched) over content for image-based documents
       const chunks: RetrievedChunk[] = results.map((doc) => ({
-        content: doc.content,
+        content: doc.merged_text || doc.content,
         fileName: doc.fileName,
         sourceType: doc.sourceType,
         sourceId: doc.sourceId,
