@@ -84,7 +84,8 @@ export default function PortfolioPage() {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to upload vendor responses");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload vendor responses");
       }
       
       return await response.json();
@@ -111,10 +112,10 @@ export default function PortfolioPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "rfts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId] });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Upload Failed",
-        description: "Failed to upload vendor responses. Please try again.",
+        description: error.message || "Failed to upload vendor responses. Please try again.",
         variant: "destructive",
       });
     },
