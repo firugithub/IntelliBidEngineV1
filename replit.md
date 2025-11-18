@@ -28,7 +28,8 @@ Preferred communication style: Simple, everyday language.
 ### AI Analysis Pipeline
 **Multi-Agent Evaluation System:** Employs 6 specialized AI agents (Delivery, Product, Architecture, Engineering, Procurement, Cybersecurity & Compliance) for objective vendor proposal evaluation with externalized prompts.
 **Core Capabilities:** Document understanding, semantic matching, dynamic scoring, real-time evaluation progress via SSE, and comprehensive agent metrics tracking.
-**Production Resilience:** Duplicate evaluation prevention (checks existing evaluations before creation), exponential backoff retry logic for Azure OpenAI rate limits (429 errors), and correct foreign key constraint handling for agent metrics tracking.
+**Production Resilience:** Comprehensive duplicate evaluation prevention (checks existing evaluations via `getEvaluationByProposal()` before creating placeholders in both initial upload and re-evaluation workflows), exponential backoff retry logic for Azure OpenAI rate limits (429 errors), and correct foreign key constraint handling for agent metrics tracking.
+**Real-Time Progress Tracking:** Server-Sent Events (SSE) endpoint (`/api/projects/:id/evaluation-progress`) streams live agent status updates to `EvaluationProgress` component. Dashboard displays real-time progress cards showing 6 agents × N vendors during evaluation. Project status automatically set to "eval_in_progress" on both initial upload and re-evaluation to ensure consistent progress indicator UX.
 
 ### Vendor Response Diversity System
 **Purpose:** Generates realistic, differentiated vendor responses with unique characteristics to produce meaningful, credible evaluations.
