@@ -2104,11 +2104,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No blob URL available" });
       }
       
-      // Extract blob name from full URL
-      // URL format: https://intellibidstorage.blob.core.windows.net/intellibid-documents/project-xxx/RFT_Responses/Aims/Product_Response.xlsx
-      // We need: project-xxx/RFT_Responses/Aims/Product_Response.xlsx
-      const urlParts = proposal.blobUrl.split('/intellibid-documents/');
-      const blobName = urlParts.length > 1 ? urlParts[1] : proposal.blobUrl;
+      // Extract blob name from full URL, stripping SAS token query parameters and URL decoding
+      // URL format: https://intellibidstorage.blob.core.windows.net/intellibid-documents/project-xxx/RFT_Responses/rftId/Vendor%20Name/Product_Response.xlsx?sv=...&se=...
+      // We need (decoded): project-xxx/RFT_Responses/rftId/Vendor Name/Product_Response.xlsx
+      const url = new URL(proposal.blobUrl);
+      const pathname = decodeURIComponent(url.pathname); // Decode %20 → space, etc.
+      const containerPath = '/intellibid-documents/';
+      const containerIndex = pathname.toLowerCase().indexOf(containerPath.toLowerCase());
+      if (containerIndex === -1) {
+        throw new Error('Invalid blob URL format - missing container path');
+      }
+      const blobName = pathname.substring(containerIndex + containerPath.length);
       
       const excelBuffer = await azureBlobStorageService.downloadDocument(blobName);
       
@@ -2154,11 +2160,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No blob URL available" });
       }
       
-      // Delete the old file (extract blob name from URL)
-      const blobName = proposal.blobUrl.split('/').pop() || proposal.fileName;
+      // Extract blob name from URL, stripping SAS token query parameters and URL decoding
+      const url = new URL(proposal.blobUrl);
+      const pathname = decodeURIComponent(url.pathname); // Decode %20 → space, etc.
+      const containerPath = '/intellibid-documents/';
+      const containerIndex = pathname.toLowerCase().indexOf(containerPath.toLowerCase());
+      if (containerIndex === -1) {
+        throw new Error('Invalid blob URL format - missing container path');
+      }
+      const blobName = pathname.substring(containerIndex + containerPath.length);
+      
+      // Delete the old file and upload the updated one
       await azureBlobStorageService.deleteDocument(blobName);
       const uploadResult = await azureBlobStorageService.uploadDocument(
-        proposal.fileName,
+        blobName, // Use same path to replace the file
         updatedExcelBuffer,
         { proposalId, documentType: proposal.documentType }
       );
