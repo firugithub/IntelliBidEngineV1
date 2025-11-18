@@ -1831,6 +1831,17 @@ storage.deleteProposal = async function(id: string): Promise<void> {
 
 // Override evaluation methods to use PostgreSQL
 storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
+  // CRITICAL: Check for existing evaluation to prevent duplicates (race-safe storage-layer guard)
+  const existingEvaluation = await db.select()
+    .from(evaluations)
+    .where(eq(evaluations.proposalId, insertEvaluation.proposalId))
+    .limit(1);
+  
+  if (existingEvaluation.length > 0) {
+    console.log(`⚠️ [STORAGE LAYER] Duplicate evaluation prevented for proposalId: ${insertEvaluation.proposalId} (existing ID: ${existingEvaluation[0].id})`);
+    return existingEvaluation[0];
+  }
+  
   const created = await db.insert(evaluations)
     .values({
       projectId: insertEvaluation.projectId!,

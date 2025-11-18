@@ -4883,13 +4883,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const proposal = proposals[i];
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
         
-        // Check if evaluation already exists for this proposal to prevent duplicates
-        const existingEvaluation = await storage.getEvaluationByProposal(proposal.id);
-        if (existingEvaluation) {
-          console.log(`   ⚠️  Evaluation already exists for vendor ${proposal.vendorName} (ID: ${existingEvaluation.id}), skipping duplicate creation`);
-          continue; // Skip to next proposal
-        }
-        
         let proposalAnalysis = proposal.extractedData as any;
         
         // If extractedData is null, create a minimal proposal analysis from proposal metadata

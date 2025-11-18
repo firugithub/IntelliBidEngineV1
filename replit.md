@@ -15,7 +15,7 @@ The frontend uses React with TypeScript, Vite, shadcn/ui (Radix UI), and Tailwin
 The backend is built with Node.js, TypeScript, Express.js, and Drizzle ORM (PostgreSQL). It provides RESTful APIs for managing core entities, file uploads, sample data, and configuration. Data is stored in a PostgreSQL database (Neon serverless).
 
 ### Feature Specifications
-- **Multi-Agent Evaluation System:** Employs 6 specialized AI agents for objective vendor proposal evaluation, supporting document understanding, semantic matching, and dynamic scoring. Includes production resilience features like duplicate evaluation prevention and exponential backoff for API rate limits.
+- **Multi-Agent Evaluation System:** Employs 6 specialized AI agents for objective vendor proposal evaluation, supporting document understanding, semantic matching, and dynamic scoring. **Storage-layer duplicate prevention** intercepts all evaluation creation attempts at the database interface, checking for existing evaluations by proposalId before insertion - preventing duplicates regardless of code path or concurrent processes. Additional resilience: exponential backoff for API rate limits.
 - **Vendor Response Diversity System:** Generates realistic, differentiated vendor responses using OpenAI GPT-4o, creating unique vendor personas for credible evaluations.
 - **Smart RFT Builder:** Facilitates dual-path RFT generation (AI-generated or template merge) with intelligent template processing that preserves formatting and detects sections.
 - **Advanced AI Features:** Includes Compliance Gap Analysis, Auto-Generated Follow-up Questions, Smart Vendor Comparison Matrix, Executive Briefing Generator, and a Conversational AI Assistant.
