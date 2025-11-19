@@ -8,7 +8,7 @@
 
 -- ====================================================
 -- FOREIGN KEY INDEXES (for join performance)
--- ====================================================
+-- ==================================================== 
 
 -- Projects
 CREATE INDEX IF NOT EXISTS idx_projects_portfolio_id ON projects(portfolio_id);
