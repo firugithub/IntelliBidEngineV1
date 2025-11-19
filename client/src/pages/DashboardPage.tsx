@@ -311,6 +311,14 @@ export default function DashboardPage() {
     project?.status === "eval_in_progress" ||
     evaluations.some(e => e.status === "under-review" && !e.aiRationale);
 
+  // Determine if this is first-time evaluation or re-evaluation
+  // First-time: project is eval_in_progress but no completed evaluations exist yet
+  // Re-evaluation: project is eval_in_progress AND some evaluations already completed
+  const hasCompletedEvaluations = evaluations.some(e => 
+    e.status !== "under-review" && e.status !== "in_progress" && e.aiRationale
+  );
+  const isFirstTimeEvaluation = isReEvaluating && !hasCompletedEvaluations;
+
   const hasGenericInsights = evaluations.some(e => {
     // All fallback patterns from getFallbackInsights() in multiAgentEvaluator.ts
     const fallbackPatterns = [
@@ -373,7 +381,10 @@ export default function DashboardPage() {
               <Alert variant="destructive" data-testid="alert-re-evaluating">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="font-medium">
-                  Re-evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete.
+                  {isFirstTimeEvaluation 
+                    ? "Evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete."
+                    : "Re-evaluation in progress... The system is analyzing vendor proposals. This page will auto-update when complete."
+                  }
                 </AlertDescription>
               </Alert>
               {projectId && <EvaluationProgress projectId={projectId} />}
