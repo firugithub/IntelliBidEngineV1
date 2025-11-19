@@ -514,7 +514,7 @@ export default function RftDraftReviewPage() {
                   </CardHeader>
                   <CardContent>
                     <div 
-                      className="prose dark:prose-invert max-w-none text-sm"
+                      className="prose dark:prose-invert max-w-none text-sm prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-border prose-th:bg-muted prose-th:p-2 prose-th:text-left prose-th:font-semibold prose-td:border prose-td:border-border prose-td:p-2"
                       dangerouslySetInnerHTML={{ __html: marked(section.content || '') }}
                     />
                   </CardContent>
