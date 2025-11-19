@@ -12,6 +12,7 @@ import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive, Upload }
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { marked } from "marked";
 
 interface DraftSection {
   sectionId: string;
@@ -512,9 +513,10 @@ export default function RftDraftReviewPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="prose dark:prose-invert max-w-none">
-                      <p className="text-sm whitespace-pre-wrap">{section.content}</p>
-                    </div>
+                    <div 
+                      className="prose dark:prose-invert max-w-none text-sm"
+                      dangerouslySetInnerHTML={{ __html: marked(section.content || '') }}
+                    />
                   </CardContent>
                 </Card>
               ))}
