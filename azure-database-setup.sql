@@ -3,7 +3,7 @@
 -- ====================================================
 -- This script creates all tables required for IntelliBid
 -- Compatible with Azure PostgreSQL Flexible Server
--- Updated: November 13, 2025
+-- Updated: November 19, 2025
 -- ====================================================
 
 -- Enable UUID generation extension (if not already enabled)
@@ -166,11 +166,13 @@ CREATE TABLE IF NOT EXISTS "proposals" (
     "vendor_name" text NOT NULL,
     "document_type" text NOT NULL,
     "file_name" text NOT NULL,
-    "blob_url" text,
+    "blob_url" text, -- DEPRECATED: Use blob_name instead
+    "blob_name" text, -- Azure Blob Storage object path (templates/abc123/file.docx)
     "extracted_data" jsonb,
     "standard_id" varchar,
     "tagged_sections" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    CONSTRAINT "proposals_project_id_vendor_name_unique" UNIQUE("project_id", "vendor_name")
 );
 
 -- Evaluations: AI-generated vendor evaluations
@@ -190,7 +192,8 @@ CREATE TABLE IF NOT EXISTS "evaluations" (
     "detailed_scores" jsonb,
     "section_compliance" jsonb,
     "agent_diagnostics" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    CONSTRAINT "evaluations_proposal_id_unique" UNIQUE("proposal_id")
 );
 
 -- Evaluation Criteria: Detailed scoring per question
