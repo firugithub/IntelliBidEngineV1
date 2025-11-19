@@ -564,7 +564,7 @@ export async function generateEvaluation(rftId: string) {
     proposals.push(proposal);
 
     // Create evaluation
-    await storage.createEvaluation({
+    const { evaluation: _mockEval } = await storage.createEvaluation({
       projectId: project.id,
       proposalId: proposal.id,
       overallScore: baseScore,

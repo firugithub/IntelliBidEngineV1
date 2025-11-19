@@ -126,7 +126,7 @@ export interface IStorage {
   deleteProposal(id: string): Promise<void>;
 
   // Evaluations
-  createEvaluation(evaluation: InsertEvaluation): Promise<Evaluation>;
+  createEvaluation(evaluation: InsertEvaluation): Promise<{ evaluation: Evaluation, wasInserted: boolean }>;
   getEvaluationsByProject(projectId: string): Promise<Evaluation[]>;
   getAllEvaluations(): Promise<Evaluation[]>;
   getEvaluationByProposal(proposalId: string): Promise<Evaluation | undefined>;
@@ -557,7 +557,16 @@ export class MemStorage implements IStorage {
     this.proposals.delete(id);
   }
 
-  async createEvaluation(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
+  async createEvaluation(insertEvaluation: InsertEvaluation): Promise<{ evaluation: Evaluation, wasInserted: boolean }> {
+    // Check for existing evaluation to simulate unique constraint
+    const existing = Array.from(this.evaluations.values()).find(
+      (e) => e.proposalId === insertEvaluation.proposalId
+    );
+    if (existing) {
+      console.log(`⚠️ [MEM STORAGE] Duplicate prevented for proposalId: ${insertEvaluation.proposalId}`);
+      return { evaluation: existing, wasInserted: false };
+    }
+    
     const id = randomUUID();
     const evaluation: Evaluation = {
       id,
@@ -578,7 +587,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.evaluations.set(id, evaluation);
-    return evaluation;
+    return { evaluation, wasInserted: true };
   }
 
   async getEvaluationsByProject(projectId: string): Promise<Evaluation[]> {
@@ -1830,19 +1839,11 @@ storage.deleteProposal = async function(id: string): Promise<void> {
 };
 
 // Override evaluation methods to use PostgreSQL
-storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
-  // CRITICAL: Check for existing evaluation to prevent duplicates (race-safe storage-layer guard)
-  const existingEvaluation = await db.select()
-    .from(evaluations)
-    .where(eq(evaluations.proposalId, insertEvaluation.proposalId))
-    .limit(1);
-  
-  if (existingEvaluation.length > 0) {
-    console.log(`⚠️ [STORAGE LAYER] Duplicate evaluation prevented for proposalId: ${insertEvaluation.proposalId} (existing ID: ${existingEvaluation[0].id})`);
-    return existingEvaluation[0];
-  }
-  
-  const created = await db.insert(evaluations)
+storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): Promise<{ evaluation: Evaluation, wasInserted: boolean }> {
+  // ATOMIC INSERT with ON CONFLICT to enforce single evaluation per proposal
+  // Returns: { evaluation, wasInserted: true } if created new
+  //          { evaluation, wasInserted: false } if conflict (duplicate detected)
+  const inserted = await db.insert(evaluations)
     .values({
       projectId: insertEvaluation.projectId!,
       proposalId: insertEvaluation.proposalId,
@@ -1859,8 +1860,23 @@ storage.createEvaluation = async function(insertEvaluation: InsertEvaluation): P
       sectionCompliance: insertEvaluation.sectionCompliance || null,
       agentDiagnostics: insertEvaluation.agentDiagnostics || null,
     })
+    .onConflictDoNothing({ target: evaluations.proposalId })
     .returning();
-  return created[0]!;
+  
+  if (inserted.length > 0) {
+    // Successfully inserted new evaluation
+    console.log(`✅ [STORAGE LAYER] Created new evaluation for proposalId: ${insertEvaluation.proposalId} (ID: ${inserted[0].id})`);
+    return { evaluation: inserted[0], wasInserted: true };
+  } else {
+    // Conflict detected - fetch and return existing evaluation
+    const existing = await db.select()
+      .from(evaluations)
+      .where(eq(evaluations.proposalId, insertEvaluation.proposalId))
+      .limit(1);
+    
+    console.log(`⚠️ [STORAGE LAYER] Duplicate prevented for proposalId: ${insertEvaluation.proposalId} (existing ID: ${existing[0].id}, status: ${existing[0].status})`);
+    return { evaluation: existing[0], wasInserted: false };
+  }
 };
 
 storage.getEvaluationsByProject = async function(projectId: string): Promise<Evaluation[]> {

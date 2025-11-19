@@ -92,9 +92,21 @@ export function EvaluationProgress({ projectId }: EvaluationProgressProps) {
   // Sort vendors by index
   const sortedVendors = Array.from(vendorProgress.values()).sort((a, b) => a.vendorIndex - b.vendorIndex);
   
-  // Get total vendors from first vendor's progress update
+  // Get total vendors from any progress update (all should have the same totalVendors value)
+  // Fallback to sortedVendors.length if no progress updates have totalVendors
   const totalVendors = sortedVendors.length > 0 
-    ? Array.from(sortedVendors[0].agents.values())[0]?.totalVendors || sortedVendors.length
+    ? (() => {
+        // Find the first progress update with totalVendors set
+        for (const vendor of sortedVendors) {
+          const agents = Array.from(vendor.agents.values());
+          for (const agent of agents) {
+            if (agent.totalVendors) {
+              return agent.totalVendors;
+            }
+          }
+        }
+        return sortedVendors.length;
+      })()
     : 0;
 
   if (sortedVendors.length === 0) {

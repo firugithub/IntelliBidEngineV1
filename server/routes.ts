@@ -1826,7 +1826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData || undefined
         );
 
-        const savedEvaluation = await storage.createEvaluation({
+        const { evaluation: savedEvaluation } = await storage.createEvaluation({
           projectId,
           proposalId: proposal.id,
           overallScore: evaluation.overallScore,
@@ -5123,22 +5123,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Track if we actually performed any evaluations (vs all being duplicates)
+      let evaluationsPerformed = 0;
+      
       // Evaluate each proposal
       for (let i = 0; i < proposals.length; i++) {
         const proposal = proposals[i];
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
-        
-        // ✅ CRITICAL: Check if evaluation already exists to prevent duplicate AI execution
-        const existingEvaluation = await storage.getEvaluationByProposal(proposal.id);
-        if (existingEvaluation && existingEvaluation.status !== "in_progress") {
-          console.log(`   ⚠️  Evaluation already completed for vendor ${proposal.vendorName}, skipping duplicate execution`);
-          continue;
-        }
-        
-        // If evaluation is stuck in "in_progress" status, we'll re-run it (could be from a previous crash)
-        if (existingEvaluation && existingEvaluation.status === "in_progress") {
-          console.log(`   ⚠️  Found stale in_progress evaluation for ${proposal.vendorName}, will re-run`);
-        }
         
         let proposalAnalysis = proposal.extractedData as any;
         
@@ -5179,9 +5170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           proposalStandardData = requirementStandardData;
         }
         
-        // Create placeholder evaluation record BEFORE multi-agent execution
-        // This allows metrics to save with a valid foreign key
-        const placeholderEvaluation = existingEvaluation || await storage.createEvaluation({
+        // ✅ ATOMIC RACE-SAFE DUPLICATE PREVENTION:
+        // Attempt to create placeholder evaluation - database enforces uniqueness on proposalId
+        // If conflict detected, wasInserted=false and we skip AI execution
+        const { evaluation: placeholderEvaluation, wasInserted } = await storage.createEvaluation({
           projectId,
           proposalId: proposal.id,
           overallScore: 0,
@@ -5197,6 +5189,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sectionCompliance: null,
           agentDiagnostics: null,
         });
+        
+        if (!wasInserted) {
+          // ✅ ATOMIC DUPLICATE PREVENTION: Evaluation already exists
+          // Skip ALL existing evaluations to prevent duplicate AI execution
+          // This handles: completed evaluations, concurrent in-progress evaluations, AND stuck evaluations
+          // For stuck evaluations: User must use "Re-evaluate" button (Dashboard page)
+          // which safely deletes all evaluations before re-triggering
+          console.log(`   ⚠️  Evaluation already exists for ${proposal.vendorName} (ID: ${placeholderEvaluation.id}, status: ${placeholderEvaluation.status})`);
+          console.log(`   ℹ️  To retry stuck/failed evaluations, use the "Re-evaluate" button on the Dashboard`);
+          continue;
+        }
+        
+        // Track that we're performing this evaluation
+        evaluationsPerformed++;
+        console.log(`   ✅ Created new evaluation ${placeholderEvaluation.id} for vendor ${proposal.vendorName}`);
         
         // Emit progress for this vendor with evaluation ID
         const vendorContext = {
@@ -5233,12 +5240,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`✓ Completed evaluation for ${proposal.vendorName}`);
       }
 
-      // Clear progress for this project
+      // Handle case where no new evaluations were performed (all duplicates)
+      if (evaluationsPerformed === 0) {
+        console.log(`⚠️  No new evaluations performed (all vendors already have evaluations)`);
+        
+        // Check if all evaluations are actually completed (terminal states)
+        // This handles crash-recovery: evaluations exist but project status wasn't updated
+        const allEvaluations = await storage.getEvaluationsByProject(projectId);
+        const allCompleted = allEvaluations.length > 0 && allEvaluations.every(
+          ev => (ev.status === "recommended" || ev.status === "risk-flagged") && ev.aiRationale != null
+        );
+        
+        if (allCompleted) {
+          // All evaluations are completed - update project status (crash recovery)
+          console.log(`✓ All ${allEvaluations.length} evaluations are completed, updating project status (crash recovery)`);
+          evaluationProgressService.clearProgress(projectId);
+          await storage.updateProjectStatus(projectId, "completed");
+          
+          // Synchronize vendor shortlisting stages
+          try {
+            const { synchronizeVendorStages } = await import("./services/features/vendorStageService");
+            const result = await synchronizeVendorStages(storage, projectId, { evaluatedStage: 7 });
+            console.log(`✓ Vendor stages synchronized: ${result.created} created, ${result.updated} updated`);
+          } catch (stageError) {
+            console.error(`⚠️ Failed to synchronize vendor stages (non-critical):`, stageError);
+          }
+          
+          return;
+        } else {
+          // Concurrent duplicate or stuck evaluations - exit without changing state
+          console.log(`ℹ️  Evaluations are in-progress (concurrent trigger detected). Exiting to avoid interfering with active evaluation.`);
+          console.log(`💡 TIP: If evaluations appear stuck, use the "Re-evaluate" button on the Dashboard`);
+          return;
+        }
+      }
+      
+      // Clear progress for this project (only if we actually did work)
       evaluationProgressService.clearProgress(projectId);
       
       // Update project status to completed
       await storage.updateProjectStatus(projectId, "completed");
-      console.log(`✓ Project evaluation completed, status updated to completed`);
+      console.log(`✓ Project evaluation completed (${evaluationsPerformed}/${proposals.length} vendors evaluated), status updated to completed`);
 
       // Synchronize vendor shortlisting stages after evaluations complete
       try {

@@ -309,7 +309,7 @@ export async function seedSampleData() {
 
       const evalData = evaluationData[proposalData.vendorName as keyof typeof evaluationData];
       if (evalData) {
-        const evaluation = await storage.createEvaluation({
+        const { evaluation } = await storage.createEvaluation({
           projectId: project.id,
           proposalId: proposal.id,
           ...evalData,

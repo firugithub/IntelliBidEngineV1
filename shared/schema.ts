@@ -90,7 +90,7 @@ export const proposals = pgTable("proposals", {
 export const evaluations = pgTable("evaluations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull(),
-  proposalId: varchar("proposal_id").notNull(),
+  proposalId: varchar("proposal_id").notNull().unique(), // UNIQUE constraint to prevent duplicate evaluations
   overallScore: integer("overall_score").notNull(),
   functionalFit: integer("functional_fit").notNull().default(0),
   technicalFit: integer("technical_fit").notNull(),
