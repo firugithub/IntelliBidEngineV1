@@ -3,6 +3,7 @@
 -- ====================================================
 -- Performance indexes for production deployment
 -- Run this AFTER azure-database-setup.sql
+-- Updated: November 19, 2025
 -- ====================================================
 
 -- ====================================================

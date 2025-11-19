@@ -3,7 +3,7 @@
 -- ====================================================
 -- Initial data setup for production deployment
 -- Run this AFTER azure-database-setup.sql
--- Updated: November 13, 2025
+-- Updated: November 19, 2025
 -- ====================================================
 
 -- ====================================================
