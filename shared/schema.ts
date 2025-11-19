@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp, boolean, numeric, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, boolean, numeric, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -85,7 +85,10 @@ export const proposals = pgTable("proposals", {
   standardId: varchar("standard_id"),
   taggedSections: jsonb("tagged_sections"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Unique constraint to prevent duplicate proposals for the same vendor in the same project
+  uniqueProposalPerVendor: unique().on(table.projectId, table.vendorName),
+}));
 
 export const evaluations = pgTable("evaluations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

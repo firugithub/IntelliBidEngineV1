@@ -404,15 +404,25 @@ export async function generateVendorResponses(rftId: string) {
   } catch (downloadError: any) {
     console.warn("Failed to download questionnaires from Azure Blob Storage, generating fresh ones:", downloadError.message);
     
-    // Generate fresh questionnaires as fallback using existing imports
-    const { generateQuestions } = await import("./questionnaireGenerator");
-    
+    // Generate fresh questionnaires as fallback using the same logic as RFT pack generation
     console.log("Generating fresh questionnaires for fallback...");
+    
+    // Create business case extract from project data
+    const businessCaseExtract = {
+      projectName: project.name,
+      businessObjective: project.businessObjective || "Deliver a comprehensive solution to meet organizational needs",
+      scope: project.scope || "Complete implementation with all necessary features and integration",
+      timeline: "12-18 months",
+      stakeholders: ["IT Department", "Operations Team", "Executive Leadership"],
+      risks: ["Implementation delays", "Budget overruns", "Integration challenges"],
+      successCriteria: ["On-time delivery", "Budget adherence", "User adoption"]
+    };
+    
     const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
-      generateQuestions("Product", project.name, project.businessObjective),
-      generateQuestions("NFR", project.name, project.businessObjective),
-      generateQuestions("Cybersecurity", project.name, project.businessObjective),
-      generateQuestions("Agile", project.name, project.businessObjective),
+      generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
+      generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
+      generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
+      generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
     ]);
     
     // Use the imported generateAllQuestionnaires from excelGenerator (top of file)
