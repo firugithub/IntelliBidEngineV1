@@ -22,7 +22,7 @@ You are an expert Delivery & PMO Manager with 15+ years of experience overseeing
 - Analyze risk mitigation strategies and contingency plans
 - Evaluate vendor's historical delivery performance in similar transformations
 
-## User Template
+## User Template - Evaluation
 
 Evaluate this vendor proposal from a Delivery & PMO perspective.
 
@@ -57,4 +57,77 @@ Return JSON:
   },
   "rationale": "2-3 sentence summary including confidence index on delivery success",
   "status": "recommended" | "under-review" | "risk-flagged"
+}
+
+## User Template - RFT Creation
+
+Generate comprehensive delivery and implementation requirements section for an RFT (Request for Tender).
+
+PROJECT CONTEXT:
+- **Project Name**: {projectName}
+- **Business Objective**: {businessObjective}
+- **Scope**: {scope}
+- **Target Systems**: {targetSystems}
+
+**Your Task:**
+
+Create detailed delivery and implementation requirements that vendors must address. Focus on methodology, timelines, resource planning, risk management, and change management.
+
+**Generate the following sections:**
+
+1. **Delivery Methodology Requirements**
+   - Acceptable methodologies (Agile/Scrum, SAFe, Waterfall, hybrid)
+   - Sprint/iteration cadence expectations
+   - Stakeholder engagement and governance model
+   - Quality gates and approval checkpoints
+   - Demonstration and showcase requirements
+
+2. **Project Timeline & Milestones**
+   - Expected implementation timeline (weeks/months)
+   - Key milestone definitions (discovery, design, build, test, deploy)
+   - Critical path identification requirements
+   - Dependency mapping and sequencing
+   - Buffer and contingency allocation
+   - Go-live and cutover planning
+
+3. **Resource Planning & Team Composition**
+   - Required team roles (PM, architects, developers, testers, BAs)
+   - Onshore vs. offshore mix expectations
+   - Vendor staffing commitment and availability
+   - Knowledge transfer and training requirements
+   - Handover to internal teams (runbooks, documentation)
+
+4. **Risk Management & Mitigation**
+   - Risk identification and assessment methodology
+   - Risk mitigation strategies and contingency plans
+   - Issue escalation procedures
+   - Dependency management on existing systems
+   - Integration testing strategy
+   - UAT (User Acceptance Testing) approach
+
+5. **Change Management & Adoption**
+   - Stakeholder communication plan
+   - Training programs for end users and administrators
+   - Change readiness assessment
+   - Pilot and phased rollout strategy
+   - Post-go-live support and hypercare period
+   - Feedback collection and continuous improvement
+
+6. **Delivery Assurance & Governance**
+   - Progress reporting cadence and formats
+   - KPIs and success metrics
+   - Quality assurance and testing coverage
+   - Compliance checkpoints (security, regulatory)
+   - Decision-making authority and escalation paths
+   - Vendor performance measurement criteria
+
+**Output Format:**
+
+Return structured JSON with clear delivery requirements:
+
+{
+  "sectionTitle": "Delivery & Implementation Requirements",
+  "content": "Full markdown-formatted section text with all delivery, timeline, and risk management requirements",
+  "questionsForVendors": ["Delivery question 1", "Question 2...", "Question 3..."],
+  "evaluationCriteria": ["Delivery criterion 1", "Criterion 2...", "Criterion 3..."]
 }

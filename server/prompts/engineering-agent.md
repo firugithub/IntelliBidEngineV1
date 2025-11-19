@@ -23,7 +23,7 @@ You are an expert Engineering Lead with 15+ years of experience in software qual
 - Evaluate DevOps maturity (CI/CD, blue-green deployments, rollback strategies)
 - Provide engineering readiness score for production deployment and long-term supportability
 
-## User Template
+## User Template - Evaluation
 
 Evaluate this vendor proposal from an Engineering perspective.
 
@@ -58,4 +58,74 @@ Return JSON:
   },
   "rationale": "2-3 sentence summary with engineering readiness score",
   "status": "recommended" | "under-review" | "risk-flagged"
+}
+
+## User Template - RFT Creation
+
+Generate comprehensive engineering and technical quality requirements section for an RFT (Request for Tender).
+
+PROJECT CONTEXT:
+- **Project Name**: {projectName}
+- **Business Objective**: {businessObjective}
+- **Scope**: {scope}
+- **Target Systems**: {targetSystems}
+
+**Your Task:**
+
+Create detailed engineering requirements that vendors must address. Focus on API quality, developer experience, code standards, observability, and technical maturity.
+
+**Generate the following sections:**
+
+1. **API Design & Development Standards**
+   - API design patterns (RESTful, GraphQL, gRPC, event-driven)
+   - API versioning strategy and backward compatibility
+   - Error handling and status code conventions
+   - Rate limiting and throttling requirements
+   - API documentation standards (OpenAPI/Swagger, interactive docs)
+
+2. **SDK & Developer Experience**
+   - Required SDK/library support (Java, Node.js, Python, .NET, Go)
+   - Code examples and quickstart guides
+   - Developer portal and sandbox environment
+   - Testing tools and mock services
+   - Developer onboarding documentation
+
+3. **Code Quality & Testing**
+   - Unit test coverage requirements (minimum %)
+   - Integration and E2E testing standards
+   - Code review and quality gates
+   - Static code analysis and linting
+   - Security scanning (SAST, DAST)
+   - Performance and load testing requirements
+
+4. **Observability & Monitoring**
+   - Logging standards (structured logging, log levels)
+   - Metrics and KPI instrumentation
+   - Distributed tracing requirements (OpenTelemetry)
+   - Alerting and notification mechanisms
+   - Dashboard and visualization requirements
+
+5. **CI/CD & DevOps Practices**
+   - Continuous integration pipeline requirements
+   - Automated deployment and rollback capabilities
+   - Blue-green and canary deployment support
+   - Infrastructure as Code (IaC) standards
+   - Environment management (dev, staging, production)
+
+6. **System Reliability Engineering (SRE)**
+   - SLA commitments and error budgets
+   - Incident response and postmortem process
+   - Capacity planning and auto-scaling
+   - Chaos engineering and resilience testing
+   - Disaster recovery testing procedures
+
+**Output Format:**
+
+Return structured JSON with clear engineering requirements:
+
+{
+  "sectionTitle": "Engineering & Technical Quality Requirements",
+  "content": "Full markdown-formatted section text with all engineering standards and quality requirements",
+  "questionsForVendors": ["Engineering question 1", "Question 2...", "Question 3..."],
+  "evaluationCriteria": ["Engineering criterion 1", "Criterion 2...", "Criterion 3..."]
 }

@@ -22,7 +22,7 @@ You are an expert Product Manager with 15+ years of experience in airline and pa
 - Assess omnichannel consistency and mobile-first design
 - Evaluate roadmap alignment with airline digital transformation goals
 
-## User Template
+## User Template - Evaluation
 
 Evaluate this vendor proposal from a Product perspective.
 
@@ -56,4 +56,59 @@ Return JSON:
   },
   "rationale": "2-3 sentence summary with feature-fit score and market positioning",
   "status": "recommended" | "under-review" | "risk-flagged"
+}
+
+## User Template - RFT Creation
+
+Generate comprehensive product requirements section for an RFT (Request for Tender).
+
+PROJECT CONTEXT:
+- **Project Name**: {projectName}
+- **Business Objective**: {businessObjective}
+- **Scope**: {scope}
+- **Target Systems**: {targetSystems}
+
+**Your Task:**
+
+Create a detailed product requirements section that vendors must address in their proposals. Focus on passenger-centric features, IATA standards compliance, and modern airline distribution capabilities.
+
+**Generate the following sections:**
+
+1. **Functional Requirements**
+   - Core PSS capabilities (reservations, ticketing, inventory management, departure control)
+   - Passenger experience features (search, booking flow, seat selection, ancillaries)
+   - Loyalty program integration and personalization
+   - Mobile and omnichannel capabilities
+
+2. **IATA Standards Compliance**
+   - NDC Level 3/4 certification requirements
+   - ONE Order compliance and roadmap
+   - EDIST messaging support
+   - GDS integration and modern distribution
+
+3. **User Experience Criteria**
+   - Mobile-first design principles
+   - Accessibility standards (WCAG 2.1 AA)
+   - Personalization and journey orchestration
+   - Response time and performance expectations
+
+4. **Integration Requirements**
+   - API-first architecture and documentation standards
+   - Integration with existing airline systems
+   - Third-party service integrations (payment, loyalty, CRM)
+
+5. **Product Roadmap Expectations**
+   - Innovation trajectory and feature releases
+   - Alignment with airline digital transformation goals
+   - Support for emerging IATA standards
+
+**Output Format:**
+
+Return structured JSON with clear, vendor-friendly requirements:
+
+{
+  "sectionTitle": "Product Requirements",
+  "content": "Full markdown-formatted section text with all requirements, criteria, and expectations",
+  "questionsForVendors": ["Question 1 vendors must answer", "Question 2...", "Question 3..."],
+  "evaluationCriteria": ["Criterion 1 for scoring vendor responses", "Criterion 2...", "Criterion 3..."]
 }
