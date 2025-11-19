@@ -15,28 +15,51 @@ const __dirname = dirname(__filename);
 // Agent role types
 type AgentRole = "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security";
 
-// Load agent prompts from MD files
-function loadAgentPrompt(role: AgentRole): { system: string; userTemplate: string } {
+// Load agent prompts from MD files (supports both evaluation and RFT creation modes)
+function loadAgentPrompt(role: AgentRole): { 
+  system: string; 
+  evaluation: string; 
+  rftCreation?: string;
+  // Legacy support
+  userTemplate: string; 
+} {
   // Use process.cwd() for production compatibility (works with bundled builds)
   const promptPath = join(process.cwd(), "server", "prompts", `${role}-agent.md`);
   const content = readFileSync(promptPath, "utf-8");
   
   // Split by markdown headers
   const systemMatch = content.match(/## System Prompt\s+([\s\S]*?)(?=\n## )/);
-  const userMatch = content.match(/## User Template\s+([\s\S]*?)$/);
+  const evaluationMatch = content.match(/## User Template - Evaluation\s+([\s\S]*?)(?=\n## |$)/);
+  const rftCreationMatch = content.match(/## User Template - RFT Creation\s+([\s\S]*?)(?=\n## |$)/);
   
-  if (!systemMatch || !userMatch) {
-    throw new Error(`Invalid prompt file format for ${role}-agent.md`);
+  // Fallback to old format for backward compatibility
+  const legacyUserMatch = content.match(/## User Template\s+([\s\S]*?)$/);
+  
+  if (!systemMatch) {
+    throw new Error(`Invalid prompt file format for ${role}-agent.md: missing System Prompt section`);
+  }
+  
+  const evaluationTemplate = evaluationMatch?.[1]?.trim() || legacyUserMatch?.[1]?.trim();
+  if (!evaluationTemplate) {
+    throw new Error(`Invalid prompt file format for ${role}-agent.md: missing evaluation template`);
   }
   
   return {
     system: systemMatch[1].trim(),
-    userTemplate: userMatch[1].trim()
+    evaluation: evaluationTemplate,
+    rftCreation: rftCreationMatch?.[1]?.trim(),
+    // Legacy support - defaults to evaluation template
+    userTemplate: evaluationTemplate
   };
 }
 
-// Load all agent prompts at startup
-const AGENT_PROMPTS: Record<AgentRole, { system: string; userTemplate: string }> = {
+// Load all agent prompts at startup (supports both evaluation and RFT creation)
+const AGENT_PROMPTS: Record<AgentRole, { 
+  system: string; 
+  evaluation: string; 
+  rftCreation?: string;
+  userTemplate: string; // Legacy support
+}> = {
   delivery: loadAgentPrompt("delivery"),
   product: loadAgentPrompt("product"),
   architecture: loadAgentPrompt("architecture"),
@@ -44,6 +67,9 @@ const AGENT_PROMPTS: Record<AgentRole, { system: string; userTemplate: string }>
   procurement: loadAgentPrompt("procurement"),
   security: loadAgentPrompt("security")
 };
+
+// Export for use in RFT agent orchestrator
+export { AGENT_PROMPTS, type AgentRole };
 
 // Fallback insights when agent fails
 function getFallbackInsights(role: AgentRole): string[] {

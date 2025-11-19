@@ -3054,6 +3054,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== Agent-Driven RFT Generation ==========
+
+  // Generate RFT using 6 specialized AI agents (Product, Architecture, Engineering, Security, Procurement, Delivery)
+  app.post("/api/rft/generate-with-agents", async (req, res) => {
+    try {
+      const { projectName, businessObjective, scope, targetSystems, projectId, portfolioId } = req.body;
+
+      if (!projectName || !businessObjective || !scope) {
+        return res.status(400).json({
+          error: "projectName, businessObjective, and scope are required",
+        });
+      }
+
+      console.log(`🤖 Starting agent-driven RFT generation for: ${projectName}`);
+
+      // Step 1: Generate RFT content using all 6 specialized agents
+      const { generateAgentDrivenRft, compileAgentRftToMarkdown } = await import("./services/ai/rftAgentOrchestrator");
+      
+      const agentRft = await generateAgentDrivenRft({
+        projectName,
+        businessObjective,
+        scope,
+        targetSystems: targetSystems || "Various airline systems (PSS, loyalty, mobile, etc.)"
+      });
+
+      // Step 2: Compile to markdown and prepare sections
+      const markdownContent = compileAgentRftToMarkdown(agentRft);
+      
+      // Convert agent sections to document format
+      const documentSections = agentRft.sections.map(section => ({
+        title: section.sectionTitle,
+        content: section.content
+      }));
+
+      // Step 3: Generate DOCX and PDF documents to temp files
+      const { generateDocxDocument, generatePdfDocument } = await import("./services/rft/documentGenerator");
+      const path = await import("path");
+      const fs = await import("fs");
+      
+      const docxFileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`;
+      const pdfFileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`;
+      const docxPath = path.join(process.cwd(), 'uploads', docxFileName);
+      const pdfPath = path.join(process.cwd(), 'uploads', pdfFileName);
+
+      await generateDocxDocument({
+        projectName,
+        sections: documentSections,
+        outputPath: docxPath
+      });
+      
+      await generatePdfDocument({
+        projectName,
+        sections: documentSections,
+        outputPath: pdfPath
+      });
+
+      // Read the generated files as buffers
+      const docxBuffer = fs.readFileSync(docxPath);
+      const pdfBuffer = fs.readFileSync(pdfPath);
+
+      // Determine project ID and folder structure (must be before using it)
+      const effectiveProjectId = projectId || `temp-${Date.now()}`;
+      const folderPath = `project-${effectiveProjectId}/RFT_Generated`;
+
+      // Step 4: Generate Excel questionnaires (extract questions from agent sections)
+      const { generateAllQuestionnaires } = await import("./services/rft/excelGenerator");
+      
+      // Extract questions from ALL agent sections for questionnaire generation
+      const productSection = agentRft.sections.find(s => s.agentRole === "product");
+      const architectureSection = agentRft.sections.find(s => s.agentRole === "architecture");
+      const engineeringSection = agentRft.sections.find(s => s.agentRole === "engineering");
+      const securitySection = agentRft.sections.find(s => s.agentRole === "security");
+      const procurementSection = agentRft.sections.find(s => s.agentRole === "procurement");
+      const deliverySection = agentRft.sections.find(s => s.agentRole === "delivery");
+
+      // Convert question strings to questionnaire format
+      const convertToQuestions = (questions: string[]): any[] => {
+        return questions.map((q, i) => ({
+          id: `q${i + 1}`,
+          question: q,
+          type: "text" as const,
+          required: true,
+          maxScore: 10
+        }));
+      };
+
+      // Combine questions from all agents into 4 questionnaire categories
+      // Product questionnaire: Product + Procurement questions
+      // NFR questionnaire: Architecture + Engineering questions  
+      // Cybersecurity questionnaire: Security questions
+      // Agile questionnaire: Delivery + Engineering questions
+      const questionnairePaths = await generateAllQuestionnaires(
+        effectiveProjectId,
+        {
+          product: convertToQuestions([
+            ...(productSection?.questionsForVendors || []),
+            ...(procurementSection?.questionsForVendors || [])
+          ]),
+          nfr: convertToQuestions([
+            ...(architectureSection?.questionsForVendors || []),
+            ...(engineeringSection?.questionsForVendors || [])
+          ]),
+          cybersecurity: convertToQuestions(securitySection?.questionsForVendors || []),
+          agile: convertToQuestions(deliverySection?.questionsForVendors || [])
+        }
+      );
+
+      // Read questionnaire files as buffers
+      const productBuffer = fs.readFileSync(questionnairePaths.productPath);
+      const nfrBuffer = fs.readFileSync(questionnairePaths.nfrPath);
+      const cybersecurityBuffer = fs.readFileSync(questionnairePaths.cybersecurityPath);
+      const agileBuffer = fs.readFileSync(questionnairePaths.agilePath);
+
+      // Step 5: Upload all files to Azure Blob Storage
+      const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
+
+      const uploadPromises = [
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
+          docxBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.pdf`,
+          pdfBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/Product_Questionnaire.xlsx`,
+          productBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/NFR_Questionnaire.xlsx`,
+          nfrBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/Cybersecurity_Questionnaire.xlsx`,
+          cybersecurityBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/Agile_Questionnaire.xlsx`,
+          agileBuffer
+        )
+      ];
+
+      const uploadResults = await Promise.all(uploadPromises);
+
+      // Step 6: Create RFT record in database (if projectId provided)
+      let rftRecord = null;
+      if (projectId) {
+        // Get project to find business case ID
+        const project = await storage.getProject(projectId);
+        const businessCaseId = project?.businessCaseId || "";
+
+        rftRecord = await storage.createGeneratedRft({
+          projectId,
+          businessCaseId,
+          name: projectName,
+          sections: {
+            sections: agentRft.sections.map(section => ({
+              id: section.agentRole,
+              title: section.sectionTitle,
+              content: section.content,
+              agentRole: section.agentRole,
+              questionsForVendors: section.questionsForVendors,
+              evaluationCriteria: section.evaluationCriteria
+            }))
+          },
+          templateId: "",
+          status: "published",
+          productQuestionnairePath: uploadResults[2].blobUrl,
+          nfrQuestionnairePath: uploadResults[3].blobUrl,
+          cybersecurityQuestionnairePath: uploadResults[4].blobUrl,
+          agileQuestionnairePath: uploadResults[5].blobUrl
+        });
+      }
+
+      // Clean up temp files
+      try {
+        fs.unlinkSync(docxPath);
+        fs.unlinkSync(pdfPath);
+        fs.unlinkSync(questionnairePaths.productPath);
+        fs.unlinkSync(questionnairePaths.nfrPath);
+        fs.unlinkSync(questionnairePaths.cybersecurityPath);
+        fs.unlinkSync(questionnairePaths.agilePath);
+      } catch (cleanupError) {
+        console.warn("Error cleaning up temp files:", cleanupError);
+      }
+
+      console.log(`✅ Agent-driven RFT generation complete for: ${projectName}`);
+
+      res.json({
+        success: true,
+        rftId: rftRecord?.id,
+        projectName,
+        filesGenerated: 6,
+        uploadedFiles: uploadResults.map(r => r.blobUrl),
+        sections: agentRft.sections.map(s => ({
+          agentRole: s.agentRole,
+          title: s.sectionTitle,
+          questionCount: s.questionsForVendors.length,
+          criteriaCount: s.evaluationCriteria.length
+        })),
+        message: "RFT generated successfully using 6 specialized AI agents"
+      });
+    } catch (error) {
+      console.error("❌ Error in agent-driven RFT generation:", error);
+      
+      // Cleanup on error - remove any temp files that may have been created
+      const path = await import("path");
+      const fs = await import("fs");
+      const safeName = req.body.projectName ? req.body.projectName.replace(/[^a-zA-Z0-9]/g, '_') : 'temp';
+      const filesToCleanup = [
+        path.join(process.cwd(), 'uploads', `${safeName}_RFT.docx`),
+        path.join(process.cwd(), 'uploads', `${safeName}_RFT.pdf`),
+      ];
+      
+      for (const file of filesToCleanup) {
+        try {
+          if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+          }
+        } catch (cleanupError) {
+          console.warn(`Failed to cleanup temp file ${file}:`, cleanupError);
+        }
+      }
+
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate RFT with agents";
+      res.status(500).json({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
   // ========== Collaborative Draft Review Routes ==========
 
   // Generate new RFT draft with stakeholder assignments
