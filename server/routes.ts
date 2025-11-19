@@ -3059,13 +3059,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate RFT using 6 specialized AI agents (Product, Architecture, Engineering, Security, Procurement, Delivery)
   app.post("/api/rft/generate-with-agents", async (req, res) => {
     try {
-      const { projectName, businessObjective, scope, targetSystems, projectId, portfolioId } = req.body;
+      const { businessCaseId, templateId, projectId } = req.body;
 
-      if (!projectName || !businessObjective || !scope) {
+      if (!businessCaseId) {
         return res.status(400).json({
-          error: "projectName, businessObjective, and scope are required",
+          error: "businessCaseId is required",
         });
       }
+
+      // Fetch business case from database
+      const businessCase = await storage.getBusinessCase(businessCaseId);
+      if (!businessCase) {
+        return res.status(404).json({
+          error: "Business case not found",
+        });
+      }
+
+      // Extract project information from business case
+      const projectName = businessCase.name;
+      // Use documentContent or extractedData for business objective and scope
+      const extractedData = businessCase.extractedData as any;
+      const businessObjective = extractedData?.objective || businessCase.description || "";
+      const scope = extractedData?.scope || extractedData?.projectScope || "";
+      const targetSystems = "Various airline systems (PSS, loyalty, mobile, etc.)"; // Can be enhanced if needed
 
       console.log(`🤖 Starting agent-driven RFT generation for: ${projectName}`);
 
@@ -3076,7 +3092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectName,
         businessObjective,
         scope,
-        targetSystems: targetSystems || "Various airline systems (PSS, loyalty, mobile, etc.)"
+        targetSystems
       });
 
       // Step 2: Compile to markdown and prepare sections
@@ -3202,10 +3218,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 6: Create RFT record in database (if projectId provided)
       let rftRecord = null;
       if (projectId) {
-        // Get project to find business case ID
-        const project = await storage.getProject(projectId);
-        const businessCaseId = project?.businessCaseId || "";
-
         rftRecord = await storage.createGeneratedRft({
           projectId,
           businessCaseId,
@@ -3220,7 +3232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               evaluationCriteria: section.evaluationCriteria
             }))
           },
-          templateId: "",
+          templateId: templateId || "",
           status: "published",
           productQuestionnairePath: uploadResults[2].blobUrl,
           nfrQuestionnairePath: uploadResults[3].blobUrl,
