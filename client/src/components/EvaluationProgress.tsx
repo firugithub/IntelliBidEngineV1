@@ -91,6 +91,11 @@ export function EvaluationProgress({ projectId }: EvaluationProgressProps) {
 
   // Sort vendors by index
   const sortedVendors = Array.from(vendorProgress.values()).sort((a, b) => a.vendorIndex - b.vendorIndex);
+  
+  // Get total vendors from first vendor's progress update
+  const totalVendors = sortedVendors.length > 0 
+    ? Array.from(sortedVendors[0].agents.values())[0]?.totalVendors || sortedVendors.length
+    : 0;
 
   if (sortedVendors.length === 0) {
     return null;
@@ -104,6 +109,9 @@ export function EvaluationProgress({ projectId }: EvaluationProgressProps) {
         const failedCount = agents.filter(a => a?.agentStatus === 'failed').length;
         const inProgressCount = agents.filter(a => a?.agentStatus === 'in_progress').length;
         
+        // Calculate vendor number (1-indexed)
+        const vendorNumber = vendor.vendorIndex + 1;
+        
         return (
           <Card key={vendor.vendorName} data-testid={`progress-vendor-${vendor.vendorIndex}`}>
             <CardHeader className="pb-3">
@@ -112,7 +120,12 @@ export function EvaluationProgress({ projectId }: EvaluationProgressProps) {
                 {inProgressCount === 0 && completedCount === agents.length && (
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                 )}
-                Evaluating {vendor.vendorName}
+                <span className="font-normal text-muted-foreground">
+                  Evaluating vendor {vendorNumber} of {totalVendors}:
+                </span>
+                <span className="font-bold text-foreground">
+                  {vendor.vendorName}
+                </span>
               </CardTitle>
               <CardDescription>
                 {completedCount} / {agents.length} agents completed

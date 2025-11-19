@@ -315,7 +315,7 @@ export default function DashboardPage() {
   // First-time: project is eval_in_progress but no completed evaluations exist yet
   // Re-evaluation: project is eval_in_progress AND some evaluations already completed
   const hasCompletedEvaluations = evaluations.some(e => 
-    e.status !== "under-review" && e.status !== "in_progress" && e.aiRationale
+    (e.status === "recommended" || e.status === "risk-flagged") && e.aiRationale
   );
   const isFirstTimeEvaluation = isReEvaluating && !hasCompletedEvaluations;
 
