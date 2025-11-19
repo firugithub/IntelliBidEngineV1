@@ -5128,6 +5128,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const proposal = proposals[i];
         console.log(`Evaluating proposal for ${proposal.vendorName}...`);
         
+        // ✅ CRITICAL: Check if evaluation already exists to prevent duplicate AI execution
+        const existingEvaluation = await storage.getEvaluationByProposal(proposal.id);
+        if (existingEvaluation && existingEvaluation.status !== "in_progress") {
+          console.log(`   ⚠️  Evaluation already completed for vendor ${proposal.vendorName}, skipping duplicate execution`);
+          continue;
+        }
+        
+        // If evaluation is stuck in "in_progress" status, we'll re-run it (could be from a previous crash)
+        if (existingEvaluation && existingEvaluation.status === "in_progress") {
+          console.log(`   ⚠️  Found stale in_progress evaluation for ${proposal.vendorName}, will re-run`);
+        }
+        
         let proposalAnalysis = proposal.extractedData as any;
         
         // If extractedData is null, create a minimal proposal analysis from proposal metadata
@@ -5169,7 +5181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Create placeholder evaluation record BEFORE multi-agent execution
         // This allows metrics to save with a valid foreign key
-        const placeholderEvaluation = await storage.createEvaluation({
+        const placeholderEvaluation = existingEvaluation || await storage.createEvaluation({
           projectId,
           proposalId: proposal.id,
           overallScore: 0,
