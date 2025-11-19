@@ -380,7 +380,7 @@ export async function generateVendorResponses(rftId: string) {
   
   console.log(`Generating vendor responses using actual RFT questionnaires for ${vendors.length} vendors:`, vendors);
   
-  // Download original questionnaires from Azure Blob Storage
+  // Download original questionnaires from Azure Blob Storage with fallback to fresh generation
   // IMPORTANT: Use underscores instead of spaces to match upload paths
   const questionnairePaths = {
     product: `project-${project.id}/RFT_Generated/Product_Questionnaire.xlsx`,
@@ -389,13 +389,58 @@ export async function generateVendorResponses(rftId: string) {
     agile: `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
   };
   
-  // Download all questionnaires
-  const [productBuffer, nfrBuffer, cybersecurityBuffer, agileBuffer] = await Promise.all([
-    azureBlobStorageService.downloadDocument(questionnairePaths.product),
-    azureBlobStorageService.downloadDocument(questionnairePaths.nfr),
-    azureBlobStorageService.downloadDocument(questionnairePaths.cybersecurity),
-    azureBlobStorageService.downloadDocument(questionnairePaths.agile),
-  ]);
+  // Try to download questionnaires from Azure, fallback to generating fresh ones if not found
+  let productBuffer: Buffer, nfrBuffer: Buffer, cybersecurityBuffer: Buffer, agileBuffer: Buffer;
+  
+  try {
+    console.log("Attempting to download questionnaires from Azure Blob Storage...");
+    [productBuffer, nfrBuffer, cybersecurityBuffer, agileBuffer] = await Promise.all([
+      azureBlobStorageService.downloadDocument(questionnairePaths.product),
+      azureBlobStorageService.downloadDocument(questionnairePaths.nfr),
+      azureBlobStorageService.downloadDocument(questionnairePaths.cybersecurity),
+      azureBlobStorageService.downloadDocument(questionnairePaths.agile),
+    ]);
+    console.log("Successfully downloaded questionnaires from Azure Blob Storage");
+  } catch (downloadError: any) {
+    console.warn("Failed to download questionnaires from Azure Blob Storage, generating fresh ones:", downloadError.message);
+    
+    // Generate fresh questionnaires as fallback using existing imports
+    const { generateQuestions } = await import("./questionnaireGenerator");
+    
+    console.log("Generating fresh questionnaires for fallback...");
+    const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+      generateQuestions("Product", project.name, project.businessObjective),
+      generateQuestions("NFR", project.name, project.businessObjective),
+      generateQuestions("Cybersecurity", project.name, project.businessObjective),
+      generateQuestions("Agile", project.name, project.businessObjective),
+    ]);
+    
+    // Use the imported generateAllQuestionnaires from excelGenerator (top of file)
+    const freshQuestionnairePaths = await generateAllQuestionnaires(project.id, {
+      product: productQuestions,
+      nfr: nfrQuestions,
+      cybersecurity: cybersecurityQuestions,
+      agile: agileQuestions,
+    });
+    
+    // Read the freshly generated files
+    productBuffer = fs.readFileSync(freshQuestionnairePaths.productPath);
+    nfrBuffer = fs.readFileSync(freshQuestionnairePaths.nfrPath);
+    cybersecurityBuffer = fs.readFileSync(freshQuestionnairePaths.cybersecurityPath);
+    agileBuffer = fs.readFileSync(freshQuestionnairePaths.agilePath);
+    
+    // Clean up temporary files
+    try {
+      fs.unlinkSync(freshQuestionnairePaths.productPath);
+      fs.unlinkSync(freshQuestionnairePaths.nfrPath);
+      fs.unlinkSync(freshQuestionnairePaths.cybersecurityPath);
+      fs.unlinkSync(freshQuestionnairePaths.agilePath);
+    } catch (cleanupError) {
+      console.error("Error cleaning up temporary questionnaire files:", cleanupError);
+    }
+    
+    console.log("Successfully generated fresh questionnaires as fallback");
+  }
   
   // Create vendor profiles with varied strengths
   const { createVendorProfiles, fillQuestionnaireWithScores } = await import("./excelQuestionnaireHandler");
