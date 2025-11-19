@@ -1158,16 +1158,77 @@ export default function SmartRftBuilderPage() {
             </div>
 
             {/* Progress indicator for agent-driven generation */}
-            {generateWithAgentsMutation.isPending && agentGenerationProgress.length > 0 && (
-              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <h5 className="font-medium text-sm">Agent Generation in Progress...</h5>
-                </div>
-                {agentGenerationProgress.map((progress, idx) => (
-                  <p key={idx} className="text-xs text-muted-foreground pl-6">{progress}</p>
-                ))}
-              </div>
+            {generateWithAgentsMutation.isPending && (
+              <Card className="bg-muted/30 border-primary/20">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <CardTitle className="text-base">6 AI Agents Working in Parallel...</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Each specialized agent is generating domain-specific RFT sections simultaneously
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Product Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Product Agent</div>
+                      <div className="text-xs text-muted-foreground">Creating product requirements, IATA standards, and user experience specifications</div>
+                    </div>
+                  </div>
+
+                  {/* Architecture Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Architecture Agent</div>
+                      <div className="text-xs text-muted-foreground">Defining technical architecture, scalability, and integration requirements</div>
+                    </div>
+                  </div>
+
+                  {/* Engineering Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Engineering Agent</div>
+                      <div className="text-xs text-muted-foreground">Specifying API/SDK requirements, code quality, and observability standards</div>
+                    </div>
+                  </div>
+
+                  {/* Security Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Security Agent</div>
+                      <div className="text-xs text-muted-foreground">Establishing security, compliance, and data protection requirements</div>
+                    </div>
+                  </div>
+
+                  {/* Procurement Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Procurement Agent</div>
+                      <div className="text-xs text-muted-foreground">Drafting commercial terms, pricing models, SLAs, and contract clauses</div>
+                    </div>
+                  </div>
+
+                  {/* Delivery Agent */}
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Delivery Agent</div>
+                      <div className="text-xs text-muted-foreground">Outlining delivery methodology, timelines, and risk management approach</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 text-xs text-muted-foreground text-center">
+                    ⚡ All agents running concurrently • Estimated time: 20-30 seconds
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             <div className="flex gap-2">
