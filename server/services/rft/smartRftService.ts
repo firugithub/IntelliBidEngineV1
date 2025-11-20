@@ -3,6 +3,8 @@ import { storage } from "../../storage";
 import { generateAllQuestionnaires, type QuestionnaireQuestion } from "./excelGenerator";
 import { getOpenAIClient } from "../ai/aiAnalysis";
 import { getSectionMapping, STAKEHOLDER_ROLES, type SectionMapping } from "./stakeholderConfig";
+import { ragRetrievalService } from "../knowledgebase/ragRetrieval";
+import type { AgentRole } from "../ai/multiAgentEvaluator";
 
 interface RftSection {
   sectionId: string;
@@ -23,6 +25,60 @@ interface BusinessCaseExtract {
   keyRequirements: string[];
   risks: string[];
   successCriteria: string[];
+}
+
+/**
+ * Maps RFT section IDs to appropriate agent/standard categories
+ * Used for targeted RAG retrieval of organizational standards
+ */
+function getSectionCategory(sectionId: string): AgentRole | 'shared' {
+  const categoryMap: Record<string, AgentRole | 'shared'> = {
+    // Product/Business sections
+    'executive-summary': 'product',
+    'background-context': 'product',
+    'scope-work': 'product',
+    'evaluation-criteria': 'procurement',
+    
+    // Technical sections
+    'technical-requirements': 'architecture',
+    'non-functional-requirements': 'engineering',
+    'nfr': 'engineering',
+    
+    // Security/Compliance sections
+    'security-requirements': 'security',
+    'compliance-requirements': 'security',
+    'data-protection': 'security',
+    
+    // Commercial/Procurement sections
+    'submission-requirements': 'procurement',
+    'commercial-terms': 'procurement',
+    'contractual-requirements': 'procurement',
+    'pricing': 'procurement',
+    
+    // Delivery/Project Management sections
+    'governance-risk': 'delivery',
+    'implementation-timeline': 'delivery',
+    'project-governance': 'delivery',
+    'response-templates': 'delivery'
+  };
+  
+  // Normalize section ID for lookup
+  const normalizedId = sectionId.toLowerCase().replace(/\s+/g, '-');
+  
+  // Try exact match first
+  if (categoryMap[normalizedId]) {
+    return categoryMap[normalizedId];
+  }
+  
+  // Try partial matches
+  for (const [key, value] of Object.entries(categoryMap)) {
+    if (normalizedId.includes(key) || key.includes(normalizedId)) {
+      return value;
+    }
+  }
+  
+  // Default to 'shared' for general sections
+  return 'shared';
 }
 
 /**
@@ -138,6 +194,7 @@ function enrichSectionsWithStakeholderMetadata(sections: any[], template?: RftTe
 
 /**
  * Generate comprehensive RFT document sections following professional standards
+ * Now enhanced with RAG retrieval of organizational standards
  * @param businessCaseExtract - Extracted business case information
  * @param template - Optional template with custom sectionMappings for stakeholder overrides
  */
@@ -145,6 +202,9 @@ export async function generateProfessionalRftSections(
   businessCaseExtract: BusinessCaseExtract,
   template?: RftTemplate | null
 ): Promise<RftSection[]> {
+  
+  // Note: Per-section RAG retrieval now happens in generateRftSection()
+  // This matches the evaluation pattern where each agent retrieves category-specific standards
   
   // Validate and build requirements and criteria lists
   const missingFields: string[] = [];
@@ -186,188 +246,34 @@ export async function generateProfessionalRftSections(
     ? businessCaseExtract.stakeholders.join(", ")
     : "[Stakeholders not specified in business case]";
   
-  const prompt = `Create a detailed RFT document for "${businessCaseExtract.projectName}" based on the business case below.
-
-PROJECT DETAILS:
-Objective: ${businessCaseExtract.businessObjective}
-Scope: ${businessCaseExtract.scope}
-Timeline: ${businessCaseExtract.timeline}
-Budget: ${businessCaseExtract.budget}
-Stakeholders: ${stakeholdersList}
-
-KEY REQUIREMENTS TO ADDRESS:
-${requirementsList}
-
-RISKS TO MITIGATE:
-${risksList}
-
-SUCCESS CRITERIA:
-${criteriaList}
-
-Generate 10 sections that comprehensively address this specific project. Use the above information to create relevant, detailed content - NOT generic templates. Each section should elaborate on how these specific requirements, risks, and criteria apply.
-
-Section 1 - Introduction & Overview:
-Explain why this solution is needed to achieve: ${businessCaseExtract.businessObjective}. Describe what problem it solves for these stakeholders: ${stakeholdersList}. Include organizational context based on the scope (${businessCaseExtract.scope}) and explain the tendering process.
-
-Section 2 - Scope of Work / Requirements:
-Create a comprehensive, detailed scope of work with MINIMUM 20 specific requirements. For each requirement, provide:
-- Requirement ID and Title
-- Detailed description of what the requirement means in practice
-- Technical specifications and constraints
-- Expected deliverables (tangible outputs)
-- Clear acceptance criteria (measurable, testable conditions that must be met)
-- Integration points and dependencies
-- Priority level (Critical/High/Medium/Low)
-
-Organize requirements into logical categories (e.g., Functional, Technical, Integration, Data Migration, Training, Documentation).
-
-Format each requirement as:
-REQ-[ID]: [Title]
-Description: [What needs to be delivered]
-Technical Specs: [Specific technical details]
-Deliverables: [Concrete outputs]
-Acceptance Criteria:
-  ✓ [Measurable criterion 1]
-  ✓ [Measurable criterion 2]
-  ✓ [Measurable criterion 3]
-Dependencies: [Other requirements or systems]
-Priority: [Critical/High/Medium/Low]
-
-Additionally, create a timeline table mapping all requirements to implementation phases with clear milestones.
-
-Section 3 - Instructions to Tenderers:
-Create submission instructions specific to ${businessCaseExtract.projectName}:
-- Explain what vendors must demonstrate regarding the key requirements listed above
-- Set submission deadline that aligns with ${businessCaseExtract.timeline}
-- List required documentation that addresses the ${businessCaseExtract.scope}
-- Define compliance requirements based on project stakeholders (${stakeholdersList})
-
-Section 4 - Evaluation Criteria:
-Transform each success criterion listed above into a scored evaluation metric. Create a detailed scoring table where each criterion has:
-- Description derived from the success criteria above
-- Weight/points allocation
-- Assessment method
-The total evaluation must directly map back to how we measure success for ${businessCaseExtract.projectName}.
-
-Section 5 - Commercial Terms & Conditions:
-Based on budget ${businessCaseExtract.budget} and timeline ${businessCaseExtract.timeline}, specify:
-- Payment structure that aligns with project milestones  derived from timeline
-- Pricing model appropriate for ${businessCaseExtract.scope}
-- SLA metrics that support achieving ${businessCaseExtract.businessObjective}
-- Warranty terms relevant to the key requirements
-- Cost implications for the risks identified above
-
-Section 6 - Contractual Requirements:
-Draft contract terms specific to ${businessCaseExtract.projectName} and ${businessCaseExtract.scope}:
-- IP ownership for deliverables created for this ${businessCaseExtract.projectName}
-- Data handling requirements appropriate for stakeholders: ${stakeholdersList}
-- Liability terms proportional to budget: ${businessCaseExtract.budget}
-- Insurance coverage for risks identified above
-- Termination conditions tied to success criteria
-
-Section 7 - Non-Functional Requirements:
-Transform each key requirement into quantified non-functional specifications:
-${requirementsList}
-
-For each requirement above, define: target performance metrics, availability SLAs, security standards, scalability targets, required certifications. Create a comprehensive NFR table.
-
-Section 8 - Governance & Risk Management:
-Build a complete risk management framework for ${businessCaseExtract.projectName}:
-
-For each identified risk:
-${risksList}
-
-Provide: probability assessment, business impact on ${businessCaseExtract.businessObjective}, mitigation approach, contingency plan, risk owner from ${stakeholdersList}.
-
-Also define: governance committee composition from stakeholders, reporting cadence aligned with ${businessCaseExtract.timeline}, escalation paths, change control tied to scope.
-
-Section 9 - Response Templates / Schedules:
-Design vendor response templates that capture information needed to evaluate against the success criteria above. For ${businessCaseExtract.projectName}, vendors must provide:
-- Technical solution addressing each key requirement
-- Delivery schedule aligned with ${businessCaseExtract.timeline}
-- Cost breakdown within budget ${businessCaseExtract.budget}
-- Risk mitigation for risks identified above
-- Evidence for success criteria measurement
-
-Section 10 - Appendices:
-Create project-specific appendices for ${businessCaseExtract.projectName}:
-- Glossary: Define all technical terms from ${businessCaseExtract.scope}
-- Standards: List industry standards and regulations relevant to ${businessCaseExtract.scope} and ${businessCaseExtract.businessObjective}
-- Stakeholder Matrix: Detail roles and responsibilities for ${stakeholdersList}
-- Risk Register: Full detail on identified risks
-- Requirement Traceability: Map requirements to success criteria
-
-CRITICAL Formatting Rules (use markdown):
-- Use bullet lists with "- " for unordered items (requirements, features, criteria)
-- Use numbered lists with "1. ", "2. ", etc. for sequential steps or processes
-- Use markdown tables with "| Header 1 | Header 2 |" format for structured data (timelines, scoring, metrics, deadlines)
-- Separate paragraphs with "\n\n"
-- Use terminology appropriate to ${businessCaseExtract.scope} and industry context
-- Reference relevant industry standards and regulations based on project requirements
-- Use formal procurement language
-- Make ALL content specific to ${businessCaseExtract.projectName} and ${businessCaseExtract.businessObjective}
-
-Return JSON array (MUST include all 10 sections):
-[
-  {
-    "sectionId": "section-1",
-    "title": "Introduction & Overview",
-    "content": "Professional formatted content with bullets, lists, and tables in markdown..."
-  },
-  ...all 10 sections...
-]`;
-
-  try {
-    const openai = await getOpenAIClient();
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert procurement specialist with 20+ years of experience in creating professional RFT/RFP documents across various industries. You adapt your language and standards to match the project domain and requirements.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("No response from AI");
-    }
-
-    const result = JSON.parse(content);
-    // Handle both array and object with sections array
-    const sections = Array.isArray(result) ? result : (result.sections || []);
-    
-    console.log(`📊 AI generated ${sections.length} sections`);
-    
-    // Validate that we got all 10 sections
-    if (sections.length < 10) {
-      console.warn(`⚠️  WARNING: Expected 10 sections but got ${sections.length}. This may indicate the AI response was truncated.`);
-      console.warn("Sections received:", sections.map((s: any) => s.title).join(", "));
-    }
-    
-    // Log content length for first section to verify comprehensiveness
-    if (sections.length > 0) {
-      const firstSection = sections[0] as any;
-      const wordCount = firstSection.content?.split(/\s+/).length || 0;
-      console.log(`📝 First section word count: ${wordCount} words (target: 500+)`);
-      if (wordCount < 300) {
-        console.warn(`⚠️  WARNING: First section has only ${wordCount} words, expected 500+`);
-      }
-    }
-    
-    // Enrich sections with stakeholder metadata
-    // Template-specific mappings override DEFAULT_SECTION_MAPPINGS
-    const enrichedSections = enrichSectionsWithStakeholderMetadata(sections, template);
-    
-    return enrichedSections;
-  } catch (error) {
-    console.error("Error generating RFT sections:", error);
-    throw new Error("Failed to generate professional RFT sections");
+  // Generate all 10 sections individually with per-section RAG retrieval (matching evaluation pattern)
+  console.log('📚 Generating RFT sections with category-specific organizational standards...');
+  
+  const sectionConfigs = [
+    { id: 'section-1', title: 'Introduction & Overview', prompt_template: `Explain why this solution is needed to achieve: ${businessCaseExtract.businessObjective}. Describe what problem it solves for these stakeholders: ${stakeholdersList}. Include organizational context based on the scope (${businessCaseExtract.scope}) and explain the tendering process.` },
+    { id: 'section-2', title: 'Scope of Work / Requirements', prompt_template: `Create a comprehensive, detailed scope of work with MINIMUM 20 specific requirements. For each requirement, provide: Requirement ID and Title, Detailed description, Technical specifications, Expected deliverables, Clear acceptance criteria, Integration points, Priority level. Organize into logical categories. Additionally, create a timeline table mapping requirements to implementation phases.` },
+    { id: 'section-3', title: 'Instructions to Tenderers', prompt_template: `Create submission instructions specific to ${businessCaseExtract.projectName}: explain what vendors must demonstrate regarding key requirements, set submission deadline aligning with ${businessCaseExtract.timeline}, list required documentation, define compliance requirements based on stakeholders.` },
+    { id: 'section-4', title: 'Evaluation Criteria', prompt_template: `Transform each success criterion into a scored evaluation metric with detailed scoring table. Include description, weight/points allocation, assessment method. Map to success criteria for ${businessCaseExtract.projectName}.` },
+    { id: 'section-5', title: 'Commercial Terms & Conditions', prompt_template: `Based on budget ${businessCaseExtract.budget} and timeline ${businessCaseExtract.timeline}, specify payment structure, pricing model, SLA metrics supporting ${businessCaseExtract.businessObjective}, warranty terms, cost implications for identified risks.` },
+    { id: 'section-6', title: 'Contractual Requirements', prompt_template: `Draft contract terms specific to ${businessCaseExtract.projectName}: IP ownership, data handling for stakeholders (${stakeholdersList}), liability terms proportional to budget (${businessCaseExtract.budget}), insurance coverage, termination conditions.` },
+    { id: 'section-7', title: 'Non-Functional Requirements', prompt_template: `Transform key requirements into quantified NFR specifications. For each requirement, define: performance metrics, availability SLAs, security standards, scalability targets, required certifications. Create comprehensive NFR table.` },
+    { id: 'section-8', title: 'Governance & Risk Management', prompt_template: `Build complete risk management framework for ${businessCaseExtract.projectName}. For each identified risk (${risksList}), provide: probability assessment, business impact, mitigation approach, contingency plan, risk owner. Define governance committee, reporting cadence, escalation paths, change control.` },
+    { id: 'section-9', title: 'Response Templates / Schedules', prompt_template: `Design vendor response templates capturing information for evaluation. Vendors must provide: technical solution for requirements, delivery schedule aligning with ${businessCaseExtract.timeline}, cost breakdown within ${businessCaseExtract.budget}, risk mitigation, evidence for success criteria.` },
+    { id: 'section-10', title: 'Appendices', prompt_template: `Create project-specific appendices: Glossary of technical terms from ${businessCaseExtract.scope}, Standards list for ${businessCaseExtract.businessObjective}, Stakeholder Matrix for ${stakeholdersList}, Risk Register, Requirement Traceability.` }
+  ];
+  
+  const generatedSections: RftSection[] = [];
+  for (const config of sectionConfigs) {
+    const section = await generateRftSection(config, businessCaseExtract, '');
+    generatedSections.push(section);
   }
+  
+  console.log(`✅ Generated ${generatedSections.length} sections with category-specific standards`);
+  
+  // Enrich sections with stakeholder metadata
+  const enrichedSections = enrichSectionsWithStakeholderMetadata(generatedSections, template);
+  
+  return enrichedSections;
 }
 
 /**
@@ -634,7 +540,7 @@ Generate exactly ${count} questions. Number them sequentially from 1 to ${count}
 }
 
 /**
- * Generate a specific RFT section using AI
+ * Generate a specific RFT section using AI with category-specific RAG retrieval
  */
 async function generateRftSection(
   sectionConfig: any,
@@ -643,8 +549,36 @@ async function generateRftSection(
 ): Promise<RftSection> {
   const { id, title, prompt_template, subsections } = sectionConfig;
 
+  // Retrieve category-specific organizational standards for this section
+  let sectionStandardsContext = '';
+  try {
+    const isRAGConfigured = await ragRetrievalService.isConfigured();
+    if (isRAGConfigured && businessCaseExtract.keyRequirements.length > 0) {
+      const sectionCategory = getSectionCategory(id);
+      
+      // Build retrieval query specific to this section
+      const retrievalQuery = `${title} ${businessCaseExtract.businessObjective} ${businessCaseExtract.scope} ${businessCaseExtract.keyRequirements.slice(0, 2).join(' ')} requirements`;
+      
+      const ragContextData = await ragRetrievalService.retrieveRelevantContext(
+        retrievalQuery,
+        { 
+          topK: 2,
+          category: sectionCategory === 'shared' ? undefined : sectionCategory,
+          sourceType: 'standard'
+        }
+      );
+      
+      if (ragContextData.chunks.length > 0) {
+        sectionStandardsContext = ragRetrievalService.formatForAIContext(ragContextData);
+        console.log(`   📚 [${title}] Retrieved ${ragContextData.chunks.length} ${sectionCategory} standards`);
+      }
+    }
+  } catch (error) {
+    console.error(`   ❌ [${title}] RAG retrieval failed:`, error);
+  }
+
   // Build the prompt
-  const prompt = `You are creating a Request for Tender (RFT) document for ${businessCaseExtract.projectName}.
+  let prompt = `You are creating a Request for Tender (RFT) document for ${businessCaseExtract.projectName}.
 
 Business Context:
 - Objective: ${businessCaseExtract.businessObjective}
@@ -667,9 +601,20 @@ Requirements:
 - Be comprehensive and realistic (400+ words)
 
 Example format:
-"## ${title}\n\nIntroduction paragraph...\n\n### Key Requirements\n\n- Requirement 1: Details here\n- Requirement 2: More details\n\n### Deliverables Timeline\n\n| Phase | Duration | Deliverables |\n|-------|----------|-------------|\n| Phase 1 | 2 months | Analysis |\n| Phase 2 | 4 months | Development |\n\nFurther details..."
+"## ${title}\n\nIntroduction paragraph...\n\n### Key Requirements\n\n- Requirement 1: Details here\n- Requirement 2: More details\n\n### Deliverables Timeline\n\n| Phase | Duration | Deliverables |\n|-------|----------|-------------|\n| Phase 1 | 2 months | Analysis |\n| Phase 2 | 4 months | Development |\n\nFurther details..."`;
 
-Generate ONLY the content for this section, well-formatted in markdown.`;
+  // Inject organizational standards if available (matching evaluation format)
+  if (sectionStandardsContext) {
+    prompt += `\n\n**ORGANIZATION-SPECIFIC COMPLIANCE REQUIREMENTS:**
+
+You MUST incorporate the following organizational standards and policies into this section. These are mandatory requirements that vendors must address:
+
+${sectionStandardsContext}
+
+Ensure your section explicitly references these standards and includes requirements that demonstrate vendor compliance.`;
+  }
+
+  prompt += '\n\nGenerate ONLY the content for this section, well-formatted in markdown.';
 
   try {
     const openai = await getOpenAIClient();

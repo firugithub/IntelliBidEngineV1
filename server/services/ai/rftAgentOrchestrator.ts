@@ -1,5 +1,6 @@
 import { getOpenAIClient } from "./aiAnalysis";
 import { AGENT_PROMPTS, type AgentRole } from "./multiAgentEvaluator";
+import { ragRetrievalService } from "../knowledgebase/ragRetrieval";
 
 // Project context for RFT generation
 export interface RftProjectContext {
@@ -29,6 +30,7 @@ export interface AgentGeneratedRft {
 
 /**
  * Generates an RFT section using a single specialized agent
+ * Now enhanced with RAG retrieval of category-specific organizational standards
  */
 async function generateAgentRftSection(
   role: AgentRole,
@@ -40,12 +42,53 @@ async function generateAgentRftSection(
     throw new Error(`Agent ${role} does not have RFT creation template configured`);
   }
 
+  // Retrieve category-specific organizational standards for this agent
+  let complianceContext = '';
+  try {
+    const isRAGConfigured = await ragRetrievalService.isConfigured();
+    if (isRAGConfigured) {
+      // Build enriched retrieval query with role-specific keywords
+      const roleKeywords: Record<AgentRole, string> = {
+        product: 'product requirements business value user experience stakeholder needs',
+        architecture: 'technical architecture system design scalability integration infrastructure',
+        engineering: 'API SDK code quality testing observability technical implementation',
+        security: 'cybersecurity compliance data protection access control encryption',
+        procurement: 'commercial terms pricing SLA contract requirements procurement',
+        delivery: 'project management implementation timeline risk mitigation delivery methodology'
+      };
+      
+      const retrievalQuery = `${context.businessObjective} ${context.scope} ${context.targetSystems} ${roleKeywords[role]} requirements standards`;
+      
+      const ragContextData = await ragRetrievalService.retrieveRelevantContext(
+        retrievalQuery,
+        { 
+          topK: 3,
+          category: role, // Each agent gets their own category-specific standards
+          sourceType: 'standard' // Only retrieve standards, not proposals
+        }
+      );
+      
+      if (ragContextData.chunks.length > 0) {
+        complianceContext = ragRetrievalService.formatForAIContext(ragContextData);
+        console.log(`   📚 [${role}] Retrieved ${ragContextData.chunks.length} ${role}-specific organizational standards for RFT generation`);
+      }
+    }
+  } catch (error) {
+    console.error(`   ❌ [${role}] RAG retrieval failed during RFT generation:`, error);
+    // Continue without standards context - agent will use general best practices
+  }
+
   // Replace template variables in the user prompt
-  const userMessage = prompt.rftCreation
+  let userMessage = prompt.rftCreation
     .replace(/{projectName}/g, context.projectName)
     .replace(/{businessObjective}/g, context.businessObjective)
     .replace(/{scope}/g, context.scope)
     .replace(/{targetSystems}/g, context.targetSystems);
+
+  // Inject organizational standards context if available (matching evaluation format)
+  if (complianceContext) {
+    userMessage += `\n\n**ORGANIZATION-SPECIFIC COMPLIANCE REQUIREMENTS:**\n\nYou MUST incorporate the following organizational standards and policies into your RFT section. These are mandatory requirements that vendors must address:\n\n${complianceContext}\n\nEnsure your section explicitly references these standards and includes requirements that demonstrate vendor compliance.`;
+  }
 
   try {
     const openai = await getOpenAIClient();
