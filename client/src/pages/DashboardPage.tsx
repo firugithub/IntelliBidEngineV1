@@ -6,6 +6,7 @@ import { RadarChart } from "@/components/RadarChart";
 import { RoleBasedEvaluationReport } from "@/components/RoleBasedEvaluationReport";
 import { RiskValueMatrix } from "@/components/RiskValueMatrix";
 import { CostBenefitChart } from "@/components/CostBenefitChart";
+import { StructuredAIRecommendation } from "@/components/StructuredAIRecommendation";
 import { EvaluationProgress } from "@/components/EvaluationProgress";
 import { VendorShortlistingProgress } from "@/components/VendorShortlistingProgress";
 import { VendorStageGrid } from "@/components/VendorStageGrid";
@@ -523,6 +524,13 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* Structured AI Recommendation - Positioned prominently */}
+          <StructuredAIRecommendation
+            aiRationale={topVendor.aiRationale || `Based on the comprehensive multi-criteria evaluation, ${topVendor.vendorName} is recommended as the preferred vendor with an overall fit score of ${topVendor.overallScore}%.`}
+            vendorName={topVendor.vendorName}
+            overallScore={topVendor.overallScore}
+          />
+
           <div>
             <h2 className="text-2xl font-semibold mb-6">Shortlisted Proposals</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -576,29 +584,6 @@ export default function DashboardPage() {
 
           {/* Role-Based Evaluation Reports - Comparative View */}
           <RoleBasedEvaluationReport evaluations={evaluations} />
-
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle>AI Recommendation</CardTitle>
-              <CardDescription>
-                AI-generated recommendation based on weighted scoring
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm">
-                {topVendor.aiRationale || `Based on the comprehensive multi-criteria evaluation, ${topVendor.vendorName} is recommended as the preferred vendor with an overall fit score of ${topVendor.overallScore}%.`}
-              </p>
-              <div className="space-y-2 pt-2">
-                <h4 className="font-semibold text-sm">Next Steps:</h4>
-                <ol className="space-y-1 text-sm list-decimal list-inside">
-                  <li>Schedule technical deep-dive with {topVendor.vendorName}</li>
-                  <li>Request detailed pricing breakdown and contract terms</li>
-                  <li>Conduct proof of concept for critical integration points</li>
-                  <li>Obtain executive approval for budget allocation</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
