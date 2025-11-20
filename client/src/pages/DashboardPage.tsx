@@ -520,13 +520,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Structured AI Recommendation - Positioned prominently */}
-          <StructuredAIRecommendation
-            aiRationale={topVendor.aiRationale || `Based on the comprehensive multi-criteria evaluation, ${topVendor.vendorName} is recommended as the preferred vendor with an overall fit score of ${topVendor.overallScore}%.`}
-            vendorName={topVendor.vendorName}
-            overallScore={topVendor.overallScore}
-          />
-
           <div>
             <h2 className="text-2xl font-semibold mb-6">Shortlisted Proposals</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -580,6 +573,13 @@ export default function DashboardPage() {
 
           {/* Role-Based Evaluation Reports - Comparative View */}
           <RoleBasedEvaluationReport evaluations={evaluations} />
+
+          {/* Structured AI Recommendation */}
+          <StructuredAIRecommendation
+            aiRationale={topVendor.aiRationale || `Based on the comprehensive multi-criteria evaluation, ${topVendor.vendorName} is recommended as the preferred vendor with an overall fit score of ${topVendor.overallScore}%.`}
+            vendorName={topVendor.vendorName}
+            overallScore={topVendor.overallScore}
+          />
         </div>
       </div>
 
