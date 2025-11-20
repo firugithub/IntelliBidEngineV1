@@ -386,6 +386,19 @@ export default function RftDraftReviewPage() {
                   RFT Document (PDF)
                 </Button>
 
+                {/* Product Technical Questionnaire (if available) */}
+                {selectedDraft.metadata.pack.files.productTechnical && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => window.open(selectedDraft.metadata.pack.files.productTechnical.url, '_blank')}
+                    data-testid="button-download-product-technical"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Product Technical Questionnaire (DOCX)
+                  </Button>
+                )}
+
                 {/* Product Questionnaire */}
                 <Button
                   variant="outline"

@@ -4,6 +4,8 @@ import { TemplateMergeService } from "./templateMergeService";
 import { generateQuestionnaireQuestions } from "./smartRftService";
 import { generateAllQuestionnaires } from "./excelGenerator";
 import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";
+import { generateContextDiagram } from "../architecture/contextDiagramGenerator";
+import { generateProductTechnicalQuestionnaire } from "../architecture/productQuestionnaireGenerator";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -16,6 +18,7 @@ interface PackGenerationResult {
   files: {
     docx: { name: string; url: string };
     pdf: { name: string; url: string };
+    productTechnical?: { name: string; url: string };
     questionnaires: {
       product: { name: string; url: string };
       nfr: { name: string; url: string };
@@ -117,10 +120,42 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
       agile: agileQuestions,
     });
 
+    // Generate Product Technical Questionnaire with context diagram (if business case exists)
+    let productTechnicalPath: string | null = null;
+    let productTechnicalBuffer: Buffer | null = null;
+    
+    if (businessCase?.documentContent) {
+      try {
+        console.log(`[RFT Pack] Generating Product Technical Questionnaire with context diagram...`);
+        
+        // Generate context diagram PNG
+        const contextDiagramPngPath = path.join(process.cwd(), 'uploads', `context_diagram_${Date.now()}.png`);
+        const { pngPath } = await generateContextDiagram(businessCase.documentContent, contextDiagramPngPath);
+        
+        // Generate Product Technical Questionnaire DOCX with embedded diagram
+        const productTechnicalFileName = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Product_Technical_Questionnaire_${Date.now()}.docx`;
+        productTechnicalPath = await generateProductTechnicalQuestionnaire({
+          projectName: project.name,
+          contextDiagramPngPath: pngPath,
+          outputPath: path.join(process.cwd(), 'uploads', productTechnicalFileName)
+        });
+        
+        productTechnicalBuffer = fs.readFileSync(productTechnicalPath);
+        
+        // Clean up temp files
+        fs.unlinkSync(pngPath);
+        
+        console.log(`[RFT Pack] Product Technical Questionnaire generated successfully`);
+      } catch (error) {
+        console.error(`[RFT Pack] Failed to generate Product Technical Questionnaire:`, error);
+        // Continue without this file if generation fails
+      }
+    }
+
     console.log(`[RFT Pack] Uploading all files to Azure Blob Storage...`);
 
     // Upload all files to Azure Blob Storage
-    const uploadResults = await Promise.all([
+    const uploadPromises = [
       azureBlobStorageService.uploadDocument(
         `project-${project.id}/RFT_Generated/RFT_Document.docx`,
         docxBuffer
@@ -145,7 +180,19 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
         `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.agilePath)
       ),
-    ]);
+    ];
+    
+    // Add Product Technical Questionnaire if generated
+    if (productTechnicalBuffer) {
+      uploadPromises.push(
+        azureBlobStorageService.uploadDocument(
+          `project-${project.id}/RFT_Generated/Product_Technical_Questionnaire.docx`,
+          productTechnicalBuffer
+        )
+      );
+    }
+    
+    const uploadResults = await Promise.all(uploadPromises);
 
     // Clean up temporary files
     try {
@@ -153,16 +200,23 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
       fs.unlinkSync(questionnairePaths.nfrPath);
       fs.unlinkSync(questionnairePaths.cybersecurityPath);
       fs.unlinkSync(questionnairePaths.agilePath);
+      if (productTechnicalPath) {
+        fs.unlinkSync(productTechnicalPath);
+      }
     } catch (error) {
       console.error("Error cleaning up temporary files:", error);
     }
 
     const packResult: PackGenerationResult = {
       status: "completed",
-      filesCount: 6,
+      filesCount: productTechnicalBuffer ? 7 : 6,
       files: {
         docx: { name: "RFT_Document.docx", url: uploadResults[0].blobUrl },
         pdf: { name: "RFT_Document.pdf", url: uploadResults[1].blobUrl },
+        productTechnical: productTechnicalBuffer ? { 
+          name: "Product_Technical_Questionnaire.docx", 
+          url: uploadResults[6].blobUrl 
+        } : undefined,
         questionnaires: {
           product: { name: "Product_Questionnaire.xlsx", url: uploadResults[2].blobUrl },
           nfr: { name: "NFR_Questionnaire.xlsx", url: uploadResults[3].blobUrl },
