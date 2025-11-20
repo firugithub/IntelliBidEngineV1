@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS "proposals" (
     "standard_id" varchar,
     "tagged_sections" jsonb,
     "created_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "proposals_project_id_vendor_name_unique" UNIQUE("project_id", "vendor_name")
+    CONSTRAINT "proposals_project_id_vendor_name_document_type_unique" UNIQUE("project_id", "vendor_name", "document_type")
 );
 
 -- Evaluations: AI-generated vendor evaluations
