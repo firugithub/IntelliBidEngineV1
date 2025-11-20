@@ -187,9 +187,14 @@ export function generateContextDiagramMermaid(architecture: ContextArchitecture)
 }
 
 /**
- * Render Mermaid diagram to PNG using mermaid-cli
+ * Render Mermaid diagram to PNG using mermaid-cli with high-DPI settings
  */
 export async function renderMermaidToPng(mermaidText: string, outputPath: string): Promise<string> {
+  // High-DPI rendering configuration
+  const DIAGRAM_WIDTH = 1920;   // Base width in logical pixels
+  const DIAGRAM_HEIGHT = 1440;  // Base height in logical pixels
+  const DEVICE_SCALE = 2;       // Retina scale: generates 3840x2880 actual pixels
+  
   // Create temporary .mmd file
   const tempDir = path.join(process.cwd(), 'uploads', 'temp');
   if (!fs.existsSync(tempDir)) {
@@ -199,16 +204,44 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
   const tempMmdPath = path.join(tempDir, `diagram_${Date.now()}.mmd`);
   const tempPngPath = outputPath;
   const puppeteerConfigPath = path.join(tempDir, `puppeteer-config.json`);
+  const mermaidConfigPath = path.join(tempDir, `mermaid-config.json`);
   
   try {
     // Write mermaid text to file
     fs.writeFileSync(tempMmdPath, mermaidText, 'utf-8');
     
-    // Create puppeteer config with --no-sandbox for containerized environments
+    // Create puppeteer config with high-DPI viewport and sandbox flags
     const puppeteerConfig = {
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      defaultViewport: {
+        width: DIAGRAM_WIDTH,
+        height: DIAGRAM_HEIGHT,
+        deviceScaleFactor: DEVICE_SCALE  // Enables retina/high-DPI rendering
+      }
     };
-    fs.writeFileSync(puppeteerConfigPath, JSON.stringify(puppeteerConfig), 'utf-8');
+    fs.writeFileSync(puppeteerConfigPath, JSON.stringify(puppeteerConfig, null, 2), 'utf-8');
+    
+    // Create Mermaid theme config with larger fonts for better clarity
+    const mermaidConfig = {
+      theme: 'default',
+      themeVariables: {
+        fontSize: '18px',        // Increased from default 16px
+        fontFamily: 'Arial, sans-serif',
+        primaryColor: '#E0E7FF',
+        primaryTextColor: '#1E293B',
+        primaryBorderColor: '#4F46E5',
+        lineColor: '#94A3B8',
+        secondaryColor: '#F1F5F9',
+        tertiaryColor: '#FEF3C7'
+      },
+      flowchart: {
+        nodeSpacing: 60,         // More space between nodes
+        rankSpacing: 80,         // More vertical spacing
+        curve: 'basis',          // Smoother curves
+        padding: 20              // More padding inside nodes
+      }
+    };
+    fs.writeFileSync(mermaidConfigPath, JSON.stringify(mermaidConfig, null, 2), 'utf-8');
     
     // Ensure output directory exists
     const outputDir = path.dirname(tempPngPath);
@@ -216,7 +249,7 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
       fs.mkdirSync(outputDir, { recursive: true });
     }
     
-    // Use mmdc command via npx
+    // Use mmdc command via npx with high-resolution settings
     const mmdcPath = path.join(process.cwd(), 'node_modules', '.bin', 'mmdc');
     
     const { stdout, stderr } = await execFileAsync(mmdcPath, [
@@ -224,13 +257,14 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
       '-o', tempPngPath,
       '-t', 'default',
       '-b', '#ffffff',
-      '-w', '1600',
-      '-H', '1200',
-      '-p', puppeteerConfigPath  // Pass puppeteer config file
+      '-w', DIAGRAM_WIDTH.toString(),
+      '-H', DIAGRAM_HEIGHT.toString(),
+      '-c', mermaidConfigPath,         // Mermaid theme config
+      '-p', puppeteerConfigPath        // Puppeteer config with high-DPI viewport (deviceScaleFactor: 2)
     ]);
     
     // Log mermaid-cli output for debugging
-    if (stdout) console.log('[Mermaid CLI stdout]:', stdout);
+    if (stdout) console.log('[Mermaid CLI] Generated high-DPI diagram:', stdout);
     if (stderr) console.log('[Mermaid CLI stderr]:', stderr);
     
     // Verify output file was created
@@ -238,10 +272,20 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
       throw new Error('Mermaid CLI did not generate output file');
     }
     
+    // Log file size and dimensions for quality monitoring
+    const stats = fs.statSync(tempPngPath);
+    const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
+    const actualWidth = DIAGRAM_WIDTH * DEVICE_SCALE;
+    const actualHeight = DIAGRAM_HEIGHT * DEVICE_SCALE;
+    console.log(`[Context Diagram] Generated high-DPI PNG: ${actualWidth}x${actualHeight} pixels (${(actualWidth * actualHeight / 1000000).toFixed(1)}MP), ${sizeInMB}MB`);
+    
     // Clean up temp files
     fs.unlinkSync(tempMmdPath);
     if (fs.existsSync(puppeteerConfigPath)) {
       fs.unlinkSync(puppeteerConfigPath);
+    }
+    if (fs.existsSync(mermaidConfigPath)) {
+      fs.unlinkSync(mermaidConfigPath);
     }
     
     return tempPngPath;
@@ -252,6 +296,9 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
     }
     if (fs.existsSync(puppeteerConfigPath)) {
       fs.unlinkSync(puppeteerConfigPath);
+    }
+    if (fs.existsSync(mermaidConfigPath)) {
+      fs.unlinkSync(mermaidConfigPath);
     }
     
     // Provide detailed error message
