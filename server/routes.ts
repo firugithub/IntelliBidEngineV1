@@ -3270,8 +3270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? [docxUpload, pdfUpload, productTechnicalUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload]
         : [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload];
 
-      // Step 6: Create RFT record in database (if projectId provided)
+      // Step 6: Create RFT record and draft with pack metadata in database (if projectId provided)
       let rftRecord = null;
+      let draft = null;
       if (projectId) {
         const questStartIndex = productTechnicalUpload ? 3 : 2;
         rftRecord = await storage.createGeneratedRft({
@@ -3295,6 +3296,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cybersecurityQuestionnairePath: uploadResults[questStartIndex + 2].blobUrl,
           agileQuestionnairePath: uploadResults[questStartIndex + 3].blobUrl
         });
+
+        // Create draft with pack metadata for ZIP download functionality
+        draft = await storage.createRftGenerationDraft({
+          projectId,
+          businessCaseId,
+          templateId: templateId || null,
+          generationMode: "agent",
+          generatedSections: agentRft.sections.map(section => ({
+            id: section.agentRole,
+            title: section.sectionTitle,
+            content: section.content,
+            agentRole: section.agentRole,
+            stakeholders: [],
+            approvalStatus: "approved"
+          })) as any,
+          status: "finalized",
+          approvalProgress: {
+            totalSections: agentRft.sections.length,
+            approvedSections: agentRft.sections.length,
+            pendingSections: 0,
+            rejectedSections: 0
+          },
+          metadata: {
+            pack: {
+              status: "completed",
+              // Legacy format for backward compatibility
+              docxBlobUrl: docxUpload.blobUrl,
+              pdfBlobUrl: pdfUpload.blobUrl,
+              productQuestionnaireBlobUrl: uploadResults[questStartIndex].blobUrl,
+              nfrQuestionnaireBlobUrl: uploadResults[questStartIndex + 1].blobUrl,
+              cybersecurityQuestionnaireBlobUrl: uploadResults[questStartIndex + 2].blobUrl,
+              agileQuestionnaireBlobUrl: uploadResults[questStartIndex + 3].blobUrl,
+              ...(productTechnicalUpload && { productTechnicalQuestionnaireBlobUrl: productTechnicalUpload.blobUrl }),
+              // New nested structure expected by frontend
+              files: {
+                docx: { url: docxUpload.blobUrl },
+                pdf: { url: pdfUpload.blobUrl },
+                ...(productTechnicalUpload && { productTechnical: { url: productTechnicalUpload.blobUrl } }),
+                questionnaires: {
+                  product: { url: uploadResults[questStartIndex].blobUrl },
+                  nfr: { url: uploadResults[questStartIndex + 1].blobUrl },
+                  cybersecurity: { url: uploadResults[questStartIndex + 2].blobUrl },
+                  agile: { url: uploadResults[questStartIndex + 3].blobUrl }
+                }
+              },
+              generatedAt: new Date().toISOString()
+            }
+          }
+        });
+        console.log(`[Agent RFT] Created draft with pack metadata: ${draft.id}`);
       }
 
       // Clean up temp files
@@ -3317,6 +3368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         rftId: rftRecord?.id,
+        draftId: draft?.id,
         projectName,
         filesGenerated: productTechnicalBuffer ? 7 : 6,
         uploadedFiles: uploadResults.map(r => r.blobUrl),
