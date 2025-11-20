@@ -1,0 +1,52 @@
+No vendor responses found for RFT 414d29f7-f985-4cde-8291-6d418d27dcb3. Generating mock vendor responses...
+Generating vendor responses using actual RFT questionnaires for 3 vendors: [
+  'TechVendor Solutions',
+  'GlobalSoft Systems',
+  'InnovateTech Partners'
+]
+Attempting to download questionnaires from Azure Blob Storage...
+Successfully downloaded questionnaires from Azure Blob Storage
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "GlobalSoft Systems", using generic profile
+⚠️  No persona found for "InnovateTech Partners", using generic profile
+Generating responses for TechVendor Solutions with profile: Product 0.75, NFR 0.75, Security 0.75, Agile 0.75
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+⚠️  No persona found for "TechVendor Solutions", using generic profile
+✓ Created new proposal for TechVendor Solutions - product
+Error creating vendor responses ZIP: error: duplicate key value violates unique constraint "proposals_project_id_vendor_name_unique"
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async MemStorage.storage.createProposal (/home/runner/workspace/server/storage.ts:1817:19)
+    at async <anonymous> (/home/runner/workspace/server/services/rft/rftMockDataGenerator.ts:545:11)
+    at async Promise.all (index 1)
+    at async generateVendorResponses (/home/runner/workspace/server/services/rft/rftMockDataGenerator.ts:532:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:5103:9) {
+  length: 320,
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (project_id, vendor_name)=(ef1b7529-b66c-471f-9179-fdacdd9bea69, TechVendor Solutions) already exists.',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'proposals',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'proposals_project_id_vendor_name_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
