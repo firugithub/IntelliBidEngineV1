@@ -124,13 +124,22 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
     let productTechnicalPath: string | null = null;
     let productTechnicalBuffer: Buffer | null = null;
     
-    if (businessCase?.documentContent) {
+    // Construct business case narrative from available sources
+    const businessCaseNarrative = 
+      businessCase?.documentContent ?? 
+      extractedData.DESCRIPTION ?? 
+      sections.map(s => s.content).join('\n\n');
+    
+    console.log(`[RFT Pack] Business case narrative length: ${businessCaseNarrative?.length || 0}`);
+    console.log(`[RFT Pack] Source: ${businessCase?.documentContent ? 'documentContent' : extractedData.DESCRIPTION ? 'extractedData.DESCRIPTION' : 'sections'}`);
+    
+    if (businessCaseNarrative?.trim().length > 0) {
       try {
         console.log(`[RFT Pack] Generating Product Technical Questionnaire with context diagram...`);
         
         // Generate context diagram PNG
         const contextDiagramPngPath = path.join(process.cwd(), 'uploads', `context_diagram_${Date.now()}.png`);
-        const { pngPath } = await generateContextDiagram(businessCase.documentContent, contextDiagramPngPath);
+        const { pngPath } = await generateContextDiagram(businessCaseNarrative, contextDiagramPngPath);
         
         // Generate Product Technical Questionnaire DOCX with embedded diagram
         const productTechnicalFileName = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Product_Technical_Questionnaire_${Date.now()}.docx`;
@@ -150,12 +159,14 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
         console.error(`[RFT Pack] Failed to generate Product Technical Questionnaire:`, error);
         // Continue without this file if generation fails
       }
+    } else {
+      console.log(`[RFT Pack] Skipping Product Technical Questionnaire - no business case narrative available`);
     }
 
     console.log(`[RFT Pack] Uploading all files to Azure Blob Storage...`);
 
-    // Upload all files to Azure Blob Storage
-    const uploadPromises = [
+    // Upload base files (always present)
+    const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload] = await Promise.all([
       azureBlobStorageService.uploadDocument(
         `project-${project.id}/RFT_Generated/RFT_Document.docx`,
         docxBuffer
@@ -180,19 +191,17 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
         `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.agilePath)
       ),
-    ];
+    ]);
     
-    // Add Product Technical Questionnaire if generated
+    // Upload Product Technical Questionnaire if generated
+    let productTechnicalUpload = null;
     if (productTechnicalBuffer) {
-      uploadPromises.push(
-        azureBlobStorageService.uploadDocument(
-          `project-${project.id}/RFT_Generated/Product_Technical_Questionnaire.docx`,
-          productTechnicalBuffer
-        )
+      productTechnicalUpload = await azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT_Generated/Product_Technical_Questionnaire.docx`,
+        productTechnicalBuffer
       );
+      console.log(`[RFT Pack] Product Technical Questionnaire uploaded: ${productTechnicalUpload.blobUrl}`);
     }
-    
-    const uploadResults = await Promise.all(uploadPromises);
 
     // Clean up temporary files
     try {
@@ -209,19 +218,19 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
 
     const packResult: PackGenerationResult = {
       status: "completed",
-      filesCount: productTechnicalBuffer ? 7 : 6,
+      filesCount: productTechnicalUpload ? 7 : 6,
       files: {
-        docx: { name: "RFT_Document.docx", url: uploadResults[0].blobUrl },
-        pdf: { name: "RFT_Document.pdf", url: uploadResults[1].blobUrl },
-        productTechnical: productTechnicalBuffer ? { 
+        docx: { name: "RFT_Document.docx", url: docxUpload.blobUrl },
+        pdf: { name: "RFT_Document.pdf", url: pdfUpload.blobUrl },
+        productTechnical: productTechnicalUpload ? { 
           name: "Product_Technical_Questionnaire.docx", 
-          url: uploadResults[6].blobUrl 
+          url: productTechnicalUpload.blobUrl 
         } : undefined,
         questionnaires: {
-          product: { name: "Product_Questionnaire.xlsx", url: uploadResults[2].blobUrl },
-          nfr: { name: "NFR_Questionnaire.xlsx", url: uploadResults[3].blobUrl },
-          cybersecurity: { name: "Cybersecurity_Questionnaire.xlsx", url: uploadResults[4].blobUrl },
-          agile: { name: "Agile_Questionnaire.xlsx", url: uploadResults[5].blobUrl },
+          product: { name: "Product_Questionnaire.xlsx", url: productQuestUpload.blobUrl },
+          nfr: { name: "NFR_Questionnaire.xlsx", url: nfrUpload.blobUrl },
+          cybersecurity: { name: "Cybersecurity_Questionnaire.xlsx", url: cybersecurityUpload.blobUrl },
+          agile: { name: "Agile_Questionnaire.xlsx", url: agileUpload.blobUrl },
         },
       },
     };
