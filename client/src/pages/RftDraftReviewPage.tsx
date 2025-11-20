@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive, Upload } from "lucide-react";
+import { Check, Edit, X, FileText, Users, FileCheck, Download, Archive, Upload, Image } from "lucide-react";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -396,6 +396,19 @@ export default function RftDraftReviewPage() {
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Product Technical Questionnaire (DOCX)
+                  </Button>
+                )}
+
+                {/* Context Architecture Diagram (if available) */}
+                {selectedDraft.metadata.pack.files.contextDiagram && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => window.open(selectedDraft.metadata.pack.files.contextDiagram.url, '_blank')}
+                    data-testid="button-download-context-diagram"
+                  >
+                    <Image className="h-4 w-4 mr-2" />
+                    Context Architecture Diagram (PNG)
                   </Button>
                 )}
 
