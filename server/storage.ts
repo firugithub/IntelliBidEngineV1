@@ -123,6 +123,7 @@ export interface IStorage {
   getProposalsByProject(projectId: string): Promise<Proposal[]>;
   getAllProposals(): Promise<Proposal[]>;
   getProposal(id: string): Promise<Proposal | undefined>;
+  updateProposal(id: string, updates: Partial<InsertProposal>): Promise<void>;
   deleteProposal(id: string): Promise<void>;
 
   // Evaluations
@@ -551,6 +552,13 @@ export class MemStorage implements IStorage {
 
   async getProposal(id: string): Promise<Proposal | undefined> {
     return this.proposals.get(id);
+  }
+
+  async updateProposal(id: string, updates: Partial<InsertProposal>): Promise<void> {
+    const existing = this.proposals.get(id);
+    if (existing) {
+      this.proposals.set(id, { ...existing, ...updates });
+    }
   }
 
   async deleteProposal(id: string): Promise<void> {
@@ -1832,6 +1840,26 @@ storage.getAllProposals = async function(): Promise<Proposal[]> {
 storage.getProposal = async function(id: string): Promise<Proposal | undefined> {
   const results = await db.select().from(proposals).where(eq(proposals.id, id)).limit(1);
   return results[0];
+};
+
+storage.updateProposal = async function(id: string, updates: Partial<InsertProposal>): Promise<void> {
+  // Only include fields that are explicitly provided (not undefined)
+  const updateData: Record<string, any> = {};
+  if (updates.projectId !== undefined) updateData.projectId = updates.projectId;
+  if (updates.vendorName !== undefined) updateData.vendorName = updates.vendorName;
+  if (updates.documentType !== undefined) updateData.documentType = updates.documentType;
+  if (updates.fileName !== undefined) updateData.fileName = updates.fileName;
+  if (updates.blobUrl !== undefined) updateData.blobUrl = updates.blobUrl;
+  if (updates.blobName !== undefined) updateData.blobName = updates.blobName;
+  if (updates.extractedData !== undefined) updateData.extractedData = updates.extractedData;
+  if (updates.standardId !== undefined) updateData.standardId = updates.standardId;
+  if (updates.taggedSections !== undefined) updateData.taggedSections = updates.taggedSections;
+  
+  if (Object.keys(updateData).length > 0) {
+    await db.update(proposals)
+      .set(updateData)
+      .where(eq(proposals.id, id));
+  }
 };
 
 storage.deleteProposal = async function(id: string): Promise<void> {

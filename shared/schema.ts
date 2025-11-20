@@ -86,8 +86,8 @@ export const proposals = pgTable("proposals", {
   taggedSections: jsonb("tagged_sections"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
-  // Unique constraint to prevent duplicate proposals for the same vendor in the same project
-  uniqueProposalPerVendor: unique().on(table.projectId, table.vendorName),
+  // Unique constraint to prevent duplicate proposals for the same vendor and document type in the same project
+  uniqueProposalPerVendorAndType: unique().on(table.projectId, table.vendorName, table.documentType),
 }));
 
 export const evaluations = pgTable("evaluations", {

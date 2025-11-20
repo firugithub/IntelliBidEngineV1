@@ -456,6 +456,9 @@ export async function generateVendorResponses(rftId: string) {
   const { createVendorProfiles, fillQuestionnaireWithScores } = await import("./excelQuestionnaireHandler");
   const vendorProfiles = createVendorProfiles(vendors);
   
+  // Fetch existing proposals once before the loop for efficiency
+  const existingProposals = await storage.getProposalsByProject(project.id);
+  
   // Generate responses for each vendor
   for (let i = 0; i < vendors.length; i++) {
     const vendorName = vendors[i];
@@ -495,41 +498,59 @@ export async function generateVendorResponses(rftId: string) {
     ]);
     
     // Create proposal database records for each questionnaire response
-    // This allows the UI to display and edit the questionnaires
-    await Promise.all([
-      storage.createProposal({
-        projectId: project.id,
-        vendorName,
-        documentType: "Product Questionnaire",
+    // Check per documentType to avoid duplicate key errors but allow partial completion
+    const existingVendorProposals = existingProposals.filter(p => p.vendorName === vendorName);
+    
+    const proposalConfigs = [
+      {
+        documentType: "product",
         fileName: "Product_Response.xlsx",
         blobUrl: productUpload.blobUrl,
         extractedData: { type: "product-questionnaire-response" },
-      }),
-      storage.createProposal({
-        projectId: project.id,
-        vendorName,
-        documentType: "NFR Questionnaire",
+      },
+      {
+        documentType: "nfr",
         fileName: "NFR_Response.xlsx",
         blobUrl: nfrUpload.blobUrl,
         extractedData: { type: "nfr-questionnaire-response" },
-      }),
-      storage.createProposal({
-        projectId: project.id,
-        vendorName,
-        documentType: "Cybersecurity Questionnaire",
+      },
+      {
+        documentType: "cybersecurity",
         fileName: "Cybersecurity_Response.xlsx",
         blobUrl: securityUpload.blobUrl,
         extractedData: { type: "cybersecurity-questionnaire-response" },
-      }),
-      storage.createProposal({
-        projectId: project.id,
-        vendorName,
-        documentType: "Agile Questionnaire",
+      },
+      {
+        documentType: "agile",
         fileName: "Agile_Response.xlsx",
         blobUrl: agileUpload.blobUrl,
         extractedData: { type: "agile-questionnaire-response" },
-      }),
-    ]);
+      },
+    ];
+    
+    // Update existing proposals or create new ones
+    await Promise.all(
+      proposalConfigs.map(async config => {
+        const existing = existingVendorProposals.find(p => p.documentType === config.documentType);
+        if (existing) {
+          // Update existing proposal with fresh blob URL
+          await storage.updateProposal(existing.id, {
+            blobUrl: config.blobUrl,
+            extractedData: config.extractedData,
+            fileName: config.fileName,
+          });
+          console.log(`✓ Updated proposal for ${vendorName} - ${config.documentType} with fresh blob URL`);
+        } else {
+          // Create new proposal
+          await storage.createProposal({
+            projectId: project.id,
+            vendorName,
+            ...config,
+          });
+          console.log(`✓ Created new proposal for ${vendorName} - ${config.documentType}`);
+        }
+      })
+    );
     
     console.log(`✓ Completed responses for ${vendorName} (uploaded + created DB records)`);
   }
