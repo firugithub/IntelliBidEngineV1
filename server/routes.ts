@@ -3186,6 +3186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate Product Technical Questionnaire with context diagram (if business case exists)
       let productTechnicalBuffer: Buffer | null = null;
       let productTechnicalPath: string | null = null;
+      let contextDiagramBuffer: Buffer | null = null;
       
       // Construct business case narrative from available sources
       const businessCaseNarrative = businessCase.documentContent || 
@@ -3213,10 +3214,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           productTechnicalBuffer = fs.readFileSync(productTechnicalPath);
           
-          // Clean up temp diagram file
+          // Keep diagram PNG as separate file for full-quality access
+          contextDiagramBuffer = fs.readFileSync(pngPath);
+          
+          // Clean up temp diagram file after reading
           fs.unlinkSync(pngPath);
           
-          console.log(`[Agent RFT] Product Technical Questionnaire generated successfully`);
+          console.log(`[Agent RFT] Product Technical Questionnaire and context diagram generated successfully`);
         } catch (error) {
           console.error(`[Agent RFT] Failed to generate Product Technical Questionnaire:`, error);
           // Continue without this file if generation fails
@@ -3264,16 +3268,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Agent RFT] Product Technical Questionnaire uploaded: ${productTechnicalUpload.blobUrl}`);
       }
       
-      // Combine upload results for backward compatibility
-      // Include Product Technical Questionnaire if generated (7 files total)
-      const uploadResults = productTechnicalUpload 
-        ? [docxUpload, pdfUpload, productTechnicalUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload]
-        : [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload];
+      // Upload Context Diagram PNG if generated (full quality separate file)
+      let contextDiagramUpload = null;
+      if (contextDiagramBuffer) {
+        contextDiagramUpload = await azureBlobStorageService.uploadDocument(
+          `${folderPath}/Context_Architecture_Diagram.png`,
+          contextDiagramBuffer
+        );
+        console.log(`[Agent RFT] Context Diagram PNG uploaded: ${contextDiagramUpload.blobUrl}`);
+      }
+      
+      // Build upload results array explicitly to avoid index confusion
+      // Order: DOCX, PDF, [ProductTechnical?], ProductQuest, NFR, Cyber, Agile, [ContextDiagram?]
+      let uploadResults = [docxUpload, pdfUpload];
+      
+      if (productTechnicalUpload) {
+        uploadResults.push(productTechnicalUpload);
+      }
+      
+      uploadResults.push(productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload);
+      
+      if (contextDiagramUpload) {
+        uploadResults.push(contextDiagramUpload);
+      }
 
       // Step 6: Create RFT record and draft with pack metadata in database (if projectId provided)
       let rftRecord = null;
       let draft = null;
       if (projectId) {
+        // Questionnaires always start after DOCX, PDF, and optional ProductTechnical
         const questStartIndex = productTechnicalUpload ? 3 : 2;
         rftRecord = await storage.createGeneratedRft({
           projectId,
@@ -3329,11 +3352,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               cybersecurityQuestionnaireBlobUrl: uploadResults[questStartIndex + 2].blobUrl,
               agileQuestionnaireBlobUrl: uploadResults[questStartIndex + 3].blobUrl,
               ...(productTechnicalUpload && { productTechnicalQuestionnaireBlobUrl: productTechnicalUpload.blobUrl }),
+              ...(contextDiagramUpload && { contextDiagramBlobUrl: contextDiagramUpload.blobUrl }),
               // New nested structure expected by frontend
               files: {
                 docx: { url: docxUpload.blobUrl },
                 pdf: { url: pdfUpload.blobUrl },
                 ...(productTechnicalUpload && { productTechnical: { url: productTechnicalUpload.blobUrl } }),
+                ...(contextDiagramUpload && { contextDiagram: { url: contextDiagramUpload.blobUrl } }),
                 questionnaires: {
                   product: { url: uploadResults[questStartIndex].blobUrl },
                   nfr: { url: uploadResults[questStartIndex + 1].blobUrl },
@@ -3370,9 +3395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rftId: rftRecord?.id,
         draftId: draft?.id,
         projectName,
-        filesGenerated: productTechnicalBuffer ? 7 : 6,
+        filesGenerated: contextDiagramBuffer ? 8 : (productTechnicalBuffer ? 7 : 6),
         uploadedFiles: uploadResults.map(r => r.blobUrl),
         productTechnicalQuestionnaireBlobUrl: productTechnicalUpload?.blobUrl || null,
+        contextDiagramBlobUrl: contextDiagramUpload?.blobUrl || null,
         sections: agentRft.sections.map(s => ({
           agentRole: s.agentRole,
           title: s.sectionTitle,
@@ -4124,7 +4150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get all 7 pack files from Azure Blob Storage
+      // Get all pack files from Azure Blob Storage (up to 8 files when context diagram is included)
       // New structure: pack.files.docx.url, pack.files.pdf.url, pack.files.questionnaires.product.url
       // Legacy structure: pack.docxBlobUrl, pack.pdfBlobUrl, pack.productQuestionnaireBlobUrl
       const packFiles = pack.files || {};
@@ -4156,6 +4182,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           blobUrl: packFiles.productTechnical?.url || pack.productTechnicalQuestionnaireBlobUrl,
           name: "Product_Technical_Questionnaire.docx"
+        },
+        {
+          blobUrl: packFiles.contextDiagram?.url || pack.contextDiagramBlobUrl,
+          name: "Context_Architecture_Diagram.png"
         },
       ];
 
