@@ -9,7 +9,6 @@ import { CostBenefitChart } from "@/components/CostBenefitChart";
 import { StructuredAIRecommendation } from "@/components/StructuredAIRecommendation";
 import { EvaluationProgress } from "@/components/EvaluationProgress";
 import { VendorShortlistingProgress } from "@/components/VendorShortlistingProgress";
-import { VendorStageGrid } from "@/components/VendorStageGrid";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -486,9 +485,6 @@ export default function DashboardPage() {
             projectName={project?.name || 'Project'}
             portfolioName={portfolio?.name || 'Portfolio'}
           />
-
-          {/* Vendor Stage Matrix - Compact view */}
-          <VendorStageGrid vendorStages={vendorStageData} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScoreCard
