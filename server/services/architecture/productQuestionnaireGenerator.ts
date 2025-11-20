@@ -238,13 +238,14 @@ export async function generateProductTechnicalQuestionnaire(options: {
                 new ImageRun({
                   data: imageBuffer,
                   transformation: {
-                    width: 1800,   // 6 inches at 300 DPI (was 600 - causing blur)
-                    height: 1350,  // 4.5 inches at 300 DPI (was 450 - causing blur)
+                    width: 3840,   // Full source image width for crisp quality
+                    height: 2880,  // Full source image height for crisp quality
                   },
                   type: "png",
                 }),
               ],
               spacing: { after: 200 },
+              alignment: AlignmentType.CENTER,
             })
           );
         }
