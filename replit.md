@@ -24,7 +24,7 @@ The backend is built with Node.js, TypeScript, Express.js, and Drizzle ORM (Post
 - **Configuration Management:** Uses environment variables via Replit Secrets, with a centralized `ConfigHelper` and an Admin Config page for managing Azure connectivity and data operations.
 
 ### System Design Choices
-The application is designed for production deployment on Azure App Service using custom Docker containers. It employs a multi-stage Docker build strategy for optimized image size. Special attention is paid to private endpoint connectivity for PostgreSQL, configuring DNS resolution within the Docker container and adhering to VNet integration requirements for Azure App Service. Database schema management is handled by Drizzle ORM. SQL setup files (`azure-database-setup.sql`, `azure-database-seed.sql`, `azure-database-indexes.sql`) are maintained for Azure PostgreSQL deployment and reflect all latest schema changes including atomic duplicate prevention constraints (updated November 19, 2025).
+The application is designed for production deployment on Azure App Service using custom Docker containers. It employs a multi-stage Docker build strategy for optimized image size. Special attention is paid to private endpoint connectivity for PostgreSQL, configuring DNS resolution within the Docker container and adhering to VNet integration requirements for Azure App Service. Database schema management is handled by Drizzle ORM. SQL setup files (`azure-database-setup.sql`, `azure-database-seed.sql`, `azure-database-indexes.sql`) are maintained for Azure PostgreSQL deployment and reflect all latest schema changes including atomic duplicate prevention constraints (updated November 19, 2025). **System Dependencies:** Product Technical Questionnaire generation requires Puppeteer system libraries (glib, nss, libX11, libxkbcommon, etc.) installed on November 20, 2025 to support Mermaid diagram rendering.
 
 ## External Dependencies
 
@@ -45,6 +45,7 @@ The application is designed for production deployment on Azure App Service using
 -   **docx:** Word document generation.
 -   **pdfkit:** PDF document generation.
 -   **archiver:** ZIP archive creation.
+-   **@mermaid-js/mermaid-cli:** Mermaid diagram rendering (requires Puppeteer and system dependencies: glib, nss, libX11, libxkbcommon, etc.).
 
 ### Styling & Design
 -   **Tailwind CSS:** Utility-first CSS framework.
