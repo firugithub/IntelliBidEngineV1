@@ -3265,11 +3265,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Combine upload results for backward compatibility
-      const uploadResults = [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload];
+      // Include Product Technical Questionnaire if generated (7 files total)
+      const uploadResults = productTechnicalUpload 
+        ? [docxUpload, pdfUpload, productTechnicalUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload]
+        : [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload];
 
       // Step 6: Create RFT record in database (if projectId provided)
       let rftRecord = null;
       if (projectId) {
+        const questStartIndex = productTechnicalUpload ? 3 : 2;
         rftRecord = await storage.createGeneratedRft({
           projectId,
           businessCaseId,
@@ -3286,10 +3290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           templateId: templateId || "",
           status: "published",
-          productQuestionnairePath: uploadResults[2].blobUrl,
-          nfrQuestionnairePath: uploadResults[3].blobUrl,
-          cybersecurityQuestionnairePath: uploadResults[4].blobUrl,
-          agileQuestionnairePath: uploadResults[5].blobUrl
+          productQuestionnairePath: uploadResults[questStartIndex].blobUrl,
+          nfrQuestionnairePath: uploadResults[questStartIndex + 1].blobUrl,
+          cybersecurityQuestionnairePath: uploadResults[questStartIndex + 2].blobUrl,
+          agileQuestionnairePath: uploadResults[questStartIndex + 3].blobUrl
         });
       }
 
@@ -3316,6 +3320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectName,
         filesGenerated: productTechnicalBuffer ? 7 : 6,
         uploadedFiles: uploadResults.map(r => r.blobUrl),
+        productTechnicalQuestionnaireBlobUrl: productTechnicalUpload?.blobUrl || null,
         sections: agentRft.sections.map(s => ({
           agentRole: s.agentRole,
           title: s.sectionTitle,
@@ -4067,7 +4072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get all 6 pack files from Azure Blob Storage
+      // Get all 7 pack files from Azure Blob Storage
       // New structure: pack.files.docx.url, pack.files.pdf.url, pack.files.questionnaires.product.url
       // Legacy structure: pack.docxBlobUrl, pack.pdfBlobUrl, pack.productQuestionnaireBlobUrl
       const packFiles = pack.files || {};
@@ -4095,6 +4100,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { 
           blobUrl: packFiles.questionnaires?.agile?.url || pack.agileQuestionnaireBlobUrl, 
           name: "Agile_Delivery_Questionnaire.xlsx" 
+        },
+        {
+          blobUrl: packFiles.productTechnical?.url || pack.productTechnicalQuestionnaireBlobUrl,
+          name: "Product_Technical_Questionnaire.docx"
         },
       ];
 

@@ -198,10 +198,17 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
   
   const tempMmdPath = path.join(tempDir, `diagram_${Date.now()}.mmd`);
   const tempPngPath = outputPath;
+  const puppeteerConfigPath = path.join(tempDir, `puppeteer-config.json`);
   
   try {
     // Write mermaid text to file
     fs.writeFileSync(tempMmdPath, mermaidText, 'utf-8');
+    
+    // Create puppeteer config with --no-sandbox for containerized environments
+    const puppeteerConfig = {
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    };
+    fs.writeFileSync(puppeteerConfigPath, JSON.stringify(puppeteerConfig), 'utf-8');
     
     // Ensure output directory exists
     const outputDir = path.dirname(tempPngPath);
@@ -218,7 +225,8 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
       '-t', 'default',
       '-b', '#ffffff',
       '-w', '1600',
-      '-H', '1200'
+      '-H', '1200',
+      '-p', puppeteerConfigPath  // Pass puppeteer config file
     ]);
     
     // Log mermaid-cli output for debugging
@@ -230,14 +238,20 @@ export async function renderMermaidToPng(mermaidText: string, outputPath: string
       throw new Error('Mermaid CLI did not generate output file');
     }
     
-    // Clean up temp file
+    // Clean up temp files
     fs.unlinkSync(tempMmdPath);
+    if (fs.existsSync(puppeteerConfigPath)) {
+      fs.unlinkSync(puppeteerConfigPath);
+    }
     
     return tempPngPath;
   } catch (error) {
     // Clean up on error
     if (fs.existsSync(tempMmdPath)) {
       fs.unlinkSync(tempMmdPath);
+    }
+    if (fs.existsSync(puppeteerConfigPath)) {
+      fs.unlinkSync(puppeteerConfigPath);
     }
     
     // Provide detailed error message
