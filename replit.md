@@ -9,7 +9,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend uses React with TypeScript, Vite, shadcn/ui (Radix UI), and Tailwind CSS. It features a dark mode-first, enterprise-focused design with a "New York" style, information-dense layouts, comprehensive gradient styling, and vibrant color theming. The application is structured with a 9-menu navigation and includes dashboards for Executive Summary and Vendor Shortlisting, along with dedicated sections for Template Management, RFT Draft Review, Smart RFT Builder, and a Knowledge Base Chatbot.
+The frontend uses React with TypeScript, Vite, shadcn/ui (Radix UI), and Tailwind CSS. It features a dark mode-first, enterprise-focused design with a "New York" style, information-dense layouts, comprehensive gradient styling, and vibrant color theming. The application is structured with a 9-menu navigation and includes dashboards for Executive Summary and Vendor Shortlisting, along with dedicated sections for Template Management, RFT Draft Review, Smart RFT Builder, and a Knowledge Base Chatbot. **Agent Progress Visualization (November 20, 2025)**: Agent-Driven RFT generation now features color-coded real-time progress indicators showing each agent's status with visual states - pending (gray circle), running (blue spinner), and completed (green checkmark) - with smooth transitions and colored backgrounds for enhanced user feedback during parallel generation.
 
 ### Technical Implementations
 The backend is built with Node.js, TypeScript, Express.js, and Drizzle ORM (PostgreSQL). It provides RESTful APIs for managing core entities, file uploads, sample data, and configuration. Data is stored in a PostgreSQL database (Neon serverless).

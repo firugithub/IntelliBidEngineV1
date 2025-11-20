@@ -54,6 +54,17 @@ export default function SmartRftBuilderPage() {
   // Agent generation progress (used for showing real-time agent activity)
   const [agentGenerationProgress, setAgentGenerationProgress] = useState<string[]>([]);
   
+  // Track individual agent status for visual progress
+  type AgentStatus = 'pending' | 'running' | 'completed';
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus>>({
+    product: 'pending',
+    architecture: 'pending',
+    engineering: 'pending',
+    security: 'pending',
+    procurement: 'pending',
+    delivery: 'pending'
+  });
+  
   // RFT Document Edit Dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedSections, setEditedSections] = useState<any[]>([]);
@@ -399,6 +410,62 @@ export default function SmartRftBuilderPage() {
       });
     },
   });
+
+  // Simulate realistic agent progress during generation
+  useEffect(() => {
+    if (generateWithAgentsMutation.isPending) {
+      // Reset all agents to pending when starting
+      setAgentStatuses({
+        product: 'pending',
+        architecture: 'pending',
+        engineering: 'pending',
+        security: 'pending',
+        procurement: 'pending',
+        delivery: 'pending'
+      });
+
+      // Simulate realistic agent progress with staggered timing
+      const agentTimeline = [
+        { agent: 'product', startDelay: 500, duration: 8000 },
+        { agent: 'architecture', startDelay: 700, duration: 9000 },
+        { agent: 'engineering', startDelay: 600, duration: 10000 },
+        { agent: 'security', startDelay: 800, duration: 9500 },
+        { agent: 'procurement', startDelay: 900, duration: 8500 },
+        { agent: 'delivery', startDelay: 1000, duration: 9200 }
+      ];
+
+      const timeouts: NodeJS.Timeout[] = [];
+
+      // Start each agent after a slight delay (simulating parallel startup)
+      agentTimeline.forEach(({ agent, startDelay, duration }) => {
+        // Mark as running after startDelay
+        const startTimeout = setTimeout(() => {
+          setAgentStatuses(prev => ({ ...prev, [agent]: 'running' }));
+        }, startDelay);
+        timeouts.push(startTimeout);
+
+        // Mark as completed after startDelay + duration
+        const completeTimeout = setTimeout(() => {
+          setAgentStatuses(prev => ({ ...prev, [agent]: 'completed' }));
+        }, startDelay + duration);
+        timeouts.push(completeTimeout);
+      });
+
+      return () => {
+        timeouts.forEach(timeout => clearTimeout(timeout));
+      };
+    } else {
+      // Reset to pending when not generating
+      setAgentStatuses({
+        product: 'pending',
+        architecture: 'pending',
+        engineering: 'pending',
+        security: 'pending',
+        procurement: 'pending',
+        delivery: 'pending'
+      });
+    }
+  }, [generateWithAgentsMutation.isPending]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -1180,8 +1247,20 @@ export default function SmartRftBuilderPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {/* Product Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.product === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.product === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.product === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-product-complete" />
+                    ) : agentStatuses.product === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-product-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-product-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Product Agent</div>
                       <div className="text-xs text-muted-foreground">Creating product requirements, IATA standards, and user experience specifications</div>
@@ -1189,8 +1268,20 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   {/* Architecture Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.architecture === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.architecture === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.architecture === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-architecture-complete" />
+                    ) : agentStatuses.architecture === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-architecture-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-architecture-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Architecture Agent</div>
                       <div className="text-xs text-muted-foreground">Defining technical architecture, scalability, and integration requirements</div>
@@ -1198,8 +1289,20 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   {/* Engineering Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.engineering === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.engineering === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.engineering === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-engineering-complete" />
+                    ) : agentStatuses.engineering === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-engineering-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-engineering-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Engineering Agent</div>
                       <div className="text-xs text-muted-foreground">Specifying API/SDK requirements, code quality, and observability standards</div>
@@ -1207,8 +1310,20 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   {/* Security Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.security === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.security === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.security === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-security-complete" />
+                    ) : agentStatuses.security === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-security-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-security-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Security Agent</div>
                       <div className="text-xs text-muted-foreground">Establishing security, compliance, and data protection requirements</div>
@@ -1216,8 +1331,20 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   {/* Procurement Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.procurement === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.procurement === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.procurement === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-procurement-complete" />
+                    ) : agentStatuses.procurement === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-procurement-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-procurement-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Procurement Agent</div>
                       <div className="text-xs text-muted-foreground">Drafting commercial terms, pricing models, SLAs, and contract clauses</div>
@@ -1225,8 +1352,20 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   {/* Delivery Agent */}
-                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mt-0.5 flex-shrink-0" />
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-500 ${
+                    agentStatuses.delivery === 'completed' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : agentStatuses.delivery === 'running'
+                      ? 'bg-blue-500/10 border-blue-500/30'
+                      : 'bg-background/50 border-muted'
+                  }`}>
+                    {agentStatuses.delivery === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" data-testid="icon-delivery-complete" />
+                    ) : agentStatuses.delivery === 'running' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 mt-0.5 flex-shrink-0" data-testid="icon-delivery-running" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 mt-0.5 flex-shrink-0" data-testid="icon-delivery-pending" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">Delivery Agent</div>
                       <div className="text-xs text-muted-foreground">Outlining delivery methodology, timelines, and risk management approach</div>
