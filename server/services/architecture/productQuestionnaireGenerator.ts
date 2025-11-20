@@ -220,6 +220,9 @@ export async function generateProductTechnicalQuestionnaire(options: {
         if (subsection.number === "2.1.1" && fs.existsSync(contextDiagramPngPath)) {
           const imageBuffer = fs.readFileSync(contextDiagramPngPath);
           
+          // Embed at high resolution for crisp output
+          // PNG is 3840x2880 pixels, displaying at 1800x1350 gives 300 DPI quality
+          // This preserves detail while fitting nicely on a page (~6" x 4.5")
           docSections.push(
             new Paragraph({
               children: [
@@ -235,8 +238,8 @@ export async function generateProductTechnicalQuestionnaire(options: {
                 new ImageRun({
                   data: imageBuffer,
                   transformation: {
-                    width: 600,
-                    height: 450,
+                    width: 1800,   // 6 inches at 300 DPI (was 600 - causing blur)
+                    height: 1350,  // 4.5 inches at 300 DPI (was 450 - causing blur)
                   },
                   type: "png",
                 }),
