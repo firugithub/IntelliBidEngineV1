@@ -3183,10 +3183,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cybersecurityBuffer = fs.readFileSync(questionnairePaths.cybersecurityPath);
       const agileBuffer = fs.readFileSync(questionnairePaths.agilePath);
 
+      // Generate Product Technical Questionnaire with context diagram (if business case exists)
+      let productTechnicalBuffer: Buffer | null = null;
+      let productTechnicalPath: string | null = null;
+      
+      // Construct business case narrative from available sources
+      const businessCaseNarrative = businessCase.documentContent || 
+                                   (extractedData?.DESCRIPTION || extractedData?.description) ||
+                                   documentSections.map(s => s.content).join('\n\n');
+      
+      if (businessCaseNarrative?.trim().length > 0) {
+        try {
+          console.log(`[Agent RFT] Generating Product Technical Questionnaire with context diagram...`);
+          
+          // Generate context diagram PNG
+          const { generateContextDiagram } = await import("./services/architecture/contextDiagramGenerator");
+          const { generateProductTechnicalQuestionnaire } = await import("./services/architecture/productQuestionnaireGenerator");
+          
+          const contextDiagramPngPath = path.join(process.cwd(), 'uploads', `context_diagram_${Date.now()}.png`);
+          const { pngPath } = await generateContextDiagram(businessCaseNarrative, contextDiagramPngPath);
+          
+          // Generate Product Technical Questionnaire DOCX with embedded diagram
+          const productTechnicalFileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_Product_Technical_Questionnaire.docx`;
+          productTechnicalPath = await generateProductTechnicalQuestionnaire({
+            projectName,
+            contextDiagramPngPath: pngPath,
+            outputPath: path.join(process.cwd(), 'uploads', productTechnicalFileName)
+          });
+          
+          productTechnicalBuffer = fs.readFileSync(productTechnicalPath);
+          
+          // Clean up temp diagram file
+          fs.unlinkSync(pngPath);
+          
+          console.log(`[Agent RFT] Product Technical Questionnaire generated successfully`);
+        } catch (error) {
+          console.error(`[Agent RFT] Failed to generate Product Technical Questionnaire:`, error);
+          // Continue without this file if generation fails
+        }
+      }
+
       // Step 5: Upload all files to Azure Blob Storage
       const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
 
-      const uploadPromises = [
+      // Upload base files
+      const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload] = await Promise.all([
         azureBlobStorageService.uploadDocument(
           `${folderPath}/${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
           docxBuffer
@@ -3211,9 +3252,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `${folderPath}/Agile_Questionnaire.xlsx`,
           agileBuffer
         )
-      ];
-
-      const uploadResults = await Promise.all(uploadPromises);
+      ]);
+      
+      // Upload Product Technical Questionnaire if generated
+      let productTechnicalUpload = null;
+      if (productTechnicalBuffer) {
+        productTechnicalUpload = await azureBlobStorageService.uploadDocument(
+          `${folderPath}/Product_Technical_Questionnaire.docx`,
+          productTechnicalBuffer
+        );
+        console.log(`[Agent RFT] Product Technical Questionnaire uploaded: ${productTechnicalUpload.blobUrl}`);
+      }
+      
+      // Combine upload results for backward compatibility
+      const uploadResults = [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload];
 
       // Step 6: Create RFT record in database (if projectId provided)
       let rftRecord = null;
@@ -3249,6 +3301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.unlinkSync(questionnairePaths.nfrPath);
         fs.unlinkSync(questionnairePaths.cybersecurityPath);
         fs.unlinkSync(questionnairePaths.agilePath);
+        if (productTechnicalPath) {
+          fs.unlinkSync(productTechnicalPath);
+        }
       } catch (cleanupError) {
         console.warn("Error cleaning up temp files:", cleanupError);
       }
@@ -3259,7 +3314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         rftId: rftRecord?.id,
         projectName,
-        filesGenerated: 6,
+        filesGenerated: productTechnicalBuffer ? 7 : 6,
         uploadedFiles: uploadResults.map(r => r.blobUrl),
         sections: agentRft.sections.map(s => ({
           agentRole: s.agentRole,
