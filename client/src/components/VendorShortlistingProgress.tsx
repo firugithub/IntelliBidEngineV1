@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, Clock, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Circle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import type { VendorShortlistingStage } from "@shared/schema";
 
 const PROCUREMENT_STAGES = [
@@ -71,6 +73,20 @@ function StageStatusBadge({ status }: { status: string }) {
 }
 
 export function VendorShortlistingProgress({ vendorStages, projectName, portfolioName }: VendorShortlistingProgressProps) {
+  const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
+
+  const toggleVendor = (vendorName: string) => {
+    setExpandedVendors(prev => {
+      const next = new Set(prev);
+      if (next.has(vendorName)) {
+        next.delete(vendorName);
+      } else {
+        next.add(vendorName);
+      }
+      return next;
+    });
+  };
+
   return (
     <Card data-testid="card-vendor-shortlisting-progress">
       <CardHeader>
@@ -86,30 +102,64 @@ export function VendorShortlistingProgress({ vendorStages, projectName, portfoli
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-3">
         {/* Timeline Progress for Each Vendor */}
-        {vendorStages.map((vendor) => (
-          <div key={vendor.vendorName} className="space-y-4" data-testid={`vendor-progress-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
-            {/* Vendor Header */}
-            <div className="flex items-center justify-between pb-2 border-b">
-              <div>
-                <h3 className="font-semibold text-base" data-testid={`text-vendor-name-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {vendor.vendorName}
-                </h3>
-                <p className="text-sm text-muted-foreground" data-testid={`text-stage-progress-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
-                  Stage {vendor.currentStage} of 10
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold font-mono text-primary" data-testid={`text-completion-percentage-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {Math.round((vendor.currentStage / 10) * 100)}%
-                </div>
-                <div className="text-xs text-muted-foreground">Complete</div>
-              </div>
-            </div>
+        {vendorStages.map((vendor) => {
+          const isExpanded = expandedVendors.has(vendor.vendorName);
+          const completedCount = Object.values(vendor.stageStatuses).filter(s => s.status === 'completed').length;
+          const inProgressCount = Object.values(vendor.stageStatuses).filter(s => s.status === 'in_progress').length;
+          const pendingCount = 10 - completedCount - inProgressCount;
 
-            {/* Stage Timeline */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          return (
+          <div key={vendor.vendorName} className="border rounded-lg" data-testid={`vendor-progress-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
+            {/* Compact Summary Header */}
+            <button
+              onClick={() => toggleVendor(vendor.vendorName)}
+              className="w-full p-3 flex items-center justify-between hover-elevate rounded-lg"
+              data-testid={`button-toggle-vendor-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <div className="flex items-center gap-4">
+                <div className="text-left">
+                  <h3 className="font-semibold text-base" data-testid={`text-vendor-name-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {vendor.vendorName}
+                  </h3>
+                  <p className="text-sm text-muted-foreground" data-testid={`text-stage-progress-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
+                    Stage {vendor.currentStage} of 10
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="default" className="text-xs">
+                    {completedCount} Complete
+                  </Badge>
+                  {inProgressCount > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {inProgressCount} In Progress
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {pendingCount} Pending
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-2xl font-bold font-mono text-primary" data-testid={`text-completion-percentage-${vendor.vendorName.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {Math.round((vendor.currentStage / 10) * 100)}%
+                  </div>
+                  <div className="text-xs text-muted-foreground">Complete</div>
+                </div>
+                {isExpanded ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+            </button>
+
+            {/* Expanded Stage Timeline */}
+            {isExpanded && (
+              <div className="p-4 pt-0 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {PROCUREMENT_STAGES.map((stage) => {
                 const status = getStageStatus(stage.id, vendor.currentStage, vendor.stageStatuses);
                 const stageData = vendor.stageStatuses[stage.id];
@@ -151,12 +201,15 @@ export function VendorShortlistingProgress({ vendorStages, projectName, portfoli
                   </div>
                 );
               })}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+        );
+        })}
 
         {/* Stage Legend */}
-        <div className="pt-4 border-t">
+        <div className="pt-3 border-t mt-4">
           <h4 className="text-sm font-semibold mb-3">Status Legend</h4>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
