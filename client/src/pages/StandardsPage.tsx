@@ -131,7 +131,7 @@ export default function StandardsPage() {
     category: "shared" as DocumentCategory,
     sections: [] as Section[],
     tags: [] as string[],
-    file: null as File | null,
+    files: [] as File[],  // Changed to array for multi-file support
     url: "",
   });
   const [newSection, setNewSection] = useState({
@@ -335,7 +335,7 @@ export default function StandardsPage() {
 
   // Standards handlers
   const resetStandardForm = () => {
-    setStandardFormData({ name: "", description: "", category: "shared", sections: [], tags: [], file: null, url: "" });
+    setStandardFormData({ name: "", description: "", category: "shared", sections: [], tags: [], files: [], url: "" });
     setNewSection({ name: "", description: "" });
     setNewTag("");
     setEditingStandard(null);
@@ -350,7 +350,7 @@ export default function StandardsPage() {
       category: (standard.category as DocumentCategory) || "shared",
       sections: (standard.sections as Section[]) || [],
       tags: (standard.tags as string[]) || [],
-      file: null,
+      files: [],
       url: "",
     });
     setIsStandardDialogOpen(true);
@@ -376,8 +376,8 @@ export default function StandardsPage() {
       });
     } else {
       // For new standards, require either file upload or URL
-      if (uploadMethod === "file" && !standardFormData.file) {
-        toast({ title: "Please upload a compliance document", variant: "destructive" });
+      if (uploadMethod === "file" && standardFormData.files.length === 0) {
+        toast({ title: "Please upload at least one compliance document", variant: "destructive" });
         return;
       }
       
@@ -389,8 +389,11 @@ export default function StandardsPage() {
       setIsExtracting(true);
       const formData = new FormData();
       
-      if (uploadMethod === "file" && standardFormData.file) {
-        formData.append("file", standardFormData.file);
+      if (uploadMethod === "file" && standardFormData.files.length > 0) {
+        // Append all files to FormData
+        standardFormData.files.forEach((file) => {
+          formData.append("files", file);
+        });
       } else if (uploadMethod === "url") {
         formData.append("url", standardFormData.url);
       }
@@ -454,10 +457,18 @@ export default function StandardsPage() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setStandardFormData(prev => ({ ...prev, file }));
+    const fileList = e.target.files;
+    if (fileList && fileList.length > 0) {
+      const newFiles = Array.from(fileList);
+      setStandardFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
     }
+  };
+
+  const removeFile = (index: number) => {
+    setStandardFormData(prev => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== index)
+    }));
   };
 
   const toggleExpandedStandard = (standardId: string) => {
@@ -691,17 +702,57 @@ export default function StandardsPage() {
                               <Input
                                 type="file"
                                 accept=".pdf,.txt,.doc,.docx"
+                                multiple
                                 onChange={handleFileChange}
                                 data-testid="input-standard-file"
                               />
-                              {standardFormData.file && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Selected: {standardFormData.file.name}
-                                </p>
-                              )}
                               <p className="text-xs text-muted-foreground">
-                                Supported formats: PDF, TXT, DOC, DOCX
+                                Supported formats: PDF, TXT, DOC, DOCX • Select multiple files to upload in batch
                               </p>
+                              
+                              {/* File list preview */}
+                              {standardFormData.files.length > 0 && (
+                                <div className="space-y-2 mt-3 p-3 bg-muted/30 rounded-lg border">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">
+                                      Selected Files ({standardFormData.files.length})
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setStandardFormData(prev => ({ ...prev, files: [] }))}
+                                      data-testid="button-clear-all-files"
+                                    >
+                                      Clear All
+                                    </Button>
+                                  </div>
+                                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                                    {standardFormData.files.map((file, index) => (
+                                      <div
+                                        key={`${file.name}-${index}`}
+                                        className="flex items-center justify-between p-2 bg-background rounded border text-sm"
+                                        data-testid={`file-item-${index}`}
+                                      >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          <span className="truncate">{file.name}</span>
+                                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                                            ({(file.size / 1024).toFixed(1)} KB)
+                                          </span>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeFile(index)}
+                                          data-testid={`button-remove-file-${index}`}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="space-y-2">

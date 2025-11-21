@@ -983,149 +983,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/standards/upload", upload.single("file"), async (req, res) => {
+  // Helper function to process a single document (file or URL)
+  async function processDocument(params: {
+    file?: Express.Multer.File;
+    url?: string;
+    name: string;
+    description?: string;
+    category?: string;
+    tags?: any[];
+  }) {
+    const { file, url: docUrl, name, description, category, tags } = params;
+    let fileName = file?.originalname || 'document';
+    let documentBuffer: Buffer | null = null;
+
     try {
-      const { name, description, category, tags, url } = req.body;
-      
-      if (!name) {
-        return res.status(400).json({ error: "Standard name is required" });
-      }
-
-      // Check if either file or URL is provided
-      if (!req.file && !url) {
-        return res.status(400).json({ error: "Either file upload or URL is required" });
-      }
-
       let parsedDocument;
-      let fileName;
 
-      if (url) {
-        // Fetch and parse document from URL
-        try {
-          // Validate URL to prevent SSRF attacks (includes DNS resolution)
-          const validation = await validateUrlSecurity(url);
-          if (!validation.valid) {
-            return res.status(400).json({ error: validation.error || "URL validation failed" });
-          }
-
-          const parsedUrl = new URL(url);
-
-          // Fetch with timeout, size limit, and no redirects
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-          try {
-            const response = await fetch(url, {
-              signal: controller.signal,
-              redirect: 'manual', // Disable automatic redirects to prevent redirect-based SSRF
-              headers: {
-                'User-Agent': 'IntelliBid-Document-Fetcher/1.0',
-              },
-            });
-
-            // Check if response is a redirect
-            if (response.status >= 300 && response.status < 400) {
-              return res.status(400).json({ 
-                error: "Redirects are not allowed. Please provide a direct URL to the document." 
-              });
-            }
-
-            clearTimeout(timeout);
-
-            if (!response.ok) {
-              throw new Error(`Failed to fetch document: ${response.statusText}`);
-            }
-
-            const contentType = response.headers.get('content-type') || '';
-            
-            // Validate content type
-            const allowedTypes = [
-              'application/pdf',
-              'text/plain',
-              'application/msword',
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ];
-            
-            const isAllowedType = allowedTypes.some(type => contentType.includes(type)) || 
-                                  contentType.includes('text/');
-
-            if (!isAllowedType && contentType) {
-              return res.status(400).json({ 
-                error: `Unsupported content type: ${contentType}. Please provide a PDF, text, or document file.` 
-              });
-            }
-
-            // Limit file size to 10MB
-            const contentLength = response.headers.get('content-length');
-            if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
-              return res.status(400).json({ error: "Document size exceeds 10MB limit" });
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
-              return res.status(400).json({ error: "Document size exceeds 10MB limit" });
-            }
-
-            const buffer = Buffer.from(arrayBuffer);
-            
-            // Extract filename from URL
-            const urlPath = parsedUrl.pathname;
-            fileName = urlPath.split('/').pop() || 'document';
-
-            // Determine file type from URL or content-type
-            let fileType = '';
-            if (fileName.endsWith('.pdf') || contentType.includes('pdf')) {
-              fileType = 'pdf';
-            } else if (fileName.endsWith('.txt') || contentType.includes('text')) {
-              fileType = 'txt';
-            } else {
-              // Default to txt for unknown types
-              fileType = 'txt';
-            }
-
-            // Create a mock file object for parsing
-            const mockFile = {
-              buffer,
-              originalname: fileName,
-              mimetype: contentType || (fileType === 'pdf' ? 'application/pdf' : 'text/plain'),
-            };
-
-            parsedDocument = await parseDocument(buffer, fileName);
-          } finally {
-            clearTimeout(timeout);
-          }
-        } catch (error) {
-          console.error("Error fetching document from URL:", error);
-          if (error instanceof Error && error.name === 'AbortError') {
-            return res.status(400).json({ error: "Request timeout: document fetch took too long" });
-          }
-          return res.status(400).json({ error: "Failed to fetch document from URL. Please ensure the URL is accessible and points to a valid document." });
+      // PHASE 1: Fetch and validate document
+      if (docUrl) {
+        // Validate URL to prevent SSRF attacks (includes DNS resolution)
+        const validation = await validateUrlSecurity(docUrl);
+        if (!validation.valid) {
+          throw new Error(validation.error || "URL validation failed");
         }
-      } else if (req.file) {
+
+        const parsedUrl = new URL(docUrl);
+
+        // Fetch with timeout, size limit, and no redirects
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+        try {
+          const response = await fetch(docUrl, {
+            signal: controller.signal,
+            redirect: 'manual', // Disable automatic redirects to prevent redirect-based SSRF
+            headers: {
+              'User-Agent': 'IntelliBid-Document-Fetcher/1.0',
+            },
+          });
+
+          // Check if response is a redirect
+          if (response.status >= 300 && response.status < 400) {
+            throw new Error("Redirects are not allowed. Please provide a direct URL to the document.");
+          }
+
+          clearTimeout(timeout);
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch document: ${response.statusText}`);
+          }
+
+          const contentType = response.headers.get('content-type') || '';
+          
+          // Validate content type
+          const allowedTypes = [
+            'application/pdf',
+            'text/plain',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          ];
+          
+          const isAllowedType = allowedTypes.some(type => contentType.includes(type)) || 
+                                contentType.includes('text/');
+
+          if (!isAllowedType && contentType) {
+            throw new Error(`Unsupported content type: ${contentType}. Please provide a PDF, text, or document file.`);
+          }
+
+          // Limit file size to 10MB
+          const contentLength = response.headers.get('content-length');
+          if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+            throw new Error("Document size exceeds 10MB limit");
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+            throw new Error("Document size exceeds 10MB limit");
+          }
+
+          documentBuffer = Buffer.from(arrayBuffer);
+          
+          // Extract filename from URL
+          const urlPath = parsedUrl.pathname;
+          fileName = urlPath.split('/').pop() || 'document';
+
+          parsedDocument = await parseDocument(documentBuffer, fileName);
+        } finally {
+          clearTimeout(timeout);
+        }
+      } else if (file) {
         // Parse the uploaded file
-        fileName = req.file.originalname;
-        parsedDocument = await parseDocument(req.file.buffer, fileName);
+        fileName = file.originalname;
+        documentBuffer = file.buffer;
+        parsedDocument = await parseDocument(file.buffer, fileName);
+      } else {
+        throw new Error("No file or URL provided");
       }
 
-      // Safety check (should never happen due to earlier validation)
+      // Safety check
       if (!parsedDocument) {
-        return res.status(400).json({ error: "Failed to parse document" });
+        throw new Error("Failed to parse document");
       }
-      
-      // Use AI to extract compliance sections from the document
+
+      // PHASE 2: Extract sections using AI
       const { extractComplianceSections } = await import("./services/ai/aiAnalysis");
       const sections = await extractComplianceSections(parsedDocument.text, name);
-
-      // Parse tags from JSON string
-      const parsedTags = tags ? JSON.parse(tags) : [];
 
       // Create the standard with extracted sections
       const standard = await storage.createStandard({
         name,
         description: description || null,
-        category: category || "general",
+        category: category || "shared",
         sections: sections,
-        tags: parsedTags.length > 0 ? parsedTags : null,
+        tags: tags && tags.length > 0 ? tags : null,
         fileName: fileName,
         documentContent: parsedDocument.text,
         isActive: "true",
@@ -1135,29 +1105,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
         
-        // Prepare document buffer
-        let documentBuffer: Buffer;
-        if (url) {
-          // Re-fetch the document for RAG ingestion (already validated earlier)
-          const response = await fetch(url);
-          const arrayBuffer = await response.arrayBuffer();
-          documentBuffer = Buffer.from(arrayBuffer);
-        } else if (req.file) {
-          documentBuffer = req.file.buffer;
-        } else {
-          throw new Error("No document source available for RAG ingestion");
+        if (!documentBuffer) {
+          throw new Error("No document buffer available for RAG ingestion");
         }
 
         // Ingest into RAG system with category-based folder organization
         const ragResult = await documentIngestionService.ingestDocument({
           sourceType: "standard",
           sourceId: standard.id,
-          category: category as "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security" | "shared" || "shared",
-          fileName: fileName || "document.txt",
+          category: (category as "delivery" | "product" | "architecture" | "engineering" | "procurement" | "security" | "shared") || "shared",
+          fileName: fileName,
           content: documentBuffer,
           textContent: parsedDocument.text,
           metadata: {
-            tags: parsedTags,
+            tags: tags || [],
             sectionTitle: name,
           },
         });
@@ -1176,12 +1137,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragError);
       }
 
-      // Return the standard (RAG ingestion happens in background)
+      // Return the final standard
       const updatedStandard = await storage.getStandard(standard.id);
-      res.json(updatedStandard || standard);
+      return {
+        fileName,
+        status: "success" as const,
+        standard: updatedStandard || standard,
+        error: null,
+      };
     } catch (error) {
-      console.error("Error creating standard from upload:", error);
-      res.status(500).json({ error: "Failed to create standard from upload" });
+      console.error(`Error processing document "${fileName}":`, error);
+      return {
+        fileName,
+        status: "error" as const,
+        standard: null,
+        error: error instanceof Error ? error.message : "Failed to process document",
+      };
+    }
+  }
+
+  app.post("/api/standards/upload", upload.array("files", 10), async (req, res) => {
+    try {
+      const { name, description, category, tags, url } = req.body;
+      const files = req.files as Express.Multer.File[];
+      
+      // Check if either files or URL is provided
+      if ((!files || files.length === 0) && !url) {
+        return res.status(400).json({ error: "Either file upload or URL is required" });
+      }
+
+      // Parse tags from JSON string once
+      const parsedTags = tags ? JSON.parse(tags) : [];
+
+      // Build list of documents to process
+      const documentsToProcess: Array<{
+        file?: Express.Multer.File;
+        url?: string;
+        name: string;
+        description?: string;
+        category?: string;
+        tags?: any[];
+      }> = [];
+
+      if (url) {
+        // Single URL upload
+        documentsToProcess.push({
+          url,
+          name: name || 'Imported Document',
+          description,
+          category,
+          tags: parsedTags,
+        });
+      } else if (files && files.length > 0) {
+        // Multiple file uploads
+        files.forEach((file, index) => {
+          // Generate unique name for each file
+          const fileBaseName = file.originalname.replace(/\.[^/.]+$/, ''); // Remove extension
+          const documentName = files.length === 1 
+            ? (name || fileBaseName) 
+            : (name ? `${name} - ${fileBaseName}` : fileBaseName);
+
+          documentsToProcess.push({
+            file,
+            name: documentName,
+            description,
+            category,
+            tags: parsedTags,
+          });
+        });
+      }
+
+      // Process all documents in parallel using Promise.allSettled
+      console.log(`Processing ${documentsToProcess.length} document(s) in parallel...`);
+      const results = await Promise.allSettled(
+        documentsToProcess.map(doc => processDocument(doc))
+      );
+
+      // Transform results into response format
+      const processedResults = results.map((result) => {
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          // Handle rejected promises
+          return {
+            fileName: 'unknown',
+            status: 'error' as const,
+            standard: null,
+            error: result.reason instanceof Error ? result.reason.message : 'Unknown error',
+          };
+        }
+      });
+
+      // Calculate statistics
+      const successCount = processedResults.filter(r => r.status === 'success').length;
+      const errorCount = processedResults.filter(r => r.status === 'error').length;
+
+      // Return batch response
+      res.json({
+        results: processedResults,
+        totalFiles: documentsToProcess.length,
+        successCount,
+        errorCount,
+      });
+    } catch (error) {
+      console.error("Error in batch standard upload:", error);
+      res.status(500).json({ error: "Failed to process batch upload" });
     }
   });
 
