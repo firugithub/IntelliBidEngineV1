@@ -15,20 +15,161 @@ export class AzureSearchSkillsetService {
   private indexerName = "intellibid-ocr-indexer";
 
   async initialize(): Promise<void> {
-    const { endpoint, apiKey } = ConfigHelper.getAzureSearchConfig();
-    const credential = new AzureKeyCredential(apiKey);
-    this.indexerClient = new SearchIndexerClient(endpoint, credential);
+    console.log("=".repeat(80));
+    console.log("[Skillset] Starting OCR skillset initialization...");
+    console.log("=".repeat(80));
     
-    // Import SearchIndexClient and SearchClient
-    const { SearchIndexClient, SearchClient } = await import("@azure/search-documents");
-    this.searchIndexClient = new SearchIndexClient(endpoint, credential);
-    this.ocrSearchClient = new SearchClient(endpoint, this.ocrIndexName, credential);
+    try {
+      // Step 1: Validate configuration
+      console.log("[Skillset] Step 1/6: Validating Azure configuration...");
+      const { endpoint, apiKey } = ConfigHelper.getAzureSearchConfig();
+      console.log(`[Skillset] ✓ AI Search endpoint configured: ${endpoint}`);
+      console.log(`[Skillset] ✓ AI Search key configured: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'MISSING'}`);
+      
+      if (!endpoint || !apiKey) {
+        throw new Error("Azure AI Search endpoint or key is missing. Check AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KEY environment variables.");
+      }
 
-    // Setup complete pipeline: OCR index → data source → skillset → indexer
-    await this.createOrUpdateOcrIndex();
-    await this.createOrUpdateDataSource();
-    await this.createOrUpdateSkillset();
-    await this.createOrUpdateIndexer();
+      // Step 2: Validate Blob Storage configuration
+      console.log("[Skillset] Step 2/6: Validating Azure Blob Storage configuration...");
+      const { connectionString } = ConfigHelper.getAzureStorageConfig();
+      console.log(`[Skillset] ✓ Storage connection string configured: ${connectionString ? 'Yes' : 'MISSING'}`);
+      
+      if (!connectionString) {
+        throw new Error("Azure Storage connection string is missing. Check AZURE_STORAGE_CONNECTION_STRING environment variable.");
+      }
+
+      // Step 3: Validate Cognitive Services key
+      console.log("[Skillset] Step 3/6: Validating Azure Cognitive Services key...");
+      const cognitiveKey = ConfigHelper.getAzureCognitiveServicesKey();
+      console.log(`[Skillset] ✓ Cognitive Services key configured: ${cognitiveKey ? `${cognitiveKey.substring(0, 8)}...` : 'MISSING'}`);
+      
+      if (!cognitiveKey) {
+        throw new Error("Azure Cognitive Services key is missing. Set AZURE_COGNITIVE_SERVICES_KEY or AZURE_OPENAI_KEY.");
+      }
+
+      // Step 4: Initialize Azure clients
+      console.log("[Skillset] Step 4/6: Initializing Azure AI Search clients...");
+      const startTime = Date.now();
+      const credential = new AzureKeyCredential(apiKey);
+      
+      console.log("[Skillset]   - Creating SearchIndexerClient...");
+      this.indexerClient = new SearchIndexerClient(endpoint, credential);
+      
+      console.log("[Skillset]   - Importing search modules...");
+      const { SearchIndexClient, SearchClient } = await import("@azure/search-documents");
+      
+      console.log("[Skillset]   - Creating SearchIndexClient...");
+      this.searchIndexClient = new SearchIndexClient(endpoint, credential);
+      
+      console.log("[Skillset]   - Creating SearchClient for OCR index...");
+      this.ocrSearchClient = new SearchClient(endpoint, this.ocrIndexName, credential);
+      
+      const clientInitTime = Date.now() - startTime;
+      console.log(`[Skillset] ✓ Clients initialized successfully (${clientInitTime}ms)`);
+
+      // Step 5: Setup OCR pipeline components
+      console.log("[Skillset] Step 5/6: Setting up OCR processing pipeline...");
+      console.log("[Skillset]   Pipeline: OCR Index → Data Source → Skillset → Indexer");
+      
+      console.log("[Skillset]   - Creating/updating OCR index...");
+      await this.createOrUpdateOcrIndex();
+      
+      console.log("[Skillset]   - Creating/updating blob data source...");
+      await this.createOrUpdateDataSource();
+      
+      console.log("[Skillset]   - Creating/updating OCR skillset...");
+      await this.createOrUpdateSkillset();
+      
+      console.log("[Skillset]   - Creating/updating indexer...");
+      await this.createOrUpdateIndexer();
+
+      // Step 6: Success
+      const totalTime = Date.now() - startTime;
+      console.log("=".repeat(80));
+      console.log(`[Skillset] ✅ OCR skillset initialization completed successfully! (${totalTime}ms)`);
+      console.log(`[Skillset] Components created:`);
+      console.log(`[Skillset]   - Index: ${this.ocrIndexName}`);
+      console.log(`[Skillset]   - Data Source: ${this.dataSourceName}`);
+      console.log(`[Skillset]   - Skillset: ${this.skillsetName}`);
+      console.log(`[Skillset]   - Indexer: ${this.indexerName}`);
+      console.log("=".repeat(80));
+      
+    } catch (error: any) {
+      console.error("=".repeat(80));
+      console.error("[Skillset] ❌ Initialization FAILED");
+      console.error("=".repeat(80));
+      this.logDetailedError(error);
+      console.error("=".repeat(80));
+      throw error;
+    }
+  }
+
+  /**
+   * Log detailed error information with Azure-specific error codes
+   */
+  private logDetailedError(error: any): void {
+    console.error("[Skillset] Error Type:", error.name || "Unknown");
+    console.error("[Skillset] Error Message:", error.message || "No message");
+    
+    // Azure SDK specific error details
+    if (error.code) {
+      console.error("[Skillset] Azure Error Code:", error.code);
+    }
+    
+    if (error.statusCode) {
+      console.error("[Skillset] HTTP Status Code:", error.statusCode);
+      
+      // Provide user-friendly explanations for common errors
+      switch (error.statusCode) {
+        case 401:
+          console.error("[Skillset] → This is an authentication error. Your Azure AI Search key may be incorrect or expired.");
+          console.error("[Skillset] → Check: AZURE_SEARCH_KEY environment variable");
+          break;
+        case 403:
+          console.error("[Skillset] → This is an authorization error. Your key may not have sufficient permissions.");
+          console.error("[Skillset] → Required: Admin key (not query key) with permission to create indexes/skillsets");
+          break;
+        case 404:
+          console.error("[Skillset] → Resource not found. The Azure AI Search service may not exist at the specified endpoint.");
+          console.error("[Skillset] → Check: AZURE_SEARCH_ENDPOINT environment variable");
+          break;
+        case 504:
+          console.error("[Skillset] → Gateway timeout. The request took too long to complete.");
+          console.error("[Skillset] → Possible causes:");
+          console.error("[Skillset]    1. Network connectivity issues (firewall, VNet)");
+          console.error("[Skillset]    2. Azure AI Search service is using private endpoints");
+          console.error("[Skillset]    3. Your App Service cannot reach the AI Search service");
+          console.error("[Skillset] → Solutions:");
+          console.error("[Skillset]    1. Enable VNet Integration on your App Service");
+          console.error("[Skillset]    2. Add App Service IPs to AI Search firewall");
+          console.error("[Skillset]    3. Change AI Search networking to 'All networks' (for testing)");
+          break;
+        default:
+          console.error(`[Skillset] → HTTP ${error.statusCode} error occurred`);
+      }
+    }
+    
+    // Network/connectivity errors
+    if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+      console.error("[Skillset] → This is a network connectivity error.");
+      console.error("[Skillset] → Your application cannot reach the Azure AI Search endpoint.");
+      console.error("[Skillset] → Possible causes:");
+      console.error("[Skillset]    1. Incorrect endpoint URL");
+      console.error("[Skillset]    2. Firewall blocking access");
+      console.error("[Skillset]    3. Private endpoint without VNet integration");
+    }
+    
+    // Additional error details
+    if (error.details) {
+      console.error("[Skillset] Additional Details:", JSON.stringify(error.details, null, 2));
+    }
+    
+    // Stack trace (helpful for debugging)
+    if (error.stack) {
+      console.error("[Skillset] Stack Trace:");
+      console.error(error.stack);
+    }
   }
 
   /**
@@ -36,6 +177,8 @@ export class AzureSearchSkillsetService {
    * This staging index receives OCR-enriched text from the skillset
    */
   private async createOrUpdateOcrIndex(): Promise<void> {
+    const startTime = Date.now();
+    
     if (!this.searchIndexClient) {
       throw new Error("Search index client not initialized");
     }
@@ -84,12 +227,19 @@ export class AzureSearchSkillsetService {
     };
 
     try {
+      console.log(`[Skillset]     → Attempting to create/update index '${this.ocrIndexName}'...`);
       // Use createOrUpdateIndex to handle both creation and schema updates
       // This ensures existing indexes get the updated schema (e.g., retrievable metadata fields)
       await this.searchIndexClient.createOrUpdateIndex(indexSchema);
-      console.log(`[Skillset] OCR staging index '${this.ocrIndexName}' created/updated with latest schema`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[Skillset]     ✓ Index '${this.ocrIndexName}' created/updated successfully (${elapsed}ms)`);
     } catch (error: any) {
-      console.error(`[Skillset] Failed to create/update OCR index:`, error.message);
+      const elapsed = Date.now() - startTime;
+      console.error(`[Skillset]     ✗ Failed to create/update OCR index after ${elapsed}ms`);
+      console.error(`[Skillset]     Error:`, error.message);
+      if (error.statusCode) {
+        console.error(`[Skillset]     HTTP Status: ${error.statusCode}`);
+      }
       throw error;
     }
   }
@@ -98,6 +248,8 @@ export class AzureSearchSkillsetService {
    * Create or update blob storage data source
    */
   private async createOrUpdateDataSource(): Promise<void> {
+    const startTime = Date.now();
+    
     if (!this.indexerClient) {
       throw new Error("Indexer client not initialized");
     }
@@ -106,6 +258,8 @@ export class AzureSearchSkillsetService {
     const containerName = "intellibid-documents";
 
     try {
+      console.log(`[Skillset]     → Attempting to create/update data source '${this.dataSourceName}'...`);
+      console.log(`[Skillset]       Container: ${containerName}`);
       await this.indexerClient.createOrUpdateDataSourceConnection({
         name: this.dataSourceName,
         type: "azureblob",
@@ -114,9 +268,15 @@ export class AzureSearchSkillsetService {
           name: containerName,
         },
       });
-      console.log(`[Skillset] Data source '${this.dataSourceName}' created/updated`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[Skillset]     ✓ Data source '${this.dataSourceName}' created/updated successfully (${elapsed}ms)`);
     } catch (error: any) {
-      console.error(`[Skillset] Failed to create data source:`, error.message);
+      const elapsed = Date.now() - startTime;
+      console.error(`[Skillset]     ✗ Failed to create/update data source after ${elapsed}ms`);
+      console.error(`[Skillset]     Error:`, error.message);
+      if (error.statusCode) {
+        console.error(`[Skillset]     HTTP Status: ${error.statusCode}`);
+      }
       throw error;
     }
   }
@@ -125,6 +285,8 @@ export class AzureSearchSkillsetService {
    * Create or update skillset with OCR and merge skills
    */
   private async createOrUpdateSkillset(): Promise<void> {
+    const startTime = Date.now();
+    
     if (!this.indexerClient) {
       throw new Error("Indexer client not initialized");
     }
@@ -191,10 +353,18 @@ export class AzureSearchSkillsetService {
     };
 
     try {
+      console.log(`[Skillset]     → Attempting to create/update skillset '${this.skillsetName}'...`);
+      console.log(`[Skillset]       Skills: OCR + Text Merge`);
       await this.indexerClient.createOrUpdateSkillset(skillsetDefinition);
-      console.log(`[Skillset] Skillset '${this.skillsetName}' created/updated`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[Skillset]     ✓ Skillset '${this.skillsetName}' created/updated successfully (${elapsed}ms)`);
     } catch (error: any) {
-      console.error(`[Skillset] Failed to create skillset:`, error.message);
+      const elapsed = Date.now() - startTime;
+      console.error(`[Skillset]     ✗ Failed to create/update skillset after ${elapsed}ms`);
+      console.error(`[Skillset]     Error:`, error.message);
+      if (error.statusCode) {
+        console.error(`[Skillset]     HTTP Status: ${error.statusCode}`);
+      }
       throw error;
     }
   }
@@ -203,11 +373,17 @@ export class AzureSearchSkillsetService {
    * Create or update indexer with skillset
    */
   private async createOrUpdateIndexer(): Promise<void> {
+    const startTime = Date.now();
+    
     if (!this.indexerClient) {
       throw new Error("Indexer client not initialized");
     }
 
     try {
+      console.log(`[Skillset]     → Attempting to create/update indexer '${this.indexerName}'...`);
+      console.log(`[Skillset]       Data source: ${this.dataSourceName}`);
+      console.log(`[Skillset]       Target index: ${this.ocrIndexName}`);
+      console.log(`[Skillset]       Skillset: ${this.skillsetName}`);
       await this.indexerClient.createOrUpdateIndexer({
         name: this.indexerName,
         description: "Indexer with OCR skillset for document processing",
@@ -242,9 +418,15 @@ export class AzureSearchSkillsetService {
           },
         ],
       });
-      console.log(`[Skillset] Indexer '${this.indexerName}' created/updated`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[Skillset]     ✓ Indexer '${this.indexerName}' created/updated successfully (${elapsed}ms)`);
     } catch (error: any) {
-      console.error(`[Skillset] Failed to create indexer:`, error.message);
+      const elapsed = Date.now() - startTime;
+      console.error(`[Skillset]     ✗ Failed to create/update indexer after ${elapsed}ms`);
+      console.error(`[Skillset]     Error:`, error.message);
+      if (error.statusCode) {
+        console.error(`[Skillset]     HTTP Status: ${error.statusCode}`);
+      }
       throw error;
     }
   }

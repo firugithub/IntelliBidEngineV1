@@ -1598,14 +1598,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await azureSearchSkillsetService.initialize();
       res.json({ 
         success: true, 
-        message: "Skillset and indexer initialized successfully with OCR capabilities" 
+        message: "Skillset and indexer initialized successfully with OCR capabilities",
+        details: {
+          index: "intellibid-blob-ocr",
+          dataSource: "intellibid-blob-datasource",
+          skillset: "intellibid-ocr-skillset",
+          indexer: "intellibid-ocr-indexer"
+        }
       });
     } catch (error: any) {
       console.error("[Skillset API] Failed to initialize skillset:", error);
-      res.status(500).json({ 
+      
+      // Determine appropriate HTTP status code
+      let statusCode = 500;
+      if (error.statusCode) {
+        statusCode = error.statusCode;
+      } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+        statusCode = 504; // Gateway Timeout for network issues
+      } else if (error.message?.includes('missing') || error.message?.includes('not configured')) {
+        statusCode = 400; // Bad Request for configuration errors
+      }
+
+      // Build detailed error response
+      const errorResponse: any = {
         success: false,
-        message: error.message || "Failed to initialize skillset"
-      });
+        message: error.message || "Failed to initialize skillset",
+        errorType: error.name || "Unknown",
+      };
+
+      // Add Azure-specific error details
+      if (error.code) {
+        errorResponse.errorCode = error.code;
+      }
+
+      if (error.statusCode) {
+        errorResponse.httpStatus = error.statusCode;
+      }
+
+      // Add helpful troubleshooting hints based on error type
+      if (error.statusCode === 401) {
+        errorResponse.hint = "Authentication failed. Check your AZURE_SEARCH_KEY environment variable.";
+      } else if (error.statusCode === 403) {
+        errorResponse.hint = "Permission denied. Ensure you're using an Admin key (not query key) for Azure AI Search.";
+      } else if (error.statusCode === 404) {
+        errorResponse.hint = "Resource not found. Verify your AZURE_SEARCH_ENDPOINT is correct.";
+      } else if (error.statusCode === 504 || statusCode === 504) {
+        errorResponse.hint = "Network timeout. Check if Azure AI Search has firewall restrictions or requires VNet integration.";
+        errorResponse.troubleshooting = [
+          "Enable VNet Integration on your App Service",
+          "Add App Service IPs to AI Search firewall allowlist",
+          "Change AI Search networking to 'All networks' for testing"
+        ];
+      } else if (error.message?.includes('missing') || error.message?.includes('not configured')) {
+        errorResponse.hint = "Configuration error. Check your Azure environment variables.";
+      } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        errorResponse.hint = "Cannot reach Azure AI Search service. Check network connectivity.";
+      }
+
+      res.status(statusCode).json(errorResponse);
     }
   });
 
