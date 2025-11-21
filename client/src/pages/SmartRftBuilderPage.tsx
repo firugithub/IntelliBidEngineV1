@@ -424,14 +424,15 @@ export default function SmartRftBuilderPage() {
         delivery: 'pending'
       });
 
-      // Simulate realistic agent progress with staggered timing
+      // Simulate realistic agent progress with staggered timing (1-2 minute total)
+      // Each agent takes 15-25 seconds, completing at different intervals
       const agentTimeline = [
-        { agent: 'product', startDelay: 500, duration: 8000 },
-        { agent: 'architecture', startDelay: 700, duration: 9000 },
-        { agent: 'engineering', startDelay: 600, duration: 10000 },
-        { agent: 'security', startDelay: 800, duration: 9500 },
-        { agent: 'procurement', startDelay: 900, duration: 8500 },
-        { agent: 'delivery', startDelay: 1000, duration: 9200 }
+        { agent: 'product', startDelay: 800, duration: 18000 },      // Start at 0.8s, complete at ~19s
+        { agent: 'security', startDelay: 1200, duration: 22000 },    // Start at 1.2s, complete at ~23s
+        { agent: 'architecture', startDelay: 1500, duration: 35000 }, // Start at 1.5s, complete at ~36s
+        { agent: 'procurement', startDelay: 2000, duration: 45000 }, // Start at 2s, complete at ~47s
+        { agent: 'engineering', startDelay: 2500, duration: 58000 }, // Start at 2.5s, complete at ~60s
+        { agent: 'delivery', startDelay: 3000, duration: 72000 }     // Start at 3s, complete at ~75s
       ];
 
       const timeouts: NodeJS.Timeout[] = [];
@@ -1373,7 +1374,7 @@ export default function SmartRftBuilderPage() {
                   </div>
 
                   <div className="pt-2 text-xs text-muted-foreground text-center">
-                    ⚡ All agents running concurrently • Estimated time: 20-30 seconds
+                    ⚡ All agents running concurrently • Estimated time: 60-90 seconds
                   </div>
                 </CardContent>
               </Card>
