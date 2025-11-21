@@ -53,20 +53,29 @@ export class AzureSearchSkillsetService {
       const startTime = Date.now();
       const credential = new AzureKeyCredential(apiKey);
       
-      console.log("[Skillset]   - Creating SearchIndexerClient...");
-      this.indexerClient = new SearchIndexerClient(endpoint, credential);
+      // Custom client options with extended timeout for private endpoint connections
+      const clientOptions = {
+        retryOptions: {
+          maxRetries: 3,
+          retryDelayInMs: 5000, // 5 seconds between retries
+          tryTimeoutInMs: 180000, // 3 minutes (180 seconds) per request for private endpoint latency
+        },
+      };
+      
+      console.log("[Skillset]   - Creating SearchIndexerClient with 180s timeout...");
+      this.indexerClient = new SearchIndexerClient(endpoint, credential, clientOptions);
       
       console.log("[Skillset]   - Importing search modules...");
       const { SearchIndexClient, SearchClient } = await import("@azure/search-documents");
       
-      console.log("[Skillset]   - Creating SearchIndexClient...");
-      this.searchIndexClient = new SearchIndexClient(endpoint, credential);
+      console.log("[Skillset]   - Creating SearchIndexClient with 180s timeout...");
+      this.searchIndexClient = new SearchIndexClient(endpoint, credential, clientOptions);
       
-      console.log("[Skillset]   - Creating SearchClient for OCR index...");
-      this.ocrSearchClient = new SearchClient(endpoint, this.ocrIndexName, credential);
+      console.log("[Skillset]   - Creating SearchClient for OCR index with 180s timeout...");
+      this.ocrSearchClient = new SearchClient(endpoint, this.ocrIndexName, credential, clientOptions);
       
       const clientInitTime = Date.now() - startTime;
-      console.log(`[Skillset] ✓ Clients initialized successfully (${clientInitTime}ms)`);
+      console.log(`[Skillset] ✓ Clients initialized successfully with extended timeout (${clientInitTime}ms)`);
 
       // Step 5: Setup OCR pipeline components
       console.log("[Skillset] Step 5/6: Setting up OCR processing pipeline...");
