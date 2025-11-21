@@ -1089,11 +1089,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { extractComplianceSections } = await import("./services/ai/aiAnalysis");
       const sections = await extractComplianceSections(parsedDocument.text, name);
 
+      // Validate and narrow category type
+      const validCategories = ["delivery", "product", "architecture", "engineering", "procurement", "security", "shared"] as const;
+      const validCategory = validCategories.includes(category as any) ? category as typeof validCategories[number] : "shared";
+
       // Create the standard with extracted sections
       const standard = await storage.createStandard({
         name,
         description: description || null,
-        category: category || "shared",
+        category: validCategory,
         sections: sections,
         tags: tags && tags.length > 0 ? tags : null,
         fileName: fileName,

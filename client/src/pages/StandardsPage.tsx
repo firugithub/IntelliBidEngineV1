@@ -180,15 +180,52 @@ export default function StandardsPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/standards"] });
-      toast({ title: "Standard created successfully" });
+      
+      // Handle batch response format
+      if (data.results && Array.isArray(data.results)) {
+        const { successCount, errorCount, results } = data;
+        
+        // Show summary toast
+        if (successCount > 0 && errorCount === 0) {
+          toast({ 
+            title: `Successfully uploaded ${successCount} document${successCount > 1 ? 's' : ''}`,
+            description: results.map((r: any) => r.fileName).join(", ")
+          });
+        } else if (successCount > 0 && errorCount > 0) {
+          toast({ 
+            title: `Uploaded ${successCount} of ${data.totalFiles} documents`,
+            description: `${errorCount} failed. Check console for details.`,
+            variant: "default"
+          });
+          
+          // Log errors to console
+          results.filter((r: any) => r.status === "error").forEach((r: any) => {
+            console.error(`Failed to upload ${r.fileName}:`, r.error);
+          });
+        } else {
+          toast({ 
+            title: "Failed to upload documents",
+            description: `All ${errorCount} documents failed to upload`,
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Single file response (legacy URL upload)
+        toast({ title: "Standard created successfully" });
+      }
+      
       resetStandardForm();
       setIsStandardDialogOpen(false);
       setIsExtracting(false);
     },
-    onError: () => {
-      toast({ title: "Failed to create standard", variant: "destructive" });
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create standard", 
+        description: error.message || "An error occurred",
+        variant: "destructive" 
+      });
       setIsExtracting(false);
     },
   });
