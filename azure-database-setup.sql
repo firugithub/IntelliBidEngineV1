@@ -1,431 +1,458 @@
--- ====================================================
--- IntelliBid Database Schema for Azure PostgreSQL
--- ====================================================
--- This script creates all tables required for IntelliBid
--- Compatible with Azure PostgreSQL Flexible Server
--- Updated: November 19, 2025
--- ====================================================
+-- IntelliBid Database Setup for Azure PostgreSQL
+-- Updated: November 21, 2025
+-- Complete schema with all columns, constraints, and atomic duplicate prevention
 
--- Enable UUID generation extension (if not already enabled)
+-- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ====================================================
--- CORE TABLES
--- ====================================================
+-- Drop existing tables in reverse dependency order
+DROP TABLE IF EXISTS agent_metrics CASCADE;
+DROP TABLE IF EXISTS followup_questions CASCADE;
+DROP TABLE IF EXISTS executive_briefings CASCADE;
+DROP TABLE IF EXISTS comparison_snapshots CASCADE;
+DROP TABLE IF EXISTS compliance_gaps CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_sessions CASCADE;
+DROP TABLE IF EXISTS rag_chunks CASCADE;
+DROP TABLE IF EXISTS rag_documents CASCADE;
+DROP TABLE IF EXISTS evaluation_criteria CASCADE;
+DROP TABLE IF EXISTS vendor_shortlisting_stages CASCADE;
+DROP TABLE IF EXISTS evaluations CASCADE;
+DROP TABLE IF EXISTS proposals CASCADE;
+DROP TABLE IF EXISTS requirements CASCADE;
+DROP TABLE IF EXISTS rft_generation_drafts CASCADE;
+DROP TABLE IF EXISTS generated_rfts CASCADE;
+DROP TABLE IF EXISTS organization_templates CASCADE;
+DROP TABLE IF EXISTS rft_templates CASCADE;
+DROP TABLE IF EXISTS business_cases CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS system_config CASCADE;
+DROP TABLE IF EXISTS mcp_connectors CASCADE;
+DROP TABLE IF EXISTS standards CASCADE;
+DROP TABLE IF EXISTS portfolios CASCADE;
 
--- Portfolios: Top-level organizational containers
-CREATE TABLE IF NOT EXISTS "portfolios" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "portfolios_name_unique" UNIQUE("name")
+-- ============================================
+-- Core Tables
+-- ============================================
+
+-- Portfolios: Top-level project grouping
+CREATE TABLE portfolios (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Projects: RFT evaluation projects within portfolios
-CREATE TABLE IF NOT EXISTS "projects" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "portfolio_id" varchar NOT NULL,
-    "name" text NOT NULL,
-    "initiative_name" text,
-    "vendor_list" text[],
-    "business_case_id" varchar,
-    "generated_rft_id" varchar,
-    "status" text DEFAULT 'analyzing' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL
+-- Standards: Organizational standards and compliance documents
+CREATE TABLE standards (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'shared', -- 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security', 'shared'
+  sections JSONB NOT NULL,
+  tags TEXT[],
+  file_name TEXT,
+  document_content TEXT,
+  rag_document_id VARCHAR, -- Link to RAG system
+  is_active TEXT NOT NULL DEFAULT 'true',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- System Configuration: Stores Azure service credentials
-CREATE TABLE IF NOT EXISTS "system_config" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "category" text NOT NULL,
-    "key" text NOT NULL,
-    "value" text,
-    "is_encrypted" text DEFAULT 'false' NOT NULL,
-    "description" text,
-    "updated_at" timestamp DEFAULT now() NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "system_config_key_unique" UNIQUE("key")
+-- MCP Connectors: External API integrations for AI agents
+CREATE TABLE mcp_connectors (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  server_url TEXT NOT NULL,
+  api_key TEXT,
+  connector_type TEXT NOT NULL DEFAULT 'rest', -- 'rest', 'graphql', 'websocket'
+  auth_type TEXT NOT NULL DEFAULT 'bearer', -- 'bearer', 'basic', 'apikey', 'oauth2'
+  role_mapping TEXT[], -- Which agent roles can use this connector
+  config JSONB,
+  is_active TEXT NOT NULL DEFAULT 'true',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- ====================================================
--- BUSINESS CASE & RFT GENERATION
--- ====================================================
-
--- Business Cases: Initial documents that trigger RFT generation
-CREATE TABLE IF NOT EXISTS "business_cases" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "portfolio_id" varchar NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "file_name" text NOT NULL,
-    "document_content" text,
-    "extracted_data" jsonb,
-    "rag_document_id" varchar,
-    "status" text DEFAULT 'uploaded' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- System Configuration: Application settings
+CREATE TABLE system_config (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL, -- 'azure_search', 'azure_storage', 'azure_openai', 'rag_settings'
+  key TEXT NOT NULL UNIQUE,
+  value TEXT,
+  is_encrypted TEXT NOT NULL DEFAULT 'false',
+  description TEXT,
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- RFT Templates: AI-defined templates for RFT generation
-CREATE TABLE IF NOT EXISTS "rft_templates" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "category" text NOT NULL,
-    "sections" jsonb NOT NULL,
-    "metadata" jsonb,
-    "is_active" text DEFAULT 'true' NOT NULL,
-    "created_by" text DEFAULT 'system' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "rft_templates_name_unique" UNIQUE("name")
+-- Projects: Individual RFT evaluation projects
+CREATE TABLE projects (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_id VARCHAR NOT NULL,
+  name TEXT NOT NULL,
+  initiative_name TEXT,
+  vendor_list TEXT[],
+  business_case_id VARCHAR, -- Link to business case document
+  generated_rft_id VARCHAR, -- Link to generated RFT
+  status TEXT NOT NULL DEFAULT 'analyzing',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Organization Templates: DOCX templates uploaded by users
-CREATE TABLE IF NOT EXISTS "organization_templates" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "category" text NOT NULL,
-    "template_type" text DEFAULT 'docx' NOT NULL,
-    "blob_url" text NOT NULL,
-    "placeholders" jsonb NOT NULL,
-    "section_mappings" jsonb,
-    "is_active" text DEFAULT 'true' NOT NULL,
-    "is_default" text DEFAULT 'false' NOT NULL,
-    "metadata" jsonb,
-    "created_by" text DEFAULT 'system' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "organization_templates_name_unique" UNIQUE("name")
+-- Requirements: RFT/RFI requirement documents
+CREATE TABLE requirements (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  document_type TEXT NOT NULL DEFAULT 'RFT',
+  file_name TEXT NOT NULL,
+  extracted_data JSONB,
+  evaluation_criteria JSONB,
+  standard_id VARCHAR,
+  tagged_sections JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- RFT Generation Drafts: Collaborative review workspace for RFT creation
-CREATE TABLE IF NOT EXISTS "rft_generation_drafts" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "business_case_id" varchar NOT NULL,
-    "template_id" varchar,
-    "generation_mode" text NOT NULL,
-    "generated_sections" jsonb NOT NULL,
-    "status" text DEFAULT 'draft' NOT NULL,
-    "approval_progress" jsonb,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- Proposals: Vendor proposal documents
+-- ATOMIC DUPLICATE PREVENTION: Unique constraint on (project_id, vendor_name, document_type)
+CREATE TABLE proposals (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  vendor_name TEXT NOT NULL,
+  document_type TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  blob_url TEXT, -- DEPRECATED - use blob_name
+  blob_name TEXT, -- Azure Blob Storage object path
+  extracted_data JSONB,
+  standard_id VARCHAR,
+  tagged_sections JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (project_id, vendor_name, document_type) -- Prevent duplicate proposals per vendor
 );
 
--- Generated RFTs: Final published RFT documents with questionnaires
-CREATE TABLE IF NOT EXISTS "generated_rfts" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "business_case_id" varchar NOT NULL,
-    "template_id" varchar NOT NULL,
-    "name" text NOT NULL,
-    "sections" jsonb NOT NULL,
-    "product_questionnaire_path" text,
-    "nfr_questionnaire_path" text,
-    "cybersecurity_questionnaire_path" text,
-    "agile_questionnaire_path" text,
-    "docx_blob_url" text,
-    "pdf_blob_url" text,
-    "product_questionnaire_blob_url" text,
-    "nfr_questionnaire_blob_url" text,
-    "cybersecurity_questionnaire_blob_url" text,
-    "agile_questionnaire_blob_url" text,
-    "status" text DEFAULT 'draft' NOT NULL,
-    "version" integer DEFAULT 1 NOT NULL,
-    "published_at" timestamp,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- Evaluations: Multi-agent vendor proposal evaluations
+-- ATOMIC DUPLICATE PREVENTION: Unique constraint on proposal_id (1:1 mapping)
+CREATE TABLE evaluations (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  proposal_id VARCHAR NOT NULL UNIQUE, -- Prevent duplicate evaluations per proposal
+  overall_score INTEGER NOT NULL,
+  functional_fit INTEGER NOT NULL DEFAULT 0,
+  technical_fit INTEGER NOT NULL,
+  delivery_risk INTEGER NOT NULL,
+  cost TEXT NOT NULL,
+  compliance INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  ai_rationale TEXT,
+  role_insights JSONB,
+  detailed_scores JSONB,
+  section_compliance JSONB,
+  agent_diagnostics JSONB, -- Multi-agent execution diagnostics
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- ====================================================
--- VENDOR EVALUATION
--- ====================================================
-
--- Requirements: Extracted RFT requirements
-CREATE TABLE IF NOT EXISTS "requirements" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "document_type" text DEFAULT 'RFT' NOT NULL,
-    "file_name" text NOT NULL,
-    "extracted_data" jsonb,
-    "evaluation_criteria" jsonb,
-    "standard_id" varchar,
-    "tagged_sections" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
+-- Vendor Shortlisting Stages: 10-stage procurement workflow tracking
+CREATE TABLE vendor_shortlisting_stages (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  vendor_name TEXT NOT NULL,
+  current_stage INTEGER NOT NULL DEFAULT 1, -- 1-10
+  stage_statuses JSONB NOT NULL, -- {1: {status: 'completed', date: '2024-01-15'}, 2: {status: 'in_progress', date: null}, ...}
+  rfi_initiated_date TIMESTAMP,
+  rfi_response_received_date TIMESTAMP,
+  rfi_evaluation_completed_date TIMESTAMP,
+  rft_initiated_date TIMESTAMP,
+  rft_response_received_date TIMESTAMP,
+  vendor_demo_completed_date TIMESTAMP,
+  rft_evaluation_completed_date TIMESTAMP,
+  poc_initiated_date TIMESTAMP,
+  sow_submitted_date TIMESTAMP,
+  sow_reviewed_date TIMESTAMP,
+  notes TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Proposals: Vendor responses to RFTs
-CREATE TABLE IF NOT EXISTS "proposals" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "vendor_name" text NOT NULL,
-    "document_type" text NOT NULL,
-    "file_name" text NOT NULL,
-    "blob_url" text, -- DEPRECATED: Use blob_name instead
-    "blob_name" text, -- Azure Blob Storage object path (templates/abc123/file.docx)
-    "extracted_data" jsonb,
-    "standard_id" varchar,
-    "tagged_sections" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "proposals_project_id_vendor_name_document_type_unique" UNIQUE("project_id", "vendor_name", "document_type")
+-- Agent Metrics: Performance tracking for AI agents
+CREATE TABLE agent_metrics (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  evaluation_id VARCHAR NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
+  project_id VARCHAR NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+  agent_role TEXT NOT NULL, -- 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security'
+  vendor_name TEXT NOT NULL,
+  execution_time_ms INTEGER NOT NULL,
+  token_usage INTEGER NOT NULL,
+  estimated_cost_usd NUMERIC(10, 6) NOT NULL, -- Up to $9,999.999999
+  success BOOLEAN NOT NULL,
+  error_type TEXT, -- 'timeout', 'execution_error', null if success
+  error_message TEXT,
+  timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Evaluations: AI-generated vendor evaluations
-CREATE TABLE IF NOT EXISTS "evaluations" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "proposal_id" varchar NOT NULL,
-    "overall_score" integer NOT NULL,
-    "functional_fit" integer DEFAULT 0 NOT NULL,
-    "technical_fit" integer NOT NULL,
-    "delivery_risk" integer NOT NULL,
-    "cost" text NOT NULL,
-    "compliance" integer NOT NULL,
-    "status" text NOT NULL,
-    "ai_rationale" text,
-    "role_insights" jsonb,
-    "detailed_scores" jsonb,
-    "section_compliance" jsonb,
-    "agent_diagnostics" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    CONSTRAINT "evaluations_proposal_id_unique" UNIQUE("proposal_id")
+-- Evaluation Criteria: Detailed scoring criteria
+CREATE TABLE evaluation_criteria (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  evaluation_id VARCHAR NOT NULL,
+  role TEXT NOT NULL, -- 'product', 'architecture', etc.
+  section TEXT NOT NULL,
+  question TEXT NOT NULL,
+  score INTEGER NOT NULL, -- 100, 50, 25, or 0
+  score_label TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Evaluation Criteria: Detailed scoring per question
-CREATE TABLE IF NOT EXISTS "evaluation_criteria" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "evaluation_id" varchar NOT NULL,
-    "role" text NOT NULL,
-    "section" text NOT NULL,
-    "question" text NOT NULL,
-    "score" integer NOT NULL,
-    "score_label" text NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- ============================================
+-- RAG & Knowledge Base
+-- ============================================
+
+-- RAG Documents: Document registry for knowledge base
+CREATE TABLE rag_documents (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_type TEXT NOT NULL, -- 'standard', 'proposal', 'requirement', 'confluence', 'sharepoint'
+  source_id VARCHAR, -- ID of source record
+  category TEXT NOT NULL DEFAULT 'shared', -- 'delivery', 'product', 'architecture', 'engineering', 'procurement', 'security', 'shared'
+  file_name TEXT NOT NULL,
+  blob_url TEXT, -- Azure Blob Storage URL
+  blob_name TEXT, -- Azure Blob Storage object name
+  search_doc_id TEXT, -- Azure AI Search document ID
+  index_name TEXT NOT NULL DEFAULT 'intellibid-rag',
+  total_chunks INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'indexed', 'failed'
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Vendor Shortlisting Stages: Track vendor progress through procurement stages
-CREATE TABLE IF NOT EXISTS "vendor_shortlisting_stages" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "vendor_name" text NOT NULL,
-    "current_stage" integer DEFAULT 1 NOT NULL,
-    "stage_statuses" jsonb NOT NULL,
-    "rfi_initiated_date" timestamp,
-    "rfi_response_received_date" timestamp,
-    "rfi_evaluation_completed_date" timestamp,
-    "rft_initiated_date" timestamp,
-    "rft_response_received_date" timestamp,
-    "vendor_demo_completed_date" timestamp,
-    "rft_evaluation_completed_date" timestamp,
-    "poc_initiated_date" timestamp,
-    "sow_submitted_date" timestamp,
-    "sow_reviewed_date" timestamp,
-    "notes" text,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- RAG Chunks: Semantic chunks for retrieval
+CREATE TABLE rag_chunks (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id VARCHAR NOT NULL, -- References rag_documents.id
+  chunk_index INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  token_count INTEGER NOT NULL,
+  search_chunk_id TEXT, -- Azure AI Search chunk ID
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Agent Metrics: Multi-agent AI evaluation performance tracking
-CREATE TABLE IF NOT EXISTS "agent_metrics" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "evaluation_id" varchar NOT NULL,
-    "project_id" varchar NOT NULL,
-    "agent_role" text NOT NULL,
-    "vendor_name" text NOT NULL,
-    "execution_time_ms" integer NOT NULL,
-    "token_usage" integer NOT NULL,
-    "estimated_cost_usd" numeric(10, 6) NOT NULL,
-    "success" boolean NOT NULL,
-    "error_type" text,
-    "error_message" text,
-    "timestamp" timestamp DEFAULT now() NOT NULL
-);
+-- ============================================
+-- Conversational AI
+-- ============================================
 
--- Indexes for Agent Metrics (performance optimization)
-CREATE INDEX IF NOT EXISTS "agent_metrics_evaluation_idx" ON "agent_metrics" ("evaluation_id");
-CREATE INDEX IF NOT EXISTS "agent_metrics_project_idx" ON "agent_metrics" ("project_id");
-CREATE INDEX IF NOT EXISTS "agent_metrics_agent_role_idx" ON "agent_metrics" ("agent_role");
-CREATE INDEX IF NOT EXISTS "agent_metrics_timestamp_idx" ON "agent_metrics" ("timestamp" DESC);
-CREATE INDEX IF NOT EXISTS "agent_metrics_timeseries_idx" ON "agent_metrics" ("project_id", "agent_role", "timestamp" DESC);
-
--- ====================================================
--- ADVANCED AI FEATURES
--- ====================================================
-
--- Compliance Gaps: AI-identified gaps in vendor responses
-CREATE TABLE IF NOT EXISTS "compliance_gaps" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "proposal_id" varchar NOT NULL,
-    "gap_type" text NOT NULL,
-    "severity" text NOT NULL,
-    "requirement_id" varchar,
-    "section" text,
-    "description" text NOT NULL,
-    "ai_rationale" text,
-    "suggested_action" text,
-    "is_resolved" text DEFAULT 'false' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL
-);
-
--- Follow-up Questions: AI-generated clarification questions
-CREATE TABLE IF NOT EXISTS "followup_questions" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "proposal_id" varchar NOT NULL,
-    "category" text NOT NULL,
-    "priority" text NOT NULL,
-    "question" text NOT NULL,
-    "context" text,
-    "related_section" text,
-    "ai_rationale" text,
-    "is_answered" text DEFAULT 'false' NOT NULL,
-    "answer" text,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
-);
-
--- Comparison Snapshots: Vendor comparison matrices
-CREATE TABLE IF NOT EXISTS "comparison_snapshots" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "title" text NOT NULL,
-    "comparison_type" text NOT NULL,
-    "vendor_ids" text[] NOT NULL,
-    "comparison_data" jsonb NOT NULL,
-    "highlights" jsonb,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
-);
-
--- Executive Briefings: Stakeholder-specific summaries
-CREATE TABLE IF NOT EXISTS "executive_briefings" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "stakeholder_role" text NOT NULL,
-    "briefing_type" text NOT NULL,
-    "title" text NOT NULL,
-    "content" text NOT NULL,
-    "key_findings" jsonb,
-    "recommendations" jsonb,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
-);
-
--- ====================================================
--- KNOWLEDGE BASE & RAG SYSTEM
--- ====================================================
-
--- Standards: Organizational guidelines and compliance documents
-CREATE TABLE IF NOT EXISTS "standards" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "category" text DEFAULT 'general' NOT NULL,
-    "sections" jsonb NOT NULL,
-    "tags" text[],
-    "file_name" text,
-    "document_content" text,
-    "rag_document_id" varchar,
-    "is_active" text DEFAULT 'true' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL
-);
-
--- RAG Documents: Documents indexed in Azure AI Search
-CREATE TABLE IF NOT EXISTS "rag_documents" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "source_type" text NOT NULL,
-    "source_id" varchar,
-    "file_name" text NOT NULL,
-    "blob_url" text,
-    "blob_name" text,
-    "search_doc_id" text,
-    "index_name" text DEFAULT 'intellibid-rag' NOT NULL,
-    "total_chunks" integer DEFAULT 0 NOT NULL,
-    "status" text DEFAULT 'pending' NOT NULL,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
-);
-
--- RAG Chunks: Text chunks for vector search
-CREATE TABLE IF NOT EXISTS "rag_chunks" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "document_id" varchar NOT NULL,
-    "chunk_index" integer NOT NULL,
-    "content" text NOT NULL,
-    "token_count" integer NOT NULL,
-    "search_chunk_id" text,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
-);
-
--- ====================================================
--- CHATBOT & INTEGRATIONS
--- ====================================================
-
--- Chat Sessions: Conversational AI sessions
-CREATE TABLE IF NOT EXISTS "chat_sessions" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "project_id" varchar NOT NULL,
-    "title" text,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL,
-    "updated_at" timestamp DEFAULT now() NOT NULL
+-- Chat Sessions: User chat sessions with AI assistant
+CREATE TABLE chat_sessions (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  title TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Chat Messages: Individual messages in chat sessions
-CREATE TABLE IF NOT EXISTS "chat_messages" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "session_id" varchar NOT NULL,
-    "role" text NOT NULL,
-    "content" text NOT NULL,
-    "source_references" jsonb,
-    "metadata" jsonb,
-    "created_at" timestamp DEFAULT now() NOT NULL
+CREATE TABLE chat_messages (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id VARCHAR NOT NULL,
+  role TEXT NOT NULL, -- 'user' or 'assistant'
+  content TEXT NOT NULL,
+  source_references JSONB,
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- MCP Connectors: External data source integrations
-CREATE TABLE IF NOT EXISTS "mcp_connectors" (
-    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    "name" text NOT NULL,
-    "description" text,
-    "server_url" text NOT NULL,
-    "api_key" text,
-    "connector_type" text DEFAULT 'rest' NOT NULL,
-    "auth_type" text DEFAULT 'bearer' NOT NULL,
-    "role_mapping" text[],
-    "config" jsonb,
-    "is_active" text DEFAULT 'true' NOT NULL,
-    "created_at" timestamp DEFAULT now() NOT NULL
+-- ============================================
+-- Advanced AI Features
+-- ============================================
+
+-- Compliance Gaps: AI-detected compliance issues
+CREATE TABLE compliance_gaps (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  proposal_id VARCHAR NOT NULL,
+  gap_type TEXT NOT NULL, -- 'missing_requirement', 'vague_answer', 'incomplete_information'
+  severity TEXT NOT NULL, -- 'critical', 'high', 'medium', 'low'
+  requirement_id VARCHAR,
+  section TEXT,
+  description TEXT NOT NULL,
+  ai_rationale TEXT,
+  suggested_action TEXT,
+  is_resolved TEXT NOT NULL DEFAULT 'false',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- ====================================================
--- SUCCESS MESSAGE
--- ====================================================
+-- Comparison Snapshots: Vendor comparison matrices
+CREATE TABLE comparison_snapshots (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  title TEXT NOT NULL,
+  comparison_type TEXT NOT NULL, -- 'full', 'technical', 'cost', 'security', 'custom'
+  vendor_ids TEXT[] NOT NULL,
+  comparison_data JSONB NOT NULL,
+  highlights JSONB,
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
+-- Executive Briefings: AI-generated executive summaries
+CREATE TABLE executive_briefings (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  stakeholder_role TEXT NOT NULL, -- 'CEO', 'CTO', 'CFO', 'CISO', 'COO'
+  briefing_type TEXT NOT NULL, -- 'summary', 'recommendation', 'risk_analysis'
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  key_findings JSONB,
+  recommendations JSONB,
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Follow-up Questions: AI-generated vendor questions
+CREATE TABLE followup_questions (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  proposal_id VARCHAR NOT NULL,
+  category TEXT NOT NULL, -- 'technical', 'delivery', 'cost', 'compliance', 'clarification'
+  priority TEXT NOT NULL, -- 'critical', 'high', 'medium', 'low'
+  question TEXT NOT NULL,
+  context TEXT,
+  related_section TEXT,
+  ai_rationale TEXT,
+  is_answered TEXT NOT NULL DEFAULT 'false',
+  answer TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ============================================
+-- RFT Generation & Templates
+-- ============================================
+
+-- Business Cases: Project business case documents
+CREATE TABLE business_cases (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_id VARCHAR NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  file_name TEXT NOT NULL,
+  document_content TEXT,
+  extracted_data JSONB,
+  rag_document_id VARCHAR,
+  status TEXT NOT NULL DEFAULT 'uploaded', -- 'uploaded', 'analyzed', 'processed'
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- RFT Templates: System-provided RFT templates
+CREATE TABLE rft_templates (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  category TEXT NOT NULL, -- 'IT', 'Aviation', 'Infrastructure', 'Professional Services', 'Custom'
+  sections JSONB NOT NULL,
+  metadata JSONB,
+  is_active TEXT NOT NULL DEFAULT 'true',
+  created_by TEXT NOT NULL DEFAULT 'system',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Organization Templates: User-uploaded organization templates
+CREATE TABLE organization_templates (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  category TEXT NOT NULL, -- 'RFT', 'RFI', 'RFP', 'Custom'
+  template_type TEXT NOT NULL DEFAULT 'docx', -- 'docx', 'xlsx'
+  blob_url TEXT NOT NULL, -- DEPRECATED - use blob_name
+  blob_name TEXT, -- Azure Blob Storage object path
+  placeholders JSONB NOT NULL, -- Detected placeholders
+  section_mappings JSONB, -- Stakeholder section assignments
+  is_active TEXT NOT NULL DEFAULT 'true',
+  is_default TEXT NOT NULL DEFAULT 'false',
+  metadata JSONB,
+  created_by TEXT NOT NULL DEFAULT 'system',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Generated RFTs: AI-generated RFT documents with questionnaires
+CREATE TABLE generated_rfts (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  business_case_id VARCHAR NOT NULL,
+  template_id VARCHAR NOT NULL,
+  name TEXT NOT NULL,
+  sections JSONB NOT NULL,
+  -- Local paths (DEPRECATED)
+  product_questionnaire_path TEXT,
+  nfr_questionnaire_path TEXT,
+  cybersecurity_questionnaire_path TEXT,
+  agile_questionnaire_path TEXT,
+  -- Azure Blob URLs (DEPRECATED - use blob_name fields)
+  docx_blob_url TEXT,
+  pdf_blob_url TEXT,
+  product_questionnaire_blob_url TEXT,
+  nfr_questionnaire_blob_url TEXT,
+  cybersecurity_questionnaire_blob_url TEXT,
+  agile_questionnaire_blob_url TEXT,
+  -- Azure Blob Storage paths (CURRENT)
+  docx_blob_name TEXT,
+  pdf_blob_name TEXT,
+  product_questionnaire_blob_name TEXT,
+  nfr_questionnaire_blob_name TEXT,
+  cybersecurity_questionnaire_blob_name TEXT,
+  agile_questionnaire_blob_name TEXT,
+  status TEXT NOT NULL DEFAULT 'draft', -- 'draft', 'review', 'published', 'archived'
+  version INTEGER NOT NULL DEFAULT 1,
+  published_at TIMESTAMP,
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- RFT Generation Drafts: Collaborative RFT editing with stakeholder approvals
+CREATE TABLE rft_generation_drafts (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id VARCHAR NOT NULL,
+  business_case_id VARCHAR NOT NULL,
+  template_id VARCHAR,
+  generation_mode TEXT NOT NULL, -- 'ai_generation' or 'template_merge'
+  generated_sections JSONB NOT NULL, -- Sections with stakeholder assignments and approval status
+  status TEXT NOT NULL DEFAULT 'draft', -- 'draft', 'in_review', 'approved', 'finalized'
+  approval_progress JSONB, -- {totalSections: 10, approvedSections: 3, pendingSections: 7}
+  metadata JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes (defined in azure-database-indexes.sql)
+-- See azure-database-indexes.sql for index creation statements
+
+COMMENT ON TABLE portfolios IS 'Top-level project grouping';
+COMMENT ON TABLE standards IS 'Organizational standards and compliance documents';
+COMMENT ON TABLE projects IS 'Individual RFT evaluation projects';
+COMMENT ON TABLE proposals IS 'Vendor proposal documents with atomic duplicate prevention';
+COMMENT ON TABLE evaluations IS 'Multi-agent vendor proposal evaluations with 1:1 proposal mapping';
+COMMENT ON TABLE agent_metrics IS 'Performance tracking for AI agents';
+COMMENT ON TABLE rag_documents IS 'Document registry for knowledge base';
+COMMENT ON TABLE business_cases IS 'Project business case documents';
+COMMENT ON TABLE generated_rfts IS 'AI-generated RFT documents with questionnaires';
+COMMENT ON TABLE rft_generation_drafts IS 'Collaborative RFT editing with stakeholder approvals';
+
+-- Success message
 DO $$
 BEGIN
     RAISE NOTICE '✓ IntelliBid database schema created successfully!';
-    RAISE NOTICE '✓ 24 tables created (including new Draft workflow tables)';
+    RAISE NOTICE '✓ 24 tables created with complete schema';
     RAISE NOTICE '';
     RAISE NOTICE 'Key Features:';
-    RAISE NOTICE '  • Core RFT Generation & Evaluation';
-    RAISE NOTICE '  • Draft-First Collaborative Workflow';
-    RAISE NOTICE '  • Organization Template Management';
-    RAISE NOTICE '  • Multi-Agent AI Analysis with Metrics';
-    RAISE NOTICE '  • RAG Knowledge Base Integration';
-    RAISE NOTICE '  • Advanced AI Features (Gaps, Questions, Comparisons)';
+    RAISE NOTICE '  • Atomic duplicate prevention (proposals, evaluations)';
+    RAISE NOTICE '  • Complete column set for all tables';
+    RAISE NOTICE '  • Category-based RAG organization';
+    RAISE NOTICE '  • New blob_name fields for Azure Blob Storage';
     RAISE NOTICE '';
     RAISE NOTICE 'Next steps:';
-    RAISE NOTICE '  1. Run azure-database-indexes.sql (optional performance boost)';
-    RAISE NOTICE '  2. Run azure-database-seed.sql to insert initial data';
+    RAISE NOTICE '  1. Run azure-database-indexes.sql for performance indexes';
+    RAISE NOTICE '  2. Run azure-database-seed.sql to insert sample data';
     RAISE NOTICE '  3. Configure Azure credentials via Admin Config page';
-    RAISE NOTICE '  4. Ensure server/prompts/ directory contains 6 AI agent prompt files';
 END $$;
