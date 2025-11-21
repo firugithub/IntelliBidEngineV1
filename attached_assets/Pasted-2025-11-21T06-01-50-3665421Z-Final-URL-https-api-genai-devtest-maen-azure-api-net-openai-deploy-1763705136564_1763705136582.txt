@@ -1,0 +1,29 @@
+2025-11-21T06:01:50.3665421Z   Final URL: https://api-genai-devtest-maen.azure-api.net/openai/deployments/gpt-4.1
+2025-11-21T06:01:51.7286112Z Error creating standard from upload: APIConnectionError: Connection error.
+2025-11-21T06:01:51.7286534Z     at OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:294:19)
+2025-11-21T06:01:51.7286563Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-21T06:01:51.7286586Z     at async extractComplianceSections (file:///app/dist/index.js:4091:20)
+2025-11-21T06:01:51.7286607Z     at async file:///app/dist/index.js:13735:24 {
+2025-11-21T06:01:51.7286625Z   status: undefined,
+2025-11-21T06:01:51.7286644Z   headers: undefined,
+2025-11-21T06:01:51.7286664Z   requestID: undefined,
+2025-11-21T06:01:51.7286681Z   error: undefined,
+2025-11-21T06:01:51.7286698Z   code: undefined,
+2025-11-21T06:01:51.7286714Z   param: undefined,
+2025-11-21T06:01:51.7286756Z   type: undefined,
+2025-11-21T06:01:51.7286778Z   cause: TypeError: fetch failed
+2025-11-21T06:01:51.7286797Z       at node:internal/deps/undici/undici:13510:13
+2025-11-21T06:01:51.7286818Z       at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-21T06:01:51.728684Z       at async OpenAI.fetchWithTimeout (file:///app/node_modules/openai/client.mjs:370:20)
+2025-11-21T06:01:51.7286863Z       at async OpenAI.makeRequest (file:///app/node_modules/openai/client.mjs:261:26)
+2025-11-21T06:01:51.7286884Z       at async extractComplianceSections (file:///app/dist/index.js:4091:20)
+2025-11-21T06:01:51.7286904Z       at async file:///app/dist/index.js:13735:24 {
+2025-11-21T06:01:51.7286925Z     [cause]: Error: getaddrinfo ENOTFOUND api-genai-devtest-maen.azure-api.net
+2025-11-21T06:01:51.7286946Z         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+2025-11-21T06:01:51.7286963Z       errno: -3008,
+2025-11-21T06:01:51.7287Z       code: 'ENOTFOUND',
+2025-11-21T06:01:51.7287021Z       syscall: 'getaddrinfo',
+2025-11-21T06:01:51.728704Z       hostname: 'api-genai-devtest-maen.azure-api.net'
+2025-11-21T06:01:51.7287056Z     }
+2025-11-21T06:01:51.7287072Z   }
+2025-11-21T06:01:51.7287089Z }

@@ -1,0 +1,50 @@
+2025-11-21T03:46:03.518302Z Error uploading organization template: RestError: This request is not authorized to perform this operation.
+2025-11-21T03:46:03.51834Z RequestId:aad67f0a-401e-0062-7199-5a301f000000
+2025-11-21T03:46:03.5183428Z Time:2025-11-21T03:46:03.5127585Z
+2025-11-21T03:46:03.5183447Z  {
+2025-11-21T03:46:03.5183467Z   "code": "AuthorizationFailure",
+2025-11-21T03:46:03.5183488Z   "statusCode": 403,
+2025-11-21T03:46:03.5183505Z   "details": {
+2025-11-21T03:46:03.518353Z     "errorCode": "AuthorizationFailure",
+2025-11-21T03:46:03.5183551Z     "content-length": "246",
+2025-11-21T03:46:03.5183595Z     "content-type": "application/xml",
+2025-11-21T03:46:03.5183621Z     "server": "Microsoft-HTTPAPI/2.0",
+2025-11-21T03:46:03.5183644Z     "x-ms-request-id": "aad67f0a-401e-0062-7199-5a301f000000",
+2025-11-21T03:46:03.5183695Z     "x-ms-client-request-id": "c7ce8077-fd3a-4a0e-8fd5-7aaca8154d1e",
+2025-11-21T03:46:03.5183718Z     "date": "Fri, 21 Nov 2025 03:46:02 GMT",
+2025-11-21T03:46:03.5183746Z     "message": "This request is not authorized to perform this operation.\nRequestId:aad67f0a-401e-0062-7199-5a301f000000\nTime:2025-11-21T03:46:03.5127585Z",
+2025-11-21T03:46:03.5183767Z     "code": "AuthorizationFailure"
+2025-11-21T03:46:03.5183783Z   },
+2025-11-21T03:46:03.5183803Z   "name": "RestError",
+2025-11-21T03:46:03.5183821Z   "request": {
+2025-11-21T03:46:03.5183852Z     "url": "https://inbiddevtestfwstmaen.blob.core.windows.net/intellibid-documents/templates/b745287d-1dc1-44f0-ae27-e2695d5d018b/Emirates_RFT_Template.docx",
+2025-11-21T03:46:03.5183872Z     "method": "PUT",
+2025-11-21T03:46:03.5183893Z     "headers": {
+2025-11-21T03:46:03.5183937Z       "content-type": "application/octet-stream",
+2025-11-21T03:46:03.5183961Z       "x-ms-version": "REDACTED",
+2025-11-21T03:46:03.5183983Z       "content-length": "9585",
+2025-11-21T03:46:03.5184005Z       "x-ms-meta-templateid": "REDACTED",
+2025-11-21T03:46:03.5184028Z       "x-ms-meta-templatename": "REDACTED",
+2025-11-21T03:46:03.5184051Z       "x-ms-meta-category": "REDACTED",
+2025-11-21T03:46:03.5184073Z       "x-ms-meta-uploadedby": "REDACTED",
+2025-11-21T03:46:03.5184095Z       "accept": "application/xml",
+2025-11-21T03:46:03.5184117Z       "x-ms-blob-type": "REDACTED",
+2025-11-21T03:46:03.5184147Z       "user-agent": "azsdk-js-azure-storage-blob/12.29.1 core-rest-pipeline/1.22.1 Node/20.19.5 OS/(x64-Linux-6.6.104.2-1.azl3)",
+2025-11-21T03:46:03.5184172Z       "x-ms-client-request-id": "c7ce8077-fd3a-4a0e-8fd5-7aaca8154d1e",
+2025-11-21T03:46:03.518421Z       "x-ms-date": "REDACTED",
+2025-11-21T03:46:03.5184233Z       "authorization": "REDACTED"
+2025-11-21T03:46:03.5184253Z     },
+2025-11-21T03:46:03.5184275Z     "timeout": 0,
+2025-11-21T03:46:03.5184296Z     "withCredentials": false,
+2025-11-21T03:46:03.5184318Z     "streamResponseStatusCodes": {},
+2025-11-21T03:46:03.5184341Z     "enableBrowserStreams": false,
+2025-11-21T03:46:03.5184362Z     "disableKeepAlive": false,
+2025-11-21T03:46:03.5184386Z     "requestId": "c7ce8077-fd3a-4a0e-8fd5-7aaca8154d1e",
+2025-11-21T03:46:03.5184408Z     "allowInsecureConnection": true,
+2025-11-21T03:46:03.518443Z     "tracingOptions": {
+2025-11-21T03:46:03.5184451Z       "tracingContext": {
+2025-11-21T03:46:03.5184493Z         "_contextMap": {}
+2025-11-21T03:46:03.5184513Z       }
+2025-11-21T03:46:03.5184534Z     }
+2025-11-21T03:46:03.5184552Z   }
+2025-11-21T03:46:03.5184567Z }
