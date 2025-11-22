@@ -28,6 +28,7 @@ export class AzureEmbeddingService {
       apiKey,
       defaultQuery: { "api-version": apiVersion },
       defaultHeaders: { "api-key": apiKey },
+      timeout: 180000, // 3 minutes for private endpoint latency
     });
     // Use the deployment name in model parameter (Azure ignores it but SDK requires it)
     this.deploymentName = deployment;

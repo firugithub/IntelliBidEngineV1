@@ -53,6 +53,7 @@ export async function getOpenAIClient(): Promise<OpenAI> {
         apiKey: config.apiKey,
         defaultQuery: { "api-version": config.azureApiVersion },
         defaultHeaders: { "api-key": config.apiKey },
+        timeout: 180000, // 3 minutes for private endpoint latency
       });
     } else {
       // Regular OpenAI configuration
@@ -60,6 +61,7 @@ export async function getOpenAIClient(): Promise<OpenAI> {
       openaiClient = new OpenAI({
         apiKey: config.apiKey,
         baseURL: config.baseUrl,
+        timeout: 180000, // 3 minutes for private endpoint latency
       });
     }
     

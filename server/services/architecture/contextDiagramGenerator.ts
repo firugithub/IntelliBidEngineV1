@@ -32,11 +32,13 @@ export async function extractContextArchitecture(businessCaseContent: string): P
       apiKey: config.apiKey,
       defaultQuery: { "api-version": config.azureApiVersion },
       defaultHeaders: { "api-key": config.apiKey },
+      timeout: 180000, // 3 minutes for private endpoint latency
     });
   } else {
     client = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseUrl,
+      timeout: 180000, // 3 minutes for private endpoint latency
     });
   }
 
