@@ -34,18 +34,73 @@ export function createVendorProfiles(vendorNames: string[]): VendorProfile[] {
   return profiles;
 }
 
-// Get compliance score based on vendor strength
+// Get compliance score based on vendor strength with enhanced variance for differentiation
+// Handles full range from 0.0-1.0 with dynamic probability curves
+// High-strength vendors (0.85+) get predominantly "Full" scores with rare gaps
+// Mid-strength vendors (0.5-0.85) show realistic mix favoring their tier
+// Low-strength vendors (0.0-0.5) show significant gaps and limitations
 function getRandomComplianceScore(strength: number): ComplianceScore {
   const rand = Math.random();
   
-  if (rand < strength * 0.7) {
-    return "Full";
-  } else if (rand < strength * 0.9) {
-    return "Partial";
-  } else if (rand < 0.95) {
-    return "None";
-  } else {
-    return "Not Applicable";
+  // Clamp strength to valid range [0.0, 1.0]
+  const clampedStrength = Math.max(0.0, Math.min(1.0, strength));
+  
+  // Dynamic scoring curves based on strength - full 0.0 to 1.0 range
+  if (clampedStrength >= 0.90) {
+    // Elite vendors (0.90-1.0) - 80-85% Full, 12-18% Partial, 2-5% None/NA
+    if (rand < 0.82) return "Full";
+    else if (rand < 0.97) return "Partial";
+    else if (rand < 0.99) return "None";
+    else return "Not Applicable";
+  }
+  else if (clampedStrength >= 0.80) {
+    // High-strength vendors (0.80-0.90) - 65-75% Full, 18-25% Partial, 5-10% None/NA
+    if (rand < 0.70) return "Full";
+    else if (rand < 0.92) return "Partial";
+    else if (rand < 0.98) return "None";
+    else return "Not Applicable";
+  } 
+  else if (clampedStrength >= 0.70) {
+    // Mid-high strength vendors (0.70-0.80) - 50-60% Full, 25-35% Partial, 10-15% None/NA
+    if (rand < 0.55) return "Full";
+    else if (rand < 0.85) return "Partial";
+    else if (rand < 0.97) return "None";
+    else return "Not Applicable";
+  } 
+  else if (clampedStrength >= 0.60) {
+    // Mid strength vendors (0.60-0.70) - 35-45% Full, 35-45% Partial, 15-20% None/NA
+    if (rand < 0.40) return "Full";
+    else if (rand < 0.75) return "Partial";
+    else if (rand < 0.96) return "None";
+    else return "Not Applicable";
+  } 
+  else if (clampedStrength >= 0.50) {
+    // Mid-low strength vendors (0.50-0.60) - 25-35% Full, 35-45% Partial, 25-30% None/NA
+    if (rand < 0.30) return "Full";
+    else if (rand < 0.65) return "Partial";
+    else if (rand < 0.94) return "None";
+    else return "Not Applicable";
+  }
+  else if (clampedStrength >= 0.40) {
+    // Low strength vendors (0.40-0.50) - 15-25% Full, 30-40% Partial, 40-50% None/NA
+    if (rand < 0.20) return "Full";
+    else if (rand < 0.50) return "Partial";
+    else if (rand < 0.92) return "None";
+    else return "Not Applicable";
+  }
+  else if (clampedStrength >= 0.30) {
+    // Very low strength vendors (0.30-0.40) - 8-15% Full, 25-35% Partial, 55-65% None/NA
+    if (rand < 0.12) return "Full";
+    else if (rand < 0.40) return "Partial";
+    else if (rand < 0.90) return "None";
+    else return "Not Applicable";
+  }
+  else {
+    // Weak vendors (0.0-0.30) - 2-8% Full, 15-25% Partial, 70-80% None/NA
+    if (rand < 0.05) return "Full";
+    else if (rand < 0.25) return "Partial";
+    else if (rand < 0.88) return "None";
+    else return "Not Applicable";
   }
 }
 
