@@ -1,5 +1,6 @@
 import { SearchIndexerClient, AzureKeyCredential } from "@azure/search-documents";
 import { ConfigHelper } from "../core/configHelpers";
+import { storage } from "../../storage";
 
 /**
  * Azure AI Search Skillset and Indexer Service
@@ -20,6 +21,22 @@ export class AzureSearchSkillsetService {
     console.log("=".repeat(80));
     
     try {
+      // Step 0: Check if OCR is enabled
+      console.log("[Skillset] Step 0/7: Checking OCR configuration...");
+      const ocrConfig = await storage.getSystemConfigByKey("ocr_enabled");
+      const ocrEnabled = ocrConfig?.value === "true";
+      
+      if (!ocrEnabled) {
+        console.log("[Skillset] ⚠️ OCR is DISABLED in system configuration");
+        console.log("[Skillset] Knowledge base is configured for direct text embedding mode");
+        console.log("[Skillset] No OCR skillset initialization needed");
+        console.log("[Skillset] To enable OCR: Go to Admin Config page and toggle 'Enable OCR Skillset'");
+        console.log("=".repeat(80));
+        return; // Return successfully - OCR disabled is not an error
+      }
+      
+      console.log("[Skillset] ✓ OCR is ENABLED - proceeding with initialization");
+      
       // Step 1: Validate configuration
       console.log("[Skillset] Step 1/6: Validating Azure configuration...");
       const { endpoint, apiKey } = ConfigHelper.getAzureSearchConfig();

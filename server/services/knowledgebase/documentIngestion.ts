@@ -36,7 +36,7 @@ interface IngestionResult {
 export class DocumentIngestionService {
   /**
    * Get effective text content for chunking, preferring OCR-enriched text if available
-   * Falls back to original text if OCR not available within timeout
+   * Falls back to original text if OCR not available within timeout or if OCR is disabled
    */
   private async getEffectiveContent(options: {
     blobName: string;
@@ -46,6 +46,17 @@ export class DocumentIngestionService {
     const { blobName, defaultText, timeoutMs = 30000 } = options;
 
     try {
+      // Check if OCR is enabled in system configuration
+      const ocrConfig = await storage.getSystemConfigByKey("ocr_enabled");
+      const ocrEnabled = ocrConfig?.value === "true";
+      
+      if (!ocrEnabled) {
+        console.log(`[RAG] OCR is DISABLED - using direct text extraction for: ${blobName}`);
+        return { content: defaultText, ocrEnriched: false };
+      }
+
+      console.log(`[RAG] OCR is ENABLED - attempting to retrieve OCR-enriched text for: ${blobName}`);
+      
       // Attempt to retrieve OCR-enriched text from staging index
       const mergedText = await azureSearchSkillsetService.waitForOcrMergedText({
         blobName,

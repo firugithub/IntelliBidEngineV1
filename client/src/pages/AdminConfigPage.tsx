@@ -2,8 +2,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, AlertCircle, CheckCircle2, XCircle, Trash2, Info, Play, RotateCcw, Zap } from "lucide-react";
+import { Settings, AlertCircle, CheckCircle2, XCircle, Trash2, Info, Play, RotateCcw, Zap, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
 import {
@@ -21,6 +23,31 @@ import {
 export default function AdminConfigPage() {
   const { toast } = useToast();
   const [showIndexerStatus, setShowIndexerStatus] = useState(false);
+
+  // OCR configuration query and mutation
+  const ocrConfigQuery = useQuery<{ success: boolean; enabled: boolean }>({
+    queryKey: ["/api/config/ocr-enabled"],
+  });
+
+  const updateOcrConfigMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return await apiRequest("POST", "/api/config/ocr-enabled", { enabled });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: data.enabled ? "OCR Enabled" : "OCR Disabled",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/config/ocr-enabled"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to update OCR setting",
+      });
+    },
+  });
 
   const testConnectivityMutation = useMutation({
     mutationFn: async () => {
@@ -232,11 +259,55 @@ export default function AdminConfigPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Knowledge Base OCR Configuration
+            </CardTitle>
+            <CardDescription>
+              Enable or disable OCR (Optical Character Recognition) for extracting text from images in uploaded documents
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="space-y-1 flex-1 pr-4">
+                <Label 
+                  htmlFor="ocr-toggle" 
+                  className="text-sm font-medium cursor-pointer"
+                  data-testid="label-ocr-toggle"
+                >
+                  Enable OCR Skillset
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, documents uploaded to the knowledge base will be processed with Azure AI Search OCR skillset to extract text from images and scanned PDFs. When disabled, only native text extraction is used.
+                </p>
+              </div>
+              <Switch
+                id="ocr-toggle"
+                checked={ocrConfigQuery.data?.enabled ?? false}
+                onCheckedChange={(checked) => updateOcrConfigMutation.mutate(checked)}
+                disabled={ocrConfigQuery.isLoading || updateOcrConfigMutation.isPending}
+                data-testid="switch-ocr-enabled"
+              />
+            </div>
+
+            <Alert className="border-blue-500/50 bg-blue-500/10">
+              <Info className="w-4 h-4 text-blue-500" />
+              <AlertDescription className="text-foreground text-sm">
+                <strong>OCR Disabled Mode:</strong> Knowledge base works with direct text embedding approach - no Azure Cognitive Services key required. Perfect for production deployment when OCR infrastructure is not yet configured.
+                <br /><br />
+                <strong>OCR Enabled Mode:</strong> Extracts text from images, scanned documents, and visual content using Azure AI Search OCR skillset. Requires <code className="text-xs bg-muted px-1 py-0.5 rounded">AZURE_COGNITIVE_SERVICES_KEY</code> environment variable.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5" />
               OCR Skillset & Indexer
             </CardTitle>
             <CardDescription>
-              Manage Azure AI Search skillset for OCR image text extraction. Documents with images are automatically processed when uploaded.
+              Manage Azure AI Search skillset for OCR image text extraction. Only available when OCR is enabled above.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

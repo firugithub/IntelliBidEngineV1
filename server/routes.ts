@@ -1595,6 +1595,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/skillset/initialize", async (req, res) => {
     try {
       console.log("[Skillset API] Initializing skillset and indexer...");
+      
+      // Check if OCR is enabled before attempting initialization
+      const ocrConfig = await storage.getSystemConfigByKey("ocr_enabled");
+      const ocrEnabled = ocrConfig?.value === "true";
+      
+      if (!ocrEnabled) {
+        return res.json({
+          success: true,
+          ocrDisabled: true,
+          message: "OCR is currently disabled. Knowledge base is using direct text embedding mode without OCR skillset. Enable OCR in the toggle above to initialize skillset.",
+        });
+      }
+      
       await azureSearchSkillsetService.initialize();
       res.json({ 
         success: true, 
@@ -1709,6 +1722,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false,
         message: error.message || "Failed to reset indexer"
+      });
+    }
+  });
+
+  // Configuration routes - OCR Settings
+  // Get OCR enabled/disabled state
+  app.get("/api/config/ocr-enabled", async (req, res) => {
+    try {
+      const config = await storage.getSystemConfigByKey("ocr_enabled");
+      const enabled = config?.value === "true";
+      res.json({ 
+        success: true, 
+        enabled 
+      });
+    } catch (error: any) {
+      console.error("[Config API] Failed to get OCR setting:", error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to get OCR setting"
+      });
+    }
+  });
+
+  // Update OCR enabled/disabled state
+  app.post("/api/config/ocr-enabled", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid request: 'enabled' must be a boolean"
+        });
+      }
+
+      await storage.upsertSystemConfig({
+        category: "rag_settings",
+        key: "ocr_enabled",
+        value: enabled ? "true" : "false",
+        isEncrypted: "false",
+        description: "Enable or disable OCR skillset for knowledge base document processing",
+      });
+
+      console.log(`[Config API] OCR ${enabled ? 'enabled' : 'disabled'} successfully`);
+      res.json({ 
+        success: true, 
+        enabled,
+        message: `OCR ${enabled ? 'enabled' : 'disabled'} successfully`
+      });
+    } catch (error: any) {
+      console.error("[Config API] Failed to update OCR setting:", error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to update OCR setting"
       });
     }
   });
