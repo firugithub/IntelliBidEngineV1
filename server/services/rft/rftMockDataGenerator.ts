@@ -370,10 +370,10 @@ export async function generateVendorResponses(rftId: string) {
     throw new Error("Project not found");
   }
 
-  // Use project vendorList if available, otherwise use default vendor names
+  // Use project vendorList if available, otherwise use real aviation vendors with detailed personas
   const rawVendors = project.vendorList && project.vendorList.length > 0
     ? project.vendorList.slice(0, 3)
-    : ["TechVendor Solutions", "GlobalSoft Systems", "InnovateTech Partners"];
+    : ["Amadeus IT Group", "Sabre Corporation", "SITA"];
   
   // CRITICAL: Normalize and deduplicate vendor names to prevent duplicate proposals
   const vendors = deduplicateVendors(rawVendors);
