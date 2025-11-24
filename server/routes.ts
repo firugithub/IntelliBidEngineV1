@@ -5453,6 +5453,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track if we actually performed any evaluations (vs all being duplicates)
       let evaluationsPerformed = 0;
       
+      // Calculate unique vendor count (since each vendor has 4 proposals)
+      const uniqueVendors = Array.from(new Set(proposals.map(p => p.vendorName)));
+      const totalVendors = uniqueVendors.length;
+      
+      console.log(`Found ${proposals.length} proposals from ${totalVendors} vendors`);
+      
       // Evaluate each proposal
       for (let i = 0; i < proposals.length; i++) {
         const proposal = proposals[i];
@@ -5532,12 +5538,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         evaluationsPerformed++;
         console.log(`   ✅ Created new evaluation ${placeholderEvaluation.id} for vendor ${proposal.vendorName}`);
         
+        // Calculate vendor index based on unique vendor position (not proposal index)
+        const vendorIndex = uniqueVendors.indexOf(proposal.vendorName);
+        
         // Emit progress for this vendor with evaluation ID
         const vendorContext = {
           projectId,
           vendorName: proposal.vendorName,
-          vendorIndex: i,
-          totalVendors: proposals.length,
+          vendorIndex: vendorIndex,
+          totalVendors: totalVendors,
           evaluationId: placeholderEvaluation.id,
         };
         
