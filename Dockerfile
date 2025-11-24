@@ -39,17 +39,23 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install ca-certificates first (with --no-check-certificate to bypass SSL verification during initial setup)
+# This is required because Alpine needs ca-certificates to validate SSL connections
+RUN apk update --no-check-certificate && \
+    apk add --no-check-certificate ca-certificates && \
+    update-ca-certificates
+
 # Install su-exec for secure privilege dropping (lightweight alternative to gosu)
 RUN apk add --no-cache su-exec
 
 # Install Chromium and Puppeteer dependencies for Mermaid diagram generation
 # Required for Product Technical Questionnaire context diagrams
+# Now that ca-certificates is installed, normal SSL verification works
 RUN apk add --no-cache \
     chromium \
     nss \
     freetype \
     harfbuzz \
-    ca-certificates \
     ttf-freefont \
     font-noto-emoji \
     fontconfig
