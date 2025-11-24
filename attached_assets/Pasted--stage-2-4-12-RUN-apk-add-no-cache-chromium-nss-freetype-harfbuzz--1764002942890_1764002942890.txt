@@ -1,0 +1,41 @@
+------
+ > [stage-2  4/12] RUN apk add --no-cache     chromium     nss     freetype     harfbuzz     ca-certificates     ttf-freefont     font-noto-emoji     fontconfig:
+0.414 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+0.545 289B13370A7B0000:error:0A000086:SSL routines:tls_post_process_server_certificate:certificate verify failed:ssl/statem/statem_clnt.c:2123:
+0.548 WARNING: fetching https://dl-cdn.alpinelinux.org/alpine/v3.22/main: Permission denied
+0.548 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/APKINDEX.tar.gz
+0.656 289B13370A7B0000:error:0A000086:SSL routines:tls_post_process_server_certificate:certificate verify failed:ssl/statem/statem_clnt.c:2123:
+0.658 WARNING: fetching https://dl-cdn.alpinelinux.org/alpine/v3.22/community: Permission denied
+0.658 ERROR: unable to select packages:
+0.658   ca-certificates (no such package):
+0.658     required by: world[ca-certificates]
+0.658   chromium (no such package):
+0.658     required by: world[chromium]
+0.658   font-noto-emoji (no such package):
+0.658     required by: world[font-noto-emoji]
+0.658   fontconfig (no such package):
+0.658     required by: world[fontconfig]
+0.658   freetype (no such package):
+0.658     required by: world[freetype]
+0.658   harfbuzz (no such package):
+0.658     required by: world[harfbuzz]
+0.658   nss (no such package):
+0.658     required by: world[nss]
+0.658   ttf-freefont (no such package):
+0.658     required by: world[ttf-freefont]
+------
+Dockerfile:47
+--------------------
+  46 |     # Required for Product Technical Questionnaire context diagrams
+  47 | >>> RUN apk add --no-cache \
+  48 | >>>     chromium \
+  49 | >>>     nss \
+  50 | >>>     freetype \
+  51 | >>>     harfbuzz \
+  52 | >>>     ca-certificates \
+  53 | >>>     ttf-freefont \
+  54 | >>>     font-noto-emoji \
+  55 | >>>     fontconfig
+  56 |
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c apk add --no-cache     chromium     nss     freetype     harfbuzz     ca-certificates     ttf-freefont     font-noto-emoji     fontconfig" did not complete successfully: exit code: 8
