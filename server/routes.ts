@@ -581,6 +581,55 @@ async function validateUrlSecurity(url: string): Promise<{ valid: boolean; error
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve local files (fallback when Azure Storage is unavailable)
+  app.get("/api/files/:filename(*)", async (req, res) => {
+    try {
+      const filename = decodeURIComponent(req.params.filename);
+      
+      // Security: Prevent path traversal attacks
+      // Reject filenames containing path traversal patterns
+      if (filename.includes('..') || filename.includes('\\') || filename.startsWith('/')) {
+        console.warn(`[File Serve] Path traversal attempt blocked: ${filename}`);
+        return res.status(403).json({ error: "Invalid file path" });
+      }
+      
+      // Additional security: Only allow expected file patterns
+      // Files should be in known subdirectories: knowledge-base, rft-generation, proposals, etc.
+      const allowedPrefixes = ['knowledge-base/', 'rft-generation/', 'proposals/', 'evaluations/', 'templates/'];
+      const hasValidPrefix = allowedPrefixes.some(prefix => filename.startsWith(prefix)) || !filename.includes('/');
+      
+      if (!hasValidPrefix) {
+        console.warn(`[File Serve] Unauthorized path access blocked: ${filename}`);
+        return res.status(403).json({ error: "Invalid file path" });
+      }
+      
+      const buffer = await azureBlobStorageService.downloadDocument(filename);
+      
+      // Determine content type from file extension
+      const ext = filename.split('.').pop()?.toLowerCase();
+      const contentTypeMap: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'zip': 'application/zip',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'txt': 'text/plain',
+        'json': 'application/json',
+      };
+      
+      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename.split('/').pop()}"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error(`[File Serve] Error serving file ${req.params.filename}:`, error);
+      res.status(404).json({ error: "File not found" });
+    }
+  });
+
   // Seed portfolios endpoint
   app.post("/api/seed-portfolios", async (req, res) => {
     try {
