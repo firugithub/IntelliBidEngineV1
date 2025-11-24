@@ -581,55 +581,6 @@ async function validateUrlSecurity(url: string): Promise<{ valid: boolean; error
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Serve local files (fallback when Azure Storage is unavailable)
-  app.get("/api/files/:filename(*)", async (req, res) => {
-    try {
-      const filename = decodeURIComponent(req.params.filename);
-      
-      // Security: Prevent path traversal attacks
-      // Reject filenames containing path traversal patterns
-      if (filename.includes('..') || filename.includes('\\') || filename.startsWith('/')) {
-        console.warn(`[File Serve] Path traversal attempt blocked: ${filename}`);
-        return res.status(403).json({ error: "Invalid file path" });
-      }
-      
-      // Additional security: Only allow expected file patterns
-      // Files should be in known subdirectories: knowledge-base, rft-generation, proposals, etc.
-      const allowedPrefixes = ['knowledge-base/', 'rft-generation/', 'proposals/', 'evaluations/', 'templates/'];
-      const hasValidPrefix = allowedPrefixes.some(prefix => filename.startsWith(prefix)) || !filename.includes('/');
-      
-      if (!hasValidPrefix) {
-        console.warn(`[File Serve] Unauthorized path access blocked: ${filename}`);
-        return res.status(403).json({ error: "Invalid file path" });
-      }
-      
-      const buffer = await azureBlobStorageService.downloadDocument(filename);
-      
-      // Determine content type from file extension
-      const ext = filename.split('.').pop()?.toLowerCase();
-      const contentTypeMap: Record<string, string> = {
-        'pdf': 'application/pdf',
-        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'zip': 'application/zip',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'txt': 'text/plain',
-        'json': 'application/json',
-      };
-      
-      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
-      
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename.split('/').pop()}"`);
-      res.send(buffer);
-    } catch (error) {
-      console.error(`[File Serve] Error serving file ${req.params.filename}:`, error);
-      res.status(404).json({ error: "File not found" });
-    }
-  });
-
   // Seed portfolios endpoint
   app.post("/api/seed-portfolios", async (req, res) => {
     try {
@@ -1155,9 +1106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // PHASE 3: Ingest document into RAG system (Azure Blob + AI Search)
-      let ragStatus: "success" | "failed" | "skipped" = "skipped";
-      let ragError: string | undefined;
-      
       try {
         const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
         
@@ -1179,51 +1127,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
 
-        // Update standard with RAG document ID (link even on failure for recovery)
-        await storage.updateStandard(standard.id, {
-          ragDocumentId: ragResult.documentId,
-        });
-        
+        // Update standard with RAG document ID
         if (ragResult.status === "success") {
+          await storage.updateStandard(standard.id, {
+            ragDocumentId: ragResult.documentId,
+          });
           console.log(`[RAG] Standard "${name}" linked to RAG document: ${ragResult.documentId}`);
-          ragStatus = "success";
         } else {
           console.warn(`[RAG] Failed to ingest standard "${name}" into RAG system:`, ragResult.error);
-          console.log(`[RAG] File may be accessible at: ${ragResult.blobUrl || 'N/A'}`);
-          ragStatus = "failed";
-          ragError = ragResult.error;
         }
-      } catch (ragException: any) {
+      } catch (ragError) {
         // Log RAG ingestion failure but don't fail the standard creation
-        console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragException);
-        ragStatus = "failed";
-        ragError = ragException instanceof Error ? ragException.message : "RAG ingestion failed";
+        console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragError);
       }
 
-      // Return the final standard with RAG status and file accessibility info
+      // Return the final standard
       const updatedStandard = await storage.getStandard(standard.id);
-      
-      // Get RAG document to include blob URL for failed ingestions
-      let fileAccessUrl: string | undefined;
-      if (ragStatus === "failed" && updatedStandard?.ragDocumentId) {
-        try {
-          const ragDoc = await storage.getRagDocument(updatedStandard.ragDocumentId);
-          if (ragDoc?.blobUrl) {
-            fileAccessUrl = ragDoc.blobUrl;
-          }
-        } catch (err) {
-          console.warn("[RAG] Could not retrieve RAG document for failed ingestion");
-        }
-      }
-      
       return {
         fileName,
-        status: ragStatus === "success" ? "success" : "partial" as const,
+        status: "success" as const,
         standard: updatedStandard || standard,
         error: null,
-        ragStatus,
-        ragError,
-        fileUrl: fileAccessUrl, // URL to access file when RAG fails but file is preserved
       };
     } catch (error) {
       console.error(`Error processing document "${fileName}":`, error);
