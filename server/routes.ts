@@ -1155,6 +1155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // PHASE 3: Ingest document into RAG system (Azure Blob + AI Search)
+      let ragStatus: "success" | "failed" | "skipped" = "skipped";
+      let ragError: string | undefined;
+      
       try {
         const { documentIngestionService } = await import("./services/knowledgebase/documentIngestion");
         
@@ -1176,27 +1179,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
 
-        // Update standard with RAG document ID
+        // Update standard with RAG document ID (link even on failure for recovery)
+        await storage.updateStandard(standard.id, {
+          ragDocumentId: ragResult.documentId,
+        });
+        
         if (ragResult.status === "success") {
-          await storage.updateStandard(standard.id, {
-            ragDocumentId: ragResult.documentId,
-          });
           console.log(`[RAG] Standard "${name}" linked to RAG document: ${ragResult.documentId}`);
+          ragStatus = "success";
         } else {
           console.warn(`[RAG] Failed to ingest standard "${name}" into RAG system:`, ragResult.error);
+          console.log(`[RAG] File may be accessible at: ${ragResult.blobUrl || 'N/A'}`);
+          ragStatus = "failed";
+          ragError = ragResult.error;
         }
-      } catch (ragError) {
+      } catch (ragException: any) {
         // Log RAG ingestion failure but don't fail the standard creation
-        console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragError);
+        console.error(`[RAG] RAG ingestion failed for standard "${name}":`, ragException);
+        ragStatus = "failed";
+        ragError = ragException instanceof Error ? ragException.message : "RAG ingestion failed";
       }
 
-      // Return the final standard
+      // Return the final standard with RAG status and file accessibility info
       const updatedStandard = await storage.getStandard(standard.id);
+      
+      // Get RAG document to include blob URL for failed ingestions
+      let fileAccessUrl: string | undefined;
+      if (ragStatus === "failed" && updatedStandard?.ragDocumentId) {
+        try {
+          const ragDoc = await storage.getRagDocument(updatedStandard.ragDocumentId);
+          if (ragDoc?.blobUrl) {
+            fileAccessUrl = ragDoc.blobUrl;
+          }
+        } catch (err) {
+          console.warn("[RAG] Could not retrieve RAG document for failed ingestion");
+        }
+      }
+      
       return {
         fileName,
-        status: "success" as const,
+        status: ragStatus === "success" ? "success" : "partial" as const,
         standard: updatedStandard || standard,
         error: null,
+        ragStatus,
+        ragError,
+        fileUrl: fileAccessUrl, // URL to access file when RAG fails but file is preserved
       };
     } catch (error) {
       console.error(`Error processing document "${fileName}":`, error);

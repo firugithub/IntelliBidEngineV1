@@ -296,12 +296,32 @@ export class DocumentIngestionService {
       
       // CRITICAL: Clean up Azure resources if they were created
       // Blob cleanup (only for new uploads, not re-indexing)
+      // When using local fallback, preserve blobs for manual recovery/debugging
       if (blobName && !options.documentId) {
-        console.log(`[RAG] Cleaning up orphaned blob: ${blobName}`);
-        try {
-          await azureBlobStorageService.deleteDocument(blobName);
-        } catch (cleanupError) {
-          console.error(`[RAG] Failed to cleanup blob: ${blobName}`, cleanupError);
+        const storageStatus = azureBlobStorageService.getStorageStatus();
+        const usingLocalFallback = !storageStatus.available;
+        
+        if (usingLocalFallback) {
+          console.log(`[RAG] Local fallback mode - preserving blob for manual recovery: ${blobName}`);
+          console.log(`[RAG] File accessible at: /api/files/${encodeURIComponent(blobName)}`);
+          // Update document status to show file is available but not indexed
+          try {
+            await storage.updateRagDocument(documentId, {
+              status: "failed",
+              blobUrl: `/api/files/${encodeURIComponent(blobName)}`,
+              blobName: blobName,
+            });
+          } catch (updateError) {
+            console.error("[RAG] Failed to update document with file reference", updateError);
+          }
+        } else {
+          // Azure mode - clean up orphaned blobs to avoid storage costs
+          console.log(`[RAG] Cleaning up orphaned blob: ${blobName}`);
+          try {
+            await azureBlobStorageService.deleteDocument(blobName);
+          } catch (cleanupError) {
+            console.error(`[RAG] Failed to cleanup blob: ${blobName}`, cleanupError);
+          }
         }
       }
       
@@ -316,15 +336,27 @@ export class DocumentIngestionService {
       }
       
       // Update document status to failed (record already exists from step 0)
-      try {
-        await storage.updateRagDocumentStatus(documentId, "failed");
-      } catch (updateError) {
-        console.error("[RAG] Failed to update document status", updateError);
+      // If using local fallback, status was already updated with blob reference above
+      const storageStatus = azureBlobStorageService.getStorageStatus();
+      const usingLocalFallback = !storageStatus.available;
+      
+      if (!usingLocalFallback) {
+        // Only update status if we didn't already update it with blob reference
+        try {
+          await storage.updateRagDocumentStatus(documentId, "failed");
+        } catch (updateError) {
+          console.error("[RAG] Failed to update document status", updateError);
+        }
       }
+
+      // Return the preserved blob URL in local fallback mode
+      const failedBlobUrl = usingLocalFallback && blobName 
+        ? `/api/files/${encodeURIComponent(blobName)}`
+        : "";
 
       return {
         documentId,
-        blobUrl: "",
+        blobUrl: failedBlobUrl,
         chunksIndexed: 0,
         totalTokens: 0,
         status: "failed",
