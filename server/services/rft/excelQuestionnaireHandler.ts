@@ -50,6 +50,7 @@ function getRandomComplianceScore(strength: number): ComplianceScore {
 }
 
 // Generate realistic, vendor-specific remarks based on compliance score and persona
+// Enhanced version with richer, more diverse responses leveraging full persona data
 function generateRemark(
   compliance: ComplianceScore, 
   questionText: string, 
@@ -57,99 +58,168 @@ function generateRemark(
 ): string {
   const persona = getVendorPersona(vendorName);
   
-  // Base remarks for each compliance level
-  const baseRemarks = {
-    Full: [
-      "Fully compliant with all requirements",
-      "Meets all specified criteria",
-      "Complete implementation available",
-      "Exceeds requirements",
-      "Comprehensive coverage provided",
-    ],
-    Partial: [
-      "Partially meets requirements - customization needed",
-      "Meets most requirements, some gaps identified",
-      "Requires additional configuration",
-      "Implementation in progress",
-      "Roadmap item for full compliance",
-    ],
-    None: [
-      "Does not meet this requirement",
-      "Not currently supported",
-      "Would require significant customization",
-      "Outside current product scope",
-      "Alternative approach proposed",
-    ],
-    "Not Applicable": [
-      "Not applicable to our solution",
-      "N/A - different architecture",
-      "Not relevant for this implementation",
-    ],
-  };
+  // Extract key topics from question for context-aware responses
+  const questionLower = questionText.toLowerCase();
+  const isSecurityQuestion = questionLower.includes('security') || questionLower.includes('encrypt') || 
+                              questionLower.includes('auth') || questionLower.includes('compliance');
+  const isScalabilityQuestion = questionLower.includes('scale') || questionLower.includes('performance') || 
+                                 questionLower.includes('throughput');
+  const isIntegrationQuestion = questionLower.includes('integrate') || questionLower.includes('api') || 
+                                 questionLower.includes('interface');
   
-  // Add vendor-specific flavor based on persona characteristics
-  const vendorSpecificRemarks = {
-    Full: [] as string[],
-    Partial: [] as string[],
-    None: [] as string[],
-    "Not Applicable": [] as string[]
-  };
+  // Build rich, vendor-specific remarks pool
+  const vendorRemarks: string[] = [];
   
-  // Add persona-specific remarks for Full compliance
   if (compliance === "Full") {
+    // Leverage technical approach
+    vendorRemarks.push(`Fully supported via our ${persona.technicalApproach.architecture.toLowerCase()}`);
+    
+    // Reference specific domain strengths
     if (persona.strengths.domain.length > 0) {
-      vendorSpecificRemarks.Full.push(`Supported via ${persona.strengths.domain[0].split(' ')[0]} capabilities`);
+      const randomStrength = persona.strengths.domain[Math.floor(Math.random() * persona.strengths.domain.length)];
+      vendorRemarks.push(`Complete coverage through ${randomStrength.toLowerCase()}`);
     }
+    
+    // Add technical capability highlights
+    if (persona.strengths.technical.length > 0) {
+      const randomTech = persona.strengths.technical[Math.floor(Math.random() * persona.strengths.technical.length)];
+      vendorRemarks.push(`${randomTech} - fully addresses this requirement`);
+    }
+    
+    // Market position influences response
+    if (persona.marketPosition === "market_leader") {
+      vendorRemarks.push("Industry-leading implementation proven at scale across 200+ deployments");
+      vendorRemarks.push("Exceeds requirements with enterprise-grade capabilities");
+    } else if (persona.marketPosition === "challenger") {
+      vendorRemarks.push("Modern implementation leveraging latest industry best practices");
+      vendorRemarks.push("Competitive feature set with innovative approach");
+    } else if (persona.marketPosition === "specialist") {
+      vendorRemarks.push("Deep specialization in this exact domain - comprehensive solution");
+    }
+    
+    // Innovation level adds flavor
     if (persona.technicalApproach.innovationLevel === "cutting_edge") {
-      vendorSpecificRemarks.Full.push("Advanced implementation using latest industry standards");
+      vendorRemarks.push("Advanced implementation using AI/ML and latest industry standards");
+      vendorRemarks.push("Next-generation capabilities with continuous innovation pipeline");
+    } else if (persona.technicalApproach.innovationLevel === "modern") {
+      vendorRemarks.push("Contemporary architecture with proven stability");
     }
+    
+    // Documentation quality affects detail
     if (persona.responseStyle.documentationQuality === "excellent") {
-      vendorSpecificRemarks.Full.push("Comprehensive documentation and examples available");
+      vendorRemarks.push("Comprehensive documentation, SDKs, and reference implementations available");
+      vendorRemarks.push("Extensive API documentation with code samples and tutorials");
+    } else if (persona.responseStyle.documentationQuality === "good") {
+      vendorRemarks.push("Detailed technical documentation and implementation guides provided");
     }
-  }
-  
-  // Add persona-specific remarks for Partial compliance
-  if (compliance === "Partial") {
+    
+    // Business strengths
+    if (persona.strengths.business.length > 0) {
+      const randomBusiness = persona.strengths.business[Math.floor(Math.random() * persona.strengths.business.length)];
+      vendorRemarks.push(`${randomBusiness} ensuring successful deployment`);
+    }
+    
+    // Context-aware responses
+    if (isSecurityQuestion) {
+      vendorRemarks.push("Meets all security requirements with SOC 2, ISO 27001 compliance and encryption at rest/transit");
+    }
+    if (isScalabilityQuestion) {
+      vendorRemarks.push("Proven scalability handling millions of transactions with auto-scaling architecture");
+    }
+    if (isIntegrationQuestion) {
+      vendorRemarks.push("RESTful APIs with comprehensive SDK support and pre-built connectors");
+    }
+  } 
+  else if (compliance === "Partial") {
+    // Reference technical gaps
     if (persona.gaps.technical.length > 0) {
-      vendorSpecificRemarks.Partial.push(`Partial coverage - ${persona.gaps.technical[0].toLowerCase()}`);
+      const randomGap = persona.gaps.technical[Math.floor(Math.random() * persona.gaps.technical.length)];
+      vendorRemarks.push(`Partial coverage - ${randomGap.toLowerCase()} may require workaround`);
+      vendorRemarks.push(`Core functionality available, though ${randomGap.toLowerCase()}`);
     }
+    
+    // Business constraints
+    if (persona.gaps.business.length > 0) {
+      const randomBusinessGap = persona.gaps.business[Math.floor(Math.random() * persona.gaps.business.length)];
+      vendorRemarks.push(`Meets 70-80% of requirements - ${randomBusinessGap.toLowerCase()} is a consideration`);
+    }
+    
+    // Integration complexity impacts partial responses
     if (persona.technicalApproach.integrationComplexity === "high") {
-      vendorSpecificRemarks.Partial.push("Requires integration effort to fully meet requirement");
+      vendorRemarks.push("Requires custom integration development to fully meet requirement (4-6 weeks estimated)");
+    } else if (persona.technicalApproach.integrationComplexity === "medium") {
+      vendorRemarks.push("Standard configuration needed to fully address requirement (2-3 weeks)");
     }
-  }
-  
-  // Add persona-specific remarks for None compliance
-  if (compliance === "None") {
-    if (persona.gaps.technical.length > 1) {
-      vendorSpecificRemarks.None.push(`Not supported due to ${persona.gaps.technical[0].toLowerCase()}`);
+    
+    // Compliance approach affects response
+    if (persona.responseStyle.complianceApproach === "proactive") {
+      vendorRemarks.push("On product roadmap for Q2 2025 - interim workaround available");
+      vendorRemarks.push("Partial native support + custom module can achieve full compliance");
+    } else if (persona.responseStyle.complianceApproach === "selective") {
+      vendorRemarks.push("Alternative approach recommended - will discuss in detail during evaluation");
     }
+    
+    // Generic partial remarks
+    vendorRemarks.push("Meets most requirements, requires configuration for full compliance");
+    vendorRemarks.push("Core functionality present, some gaps require customization");
+  } 
+  else if (compliance === "None") {
+    // Reference specific gaps
+    if (persona.gaps.technical.length > 0) {
+      const randomGap = persona.gaps.technical[Math.floor(Math.random() * persona.gaps.technical.length)];
+      vendorRemarks.push(`Not currently supported - ${randomGap.toLowerCase()} limits this capability`);
+    }
+    
+    // Market position affects "None" responses
     if (persona.marketPosition === "specialist") {
-      vendorSpecificRemarks.None.push("Outside our core domain specialization");
+      vendorRemarks.push("Outside our core specialization area - not part of current product scope");
+    } else if (persona.marketPosition === "emerging") {
+      vendorRemarks.push("Not yet available in current version - evaluating for future roadmap");
     }
+    
+    // Documentation gaps
+    if (persona.gaps.documentation.length > 0) {
+      vendorRemarks.push("Significant customization required - limited documentation for this use case");
+    }
+    
+    // Alternative solutions
+    vendorRemarks.push("Would require third-party integration or custom development (6-12 month effort)");
+    vendorRemarks.push("Not supported natively - alternative approach using partner ecosystem proposed");
+    vendorRemarks.push("Outside current product capabilities - recommend alternative solution");
+  } 
+  else if (compliance === "Not Applicable") {
+    // Architecture-driven N/A
+    vendorRemarks.push(`N/A - our ${persona.technicalApproach.architecture.toLowerCase()} uses different approach`);
+    vendorRemarks.push("Not applicable to our solution architecture");
+    vendorRemarks.push("Different architectural paradigm - requirement not relevant");
   }
   
-  // Combine base and vendor-specific remarks
-  const allRemarks = [...baseRemarks[compliance], ...vendorSpecificRemarks[compliance]];
+  // Adjust remark frequency and detail based on response style
+  const detailMultiplier = {
+    comprehensive: 1.0,
+    detailed: 0.85,
+    summary: 0.70,
+    brief: 0.50,
+  }[persona.responseStyle.detailLevel] || 0.70;
   
-  // Adjust remark frequency based on documentation quality
   const remarkProbability = {
-    excellent: 0.85,
-    good: 0.75,
-    adequate: 0.65,
-    sparse: 0.50,
+    excellent: 0.95,
+    good: 0.85,
+    adequate: 0.70,
+    sparse: 0.55,
   }[persona.responseStyle.documentationQuality] || 0.70;
   
-  const shouldAddRemark = Math.random() < remarkProbability;
+  const shouldAddRemark = Math.random() < (remarkProbability * detailMultiplier);
   
   if (!shouldAddRemark && compliance === "Full") {
-    return ""; // Don't always add remarks for Full compliance
+    return ""; // Sometimes skip remarks for Full compliance (varies by vendor style)
   }
   
-  if (allRemarks.length === 0) {
+  if (vendorRemarks.length === 0) {
     return "";
   }
   
-  return allRemarks[Math.floor(Math.random() * allRemarks.length)];
+  return vendorRemarks[Math.floor(Math.random() * vendorRemarks.length)];
 }
 
 // Fill questionnaire with compliance scores
