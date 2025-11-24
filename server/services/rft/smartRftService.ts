@@ -715,12 +715,13 @@ export async function generateRftFromBusinessCase(
   console.log(`Generated ${sections.length} RFT sections`);
 
   // Generate all 4 questionnaires using AI
+  // Production-quality coverage: increased question counts for comprehensive vendor evaluation
   console.log("Generating questionnaires...");
   const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
-    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
-    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
-    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
-    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "product", 50),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 75),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 40),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", 40),
   ]);
 
   console.log("Generated all questionnaire questions, creating Excel files...");
