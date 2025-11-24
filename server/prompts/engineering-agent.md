@@ -72,7 +72,7 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create detailed engineering requirements that vendors must address. Focus on API quality, developer experience, code standards, observability, and technical maturity.
+Create detailed engineering requirements tailored to the specific project context above. Analyze the business objective, scope, and target systems to determine appropriate API standards, developer tools, and technical quality requirements. DO NOT assume this is an airline project unless explicitly stated in the context.
 
 **Generate the following sections:**
 

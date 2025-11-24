@@ -71,44 +71,46 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create detailed architecture requirements that vendors must address. Focus on scalability, integration patterns, cloud-native design, and enterprise compliance.
+Create detailed architecture requirements tailored to the specific project context above. Analyze the business objective, scope, and target systems to determine appropriate architecture patterns, scalability needs, and integration requirements. DO NOT assume this is an airline project unless explicitly stated in the context.
 
-**Generate the following sections:**
+**Generate domain-appropriate sections covering:**
 
 1. **Architecture Patterns & Design Principles**
-   - Required architectural approach (microservices, event-driven, API-first)
-   - Cloud-native design patterns and containerization
-   - Data architecture and persistence strategies
-   - CQRS, saga patterns, and distributed transactions
+   - Required architectural approach aligned with the business objective
+   - Cloud-native or on-premise design patterns as appropriate
+   - Data architecture and persistence strategies for the specific domain
+   - Distributed system patterns relevant to the scope
 
 2. **Scalability & Performance Requirements**
-   - Expected transaction volumes (PAX, bookings per second)
-   - Response time SLAs (p50, p95, p99 latency targets)
-   - Uptime requirements (99.9%, 99.99%)
-   - Auto-scaling and capacity planning
+   - Expected transaction volumes based on business objective
+   - Response time SLAs appropriate to the domain
+   - Uptime requirements based on criticality
+   - Auto-scaling and capacity planning specific to scope
 
 3. **Integration Architecture**
-   - API design standards (REST, GraphQL, gRPC)
-   - Event streaming and message queue requirements
-   - Integration with existing airline systems (PSS, GDS, loyalty)
-   - Third-party service integration patterns
+   - API design standards relevant to target systems
+   - Event streaming and message queue requirements if applicable
+   - Integration with existing systems mentioned in scope and target systems
+   - Third-party service integration patterns for this domain
 
 4. **Security & Compliance Architecture**
-   - Zero-trust architecture principles
+   - Security architecture principles appropriate to data sensitivity
    - Data encryption standards (at-rest, in-transit, in-use)
-   - Compliance frameworks (ISO 27001, PCI-DSS, SOC 2, GDPR)
-   - Identity and access management (IAM, SSO, MFA)
+   - Compliance frameworks relevant to the industry/domain
+   - Identity and access management requirements
 
 5. **Disaster Recovery & Business Continuity**
-   - Multi-region deployment capabilities
-   - RPO (Recovery Point Objective) and RTO (Recovery Time Objective)
+   - Deployment strategy (multi-region, single-region, hybrid) based on scope
+   - RPO and RTO aligned with business criticality
    - Data replication and backup strategies
    - Failover and high availability design
 
 6. **Technical Debt & Modernization**
-   - Migration strategy from legacy systems
+   - Migration strategy from existing systems (if mentioned in scope)
    - Approach to managing technical debt
-   - Roadmap for architectural evolution
+   - Roadmap for architectural evolution aligned with business objective
+
+**CRITICAL:** Adapt all content, examples, terminology, and architecture requirements to match the actual project domain indicated by the business objective and scope. Use domain-specific transaction types, integration points, and compliance frameworks.
 
 **Output Format:**
 

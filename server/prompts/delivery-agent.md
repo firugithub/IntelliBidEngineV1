@@ -71,7 +71,7 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create detailed delivery and implementation requirements that vendors must address. Focus on methodology, timelines, resource planning, risk management, and change management.
+Create detailed delivery and implementation requirements tailored to the specific project context above. Analyze the business objective, scope, and target systems to determine appropriate delivery methodology, timeline expectations, and implementation approach. DO NOT assume this is an airline project unless explicitly stated in the context.
 
 **Generate the following sections:**
 

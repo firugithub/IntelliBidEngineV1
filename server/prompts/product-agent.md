@@ -70,37 +70,40 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create a detailed product requirements section that vendors must address in their proposals. Focus on passenger-centric features, IATA standards compliance, and modern airline distribution capabilities.
+Create a detailed product requirements section tailored to the specific project context above. Analyze the business objective and scope to determine the appropriate domain, technology, and feature requirements. DO NOT assume this is an airline PSS project unless explicitly stated in the context.
 
-**Generate the following sections:**
+**Generate domain-appropriate sections covering:**
 
 1. **Functional Requirements**
-   - Core PSS capabilities (reservations, ticketing, inventory management, departure control)
-   - Passenger experience features (search, booking flow, seat selection, ancillaries)
-   - Loyalty program integration and personalization
-   - Mobile and omnichannel capabilities
+   - Core product capabilities directly aligned with the business objective
+   - User-facing features and functionality specific to the target systems
+   - Integration with existing systems mentioned in scope
+   - User experience and accessibility considerations
 
-2. **IATA Standards Compliance**
-   - NDC Level 3/4 certification requirements
-   - ONE Order compliance and roadmap
-   - EDIST messaging support
-   - GDS integration and modern distribution
+2. **Industry Standards & Compliance**
+   - Relevant industry standards for this specific domain (NOT generic airline standards unless applicable)
+   - Regulatory compliance requirements appropriate to the scope
+   - Certification or accreditation requirements if applicable
+   - Best practices for the identified industry/domain
 
-3. **User Experience Criteria**
-   - Mobile-first design principles
-   - Accessibility standards (WCAG 2.1 AA)
-   - Personalization and journey orchestration
-   - Response time and performance expectations
+3. **Feature Completeness Criteria**
+   - Must-have vs. nice-to-have features based on business objective
+   - Competitive benchmark expectations for this domain
+   - Innovation and roadmap alignment
+   - Performance and quality expectations
 
-4. **Integration Requirements**
-   - API-first architecture and documentation standards
-   - Integration with existing airline systems
-   - Third-party service integrations (payment, loyalty, CRM)
+4. **Integration & Interoperability**
+   - API requirements and documentation standards
+   - Integration with systems mentioned in target systems and scope
+   - Data exchange formats and protocols relevant to this domain
+   - Third-party service integrations as needed
 
-5. **Product Roadmap Expectations**
-   - Innovation trajectory and feature releases
-   - Alignment with airline digital transformation goals
-   - Support for emerging IATA standards
+5. **Product Roadmap & Innovation**
+   - Future-proofing and scalability expectations
+   - Technology evolution aligned with the business objective
+   - Support for emerging standards in the relevant domain
+
+**CRITICAL:** Adapt all content, examples, terminology, and requirements to match the actual project domain indicated by the business objective and scope. If it's MRO, use MRO terminology. If it's cargo, use cargo terminology. If it's PSS, use PSS terminology.
 
 **Output Format:**
 
@@ -108,7 +111,7 @@ Return structured JSON with clear, vendor-friendly requirements:
 
 {
   "sectionTitle": "Product Requirements",
-  "content": "Full markdown-formatted section text with all requirements, criteria, and expectations",
-  "questionsForVendors": ["Question 1 vendors must answer", "Question 2...", "Question 3..."],
-  "evaluationCriteria": ["Criterion 1 for scoring vendor responses", "Criterion 2...", "Criterion 3..."]
+  "content": "Full markdown-formatted section text with all requirements, criteria, and expectations tailored to the project domain",
+  "questionsForVendors": ["Domain-specific question 1 vendors must answer", "Question 2...", "Question 3..."],
+  "evaluationCriteria": ["Domain-specific criterion 1 for scoring vendor responses", "Criterion 2...", "Criterion 3..."]
 }

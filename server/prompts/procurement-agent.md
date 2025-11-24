@@ -68,7 +68,7 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create detailed commercial and procurement requirements that vendors must address. Focus on pricing transparency, licensing models, contract terms, SLAs, and vendor governance.
+Create detailed commercial and procurement requirements tailored to the specific project context above. Analyze the business objective and scope to determine appropriate pricing models, licensing structures, and contract terms. DO NOT assume this is an airline project unless explicitly stated in the context.
 
 **Generate the following sections:**
 

@@ -69,7 +69,7 @@ PROJECT CONTEXT:
 
 **Your Task:**
 
-Create detailed security and compliance requirements that vendors must address. Focus on data protection, regulatory compliance, threat detection, and security monitoring.
+Create detailed security and compliance requirements tailored to the specific project context above. Analyze the business objective, scope, and target systems to determine appropriate security standards, compliance frameworks, and data protection requirements. DO NOT assume this is an airline project unless explicitly stated in the context. Adapt all compliance frameworks (ISO, PCI-DSS, etc.) to be relevant to the actual domain.
 
 **Generate the following sections:**
 
