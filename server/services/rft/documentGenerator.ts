@@ -230,9 +230,30 @@ export async function generateDocxDocument(options: GenerateDocOptions): Promise
           })
         );
       } else if (item.type === 'heading') {
-        const headingLevel = item.level === 1 ? HeadingLevel.HEADING_2 : 
-                           item.level === 2 ? HeadingLevel.HEADING_3 : 
-                           HeadingLevel.HEADING_3;
+        // Map markdown heading levels (1-6) to Word heading levels
+        // Level 1 -> HEADING_2 (since section title is HEADING_1)
+        // Levels 2-6 -> HEADING_3 through HEADING_6
+        let headingLevel;
+        switch (item.level) {
+          case 1:
+            headingLevel = HeadingLevel.HEADING_2;
+            break;
+          case 2:
+            headingLevel = HeadingLevel.HEADING_3;
+            break;
+          case 3:
+            headingLevel = HeadingLevel.HEADING_4;
+            break;
+          case 4:
+            headingLevel = HeadingLevel.HEADING_5;
+            break;
+          case 5:
+          case 6:
+          default:
+            headingLevel = HeadingLevel.HEADING_6;
+            break;
+        }
+        
         const textRuns = item.segments!.map(seg => 
           new TextRun({ 
             text: seg.text, 
