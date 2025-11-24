@@ -1,0 +1,60 @@
+2025-11-22T17:09:25.7088305Z [Skillset]     ✗ Failed to create/update skillset after 1330ms
+2025-11-22T17:09:25.7088727Z [Skillset]     Error: Provided key is not a valid CognitiveServices type key for the region of your search service.
+2025-11-22T17:09:25.7088751Z [Skillset]     HTTP Status: 400
+2025-11-22T17:09:25.7089039Z ================================================================================
+2025-11-22T17:09:25.7089068Z [Skillset] ❌ Initialization FAILED
+2025-11-22T17:09:25.7089092Z ================================================================================
+2025-11-22T17:09:25.7094106Z [Skillset] Error Type: RestError
+2025-11-22T17:09:25.7094281Z [Skillset] Error Message: Provided key is not a valid CognitiveServices type key for the region of your search service.
+2025-11-22T17:09:25.7101793Z [Skillset] HTTP Status Code: 400
+2025-11-22T17:09:25.7103551Z [Skillset] → HTTP 400 error occurred
+2025-11-22T17:09:25.710363Z [Skillset] Additional Details: {
+2025-11-22T17:09:25.7103651Z   "error": {
+2025-11-22T17:09:25.710367Z     "code": "",
+2025-11-22T17:09:25.7103692Z     "message": "Provided key is not a valid CognitiveServices type key for the region of your search service."
+2025-11-22T17:09:25.7103709Z   }
+2025-11-22T17:09:25.7103725Z }
+2025-11-22T17:09:25.7106277Z [Skillset] Stack Trace:
+2025-11-22T17:09:25.7106372Z RestError: Provided key is not a valid CognitiveServices type key for the region of your search service.
+2025-11-22T17:09:25.7106398Z     at handleErrorResponse (file:///app/node_modules/@azure/core-client/dist/esm/deserializationPolicy.js:142:19)
+2025-11-22T17:09:25.7106446Z     at deserializeResponseBody (file:///app/node_modules/@azure/core-client/dist/esm/deserializationPolicy.js:78:45)
+2025-11-22T17:09:25.7106469Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-22T17:09:25.7106489Z ================================================================================
+2025-11-22T17:09:25.7114659Z [Skillset API] Failed to initialize skillset: RestError: Provided key is not a valid CognitiveServices type key for the region of your search service.
+2025-11-22T17:09:25.7114849Z  {
+2025-11-22T17:09:25.7114872Z   "code": "",
+2025-11-22T17:09:25.7114891Z   "statusCode": 400,
+2025-11-22T17:09:25.7114908Z   "details": {
+2025-11-22T17:09:25.7114926Z     "error": {
+2025-11-22T17:09:25.7114943Z       "code": "",
+2025-11-22T17:09:25.7115001Z       "message": "Provided key is not a valid CognitiveServices type key for the region of your search service."
+2025-11-22T17:09:25.711502Z     }
+2025-11-22T17:09:25.7115053Z   },
+2025-11-22T17:09:25.7115072Z   "name": "RestError",
+2025-11-22T17:09:25.7115087Z   "request": {
+2025-11-22T17:09:25.7115112Z     "url": "https://inbid-devtest-app-search-maen.search.windows.net/skillsets('intellibid-ocr-skillset')?api-version=2025-09-01",
+2025-11-22T17:09:25.7115129Z     "method": "PUT",
+2025-11-22T17:09:25.7115145Z     "headers": {
+2025-11-22T17:09:25.7115162Z       "content-type": "application/json",
+2025-11-22T17:09:25.7115182Z       "accept": "application/json;odata.metadata=minimal",
+2025-11-22T17:09:25.7115218Z       "prefer": "REDACTED",
+2025-11-22T17:09:25.7115236Z       "accept-encoding": "gzip,deflate",
+2025-11-22T17:09:25.7115259Z       "user-agent": "azsdk-js-search-documents/12.2.0 core-rest-pipeline/1.22.1 Node/20.19.5 OS/(x64-Linux-6.6.104.2-1.azl3)",
+2025-11-22T17:09:25.7115281Z       "x-ms-client-request-id": "7717a264-4e81-431b-8f32-4aac76f852f7",
+2025-11-22T17:09:25.7115299Z       "api-key": "REDACTED",
+2025-11-22T17:09:25.7115317Z       "content-length": "997"
+2025-11-22T17:09:25.7115335Z     },
+2025-11-22T17:09:25.7115351Z     "timeout": 0,
+2025-11-22T17:09:25.7115366Z     "withCredentials": false,
+2025-11-22T17:09:25.7115385Z     "streamResponseStatusCodes": {},
+2025-11-22T17:09:25.7115401Z     "enableBrowserStreams": false,
+2025-11-22T17:09:25.7115418Z     "disableKeepAlive": false,
+2025-11-22T17:09:25.7115453Z     "requestId": "7717a264-4e81-431b-8f32-4aac76f852f7",
+2025-11-22T17:09:25.7115471Z     "allowInsecureConnection": false,
+2025-11-22T17:09:25.7115487Z     "tracingOptions": {
+2025-11-22T17:09:25.7115504Z       "tracingContext": {
+2025-11-22T17:09:25.7115525Z         "_contextMap": {}
+2025-11-22T17:09:25.7115543Z       }
+2025-11-22T17:09:25.7115559Z     }
+2025-11-22T17:09:25.7115575Z   }
+2025-11-22T17:09:25.711559Z }
