@@ -78,8 +78,8 @@ function parseMarkdownContent(content: string): ParsedContent[] {
       continue;
     }
 
-    // Headers
-    const headerMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    // Headers (support all markdown heading levels 1-6)
+    const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
     if (headerMatch) {
       flushLists();
       parsed.push({
