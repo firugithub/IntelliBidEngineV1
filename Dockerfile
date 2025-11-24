@@ -42,6 +42,22 @@ WORKDIR /app
 # Install su-exec for secure privilege dropping (lightweight alternative to gosu)
 RUN apk add --no-cache su-exec
 
+# Install Chromium and Puppeteer dependencies for Mermaid diagram generation
+# Required for Product Technical Questionnaire context diagrams
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-emoji \
+    fontconfig
+
+# Set Puppeteer environment variables to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Install production dependencies only
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
