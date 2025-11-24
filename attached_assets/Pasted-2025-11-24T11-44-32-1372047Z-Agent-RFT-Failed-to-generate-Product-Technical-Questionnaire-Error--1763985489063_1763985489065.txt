@@ -1,0 +1,29 @@
+2025-11-24T11:44:32.1372047Z [Agent RFT] Failed to generate Product Technical Questionnaire: Error: Failed to render Mermaid diagram: Command failed: /app/node_modules/.bin/mmdc -i /app/uploads/temp/diagram_1763984671679.mmd -o /app/uploads/context_diagram_1763984664921.png -t default -b #ffffff -w 1920 -H 1440 -c /app/uploads/temp/mermaid-config.json -p /app/uploads/temp/puppeteer-config.json
+2025-11-24T11:44:32.1372461Z
+2025-11-24T11:44:32.1372492Z Error: Could not find Chrome (ver. 131.0.6778.204). This can occur if either
+2025-11-24T11:44:32.1372518Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome-headless-shell`) or
+2025-11-24T11:44:32.1372539Z  2. your cache path is incorrectly configured (which is: /home/nodejs/.cache/puppeteer).
+2025-11-24T11:44:32.137256Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-11-24T11:44:32.1372581Z     at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/BrowserLauncher.js:266:27)
+2025-11-24T11:44:32.1372601Z     at ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/ChromeLauncher.js:85:24)
+2025-11-24T11:44:32.1372656Z     at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/BrowserLauncher.js:45:28)
+2025-11-24T11:44:32.137268Z     at async run (file:///app/node_modules/@mermaid-js/mermaid-cli/src/index.js:551:17)
+2025-11-24T11:44:32.1372701Z     at async cli (file:///app/node_modules/@mermaid-js/mermaid-cli/src/index.js:214:3)
+2025-11-24T11:44:32.1372716Z
+2025-11-24T11:44:32.1372731Z
+2025-11-24T11:44:32.1372746Z Mermaid CLI error:
+2025-11-24T11:44:32.1372764Z Error: Could not find Chrome (ver. 131.0.6778.204). This can occur if either
+2025-11-24T11:44:32.1372783Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome-headless-shell`) or
+2025-11-24T11:44:32.1372801Z  2. your cache path is incorrectly configured (which is: /home/nodejs/.cache/puppeteer).
+2025-11-24T11:44:32.1372819Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-11-24T11:44:32.1372861Z     at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/BrowserLauncher.js:266:27)
+2025-11-24T11:44:32.1372882Z     at ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/ChromeLauncher.js:85:24)
+2025-11-24T11:44:32.1372903Z     at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/node/BrowserLauncher.js:45:28)
+2025-11-24T11:44:32.1372922Z     at async run (file:///app/node_modules/@mermaid-js/mermaid-cli/src/index.js:551:17)
+2025-11-24T11:44:32.137294Z     at async cli (file:///app/node_modules/@mermaid-js/mermaid-cli/src/index.js:214:3)
+2025-11-24T11:44:32.1372956Z
+2025-11-24T11:44:32.137297Z
+2025-11-24T11:44:32.1372986Z     at renderMermaidToPng (file:///app/dist/index.js:11704:11)
+2025-11-24T11:44:32.1373005Z     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-24T11:44:32.1373021Z     at async generateContextDiagram (file:///app/dist/index.js:11716:19)
+2025-11-24T11:44:32.1373038Z     at async file:///app/dist/index.js:16370:31
