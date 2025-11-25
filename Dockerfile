@@ -46,7 +46,7 @@ RUN apk update --no-check-certificate && \
     update-ca-certificates
 
 # Install su-exec for secure privilege dropping (lightweight alternative to gosu)
-RUN apk add --no-cache su-exec
+RUN apk add --no-cache --no-check-certificate su-exec
 
 # Install Chromium and Puppeteer dependencies for Mermaid diagram generation
 # Required for Product Technical Questionnaire context diagrams
