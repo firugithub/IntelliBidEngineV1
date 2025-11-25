@@ -1,70 +1,104 @@
 -- ============================================================================
--- PRODUCTION DATABASE CLEANUP: Vendor Name Duplicates
+-- PRODUCTION DATABASE CLEANUP: Vendor Name Duplicates (SAFE VERSION)
 -- ============================================================================
--- This script removes duplicate vendor entries caused by inconsistent 
--- vendor name formatting (e.g., "Salesforce, Inc." vs "SalesforceInc")
+-- This script SAFELY removes duplicate vendor entries by:
+-- 1. Only deleting duplicates that have a valid counterpart
+-- 2. Reassigning evaluations to the correct proposal before deletion
 -- 
 -- RUN THIS ON PRODUCTION DATABASE AFTER DEPLOYING THE CODE FIX
 -- ============================================================================
 
--- Step 1: View current duplicates (for verification - run first)
--- SELECT vendor_name, COUNT(*) as proposal_count 
--- FROM proposals 
--- GROUP BY vendor_name 
--- ORDER BY vendor_name;
+-- Step 1: DIAGNOSTIC - View current vendor names and identify duplicates
+-- Run this first to understand what will be cleaned
+SELECT 
+  vendor_name,
+  REGEXP_REPLACE(REGEXP_REPLACE(vendor_name, '[^a-zA-Z0-9\s]', '', 'g'), '\s+', ' ', 'g') as normalized_name,
+  COUNT(*) as proposal_count,
+  array_agg(id) as proposal_ids
+FROM proposals 
+GROUP BY vendor_name
+ORDER BY normalized_name, vendor_name;
 
--- Step 2: Delete evaluations that reference duplicate proposals
--- (Proposals with no space in names like "SalesforceInc", "ServiceNowInc", etc.)
-DELETE FROM evaluations WHERE proposal_id IN (
-  SELECT id FROM proposals 
-  WHERE vendor_name ~ '^[A-Za-z0-9]+$' 
-    AND vendor_name LIKE '%Inc'
-    AND vendor_name NOT LIKE '% Inc'
-);
+-- Step 2: DIAGNOSTIC - Find duplicates that share the same normalized name
+-- This identifies vendors like "SalesforceInc" vs "Salesforce Inc"
+SELECT 
+  REGEXP_REPLACE(REGEXP_REPLACE(vendor_name, '[^a-zA-Z0-9\s]', '', 'g'), '\s+', ' ', 'g') as normalized,
+  array_agg(DISTINCT vendor_name) as variants,
+  COUNT(DISTINCT vendor_name) as variant_count
+FROM proposals
+GROUP BY normalized
+HAVING COUNT(DISTINCT vendor_name) > 1
+ORDER BY variant_count DESC;
 
--- Step 3: Delete the duplicate proposals (no-space versions)
-DELETE FROM proposals 
-WHERE vendor_name ~ '^[A-Za-z0-9]+$' 
-  AND vendor_name LIKE '%Inc'
-  AND vendor_name NOT LIKE '% Inc';
+-- ============================================================================
+-- STEP 3: SAFE CLEANUP - Only proceed if Step 2 shows duplicates
+-- ============================================================================
 
--- Also handle Corp, LLC variations
-DELETE FROM evaluations WHERE proposal_id IN (
-  SELECT id FROM proposals 
-  WHERE vendor_name ~ '^[A-Za-z0-9]+$' 
-    AND (vendor_name LIKE '%Corp' OR vendor_name LIKE '%LLC')
-    AND vendor_name NOT LIKE '% Corp'
-    AND vendor_name NOT LIKE '% LLC'
-);
-
-DELETE FROM proposals 
-WHERE vendor_name ~ '^[A-Za-z0-9]+$' 
-  AND (vendor_name LIKE '%Corp' OR vendor_name LIKE '%LLC')
-  AND vendor_name NOT LIKE '% Corp'
-  AND vendor_name NOT LIKE '% LLC';
-
--- Step 4: Normalize ALL vendor names to remove special characters
--- This ensures future consistency even if some names have commas/periods
-UPDATE proposals 
-SET vendor_name = REGEXP_REPLACE(
-  REGEXP_REPLACE(
-    REGEXP_REPLACE(vendor_name, '[^a-zA-Z0-9\s]', '', 'g'),  -- Remove special chars
-    '\s+', ' ', 'g'                                           -- Collapse spaces
-  ),
-  '^\s+|\s+$', '', 'g'                                        -- Trim
+-- Create temp table to map duplicates to their canonical (spaced) version
+CREATE TEMP TABLE vendor_mapping AS
+WITH normalized AS (
+  SELECT 
+    id,
+    vendor_name,
+    project_id,
+    TRIM(REGEXP_REPLACE(REGEXP_REPLACE(vendor_name, '[^a-zA-Z0-9\s]', '', 'g'), '\s+', ' ', 'g')) as norm_name
+  FROM proposals
+),
+canonical AS (
+  SELECT DISTINCT ON (project_id, norm_name)
+    id as canonical_id,
+    vendor_name as canonical_name,
+    norm_name,
+    project_id
+  FROM normalized
+  WHERE vendor_name LIKE '% %'  -- Prefer names with spaces
+  ORDER BY project_id, norm_name, LENGTH(vendor_name) DESC
 )
-WHERE vendor_name ~ '[^a-zA-Z0-9\s]';
+SELECT 
+  n.id as duplicate_id,
+  n.vendor_name as duplicate_name,
+  c.canonical_id,
+  c.canonical_name
+FROM normalized n
+JOIN canonical c ON n.norm_name = c.norm_name AND n.project_id = c.project_id
+WHERE n.id != c.canonical_id;
 
--- Step 5: Verify cleanup (run after to confirm)
--- SELECT vendor_name, COUNT(*) as proposal_count 
--- FROM proposals 
--- GROUP BY vendor_name 
--- ORDER BY vendor_name;
+-- View what will be cleaned (REVIEW THIS BEFORE PROCEEDING)
+SELECT * FROM vendor_mapping ORDER BY canonical_name, duplicate_name;
+
+-- Step 4: Reassign evaluations from duplicate proposals to canonical proposals
+UPDATE evaluations e
+SET proposal_id = vm.canonical_id
+FROM vendor_mapping vm
+WHERE e.proposal_id = vm.duplicate_id;
+
+-- Step 5: Delete duplicate proposals (now safe - evaluations were reassigned)
+DELETE FROM proposals p
+USING vendor_mapping vm
+WHERE p.id = vm.duplicate_id;
+
+-- Step 6: Normalize all remaining vendor names to prevent future issues
+UPDATE proposals 
+SET vendor_name = TRIM(
+  REGEXP_REPLACE(
+    REGEXP_REPLACE(vendor_name, '[^a-zA-Z0-9\s]', '', 'g'),
+    '\s+', ' ', 'g'
+  )
+)
+WHERE vendor_name ~ '[^a-zA-Z0-9\s]' OR vendor_name ~ '\s{2,}';
+
+-- Step 7: VERIFY - Check all vendor names are now normalized
+SELECT vendor_name, COUNT(*) as count
+FROM proposals
+GROUP BY vendor_name
+ORDER BY vendor_name;
+
+-- Cleanup temp table
+DROP TABLE IF EXISTS vendor_mapping;
 
 -- ============================================================================
 -- EXPECTED RESULTS:
--- - "SalesforceInc" deleted, keeping "Salesforce Inc"
--- - "ServiceNowInc" deleted, keeping "ServiceNow Inc"  
--- - "IBMCorp" deleted, keeping "IBM Corp"
--- - All vendor names now have spaces and no special characters
+-- - Duplicate proposals merged (e.g., "SalesforceInc" → "Salesforce Inc")
+-- - Evaluations preserved and reassigned to canonical proposals
+-- - All vendor names normalized (no special chars, single spaces)
 -- ============================================================================
