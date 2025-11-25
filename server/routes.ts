@@ -2135,6 +2135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Failed to calculate Excel scores for ${vendorName}:`, error);
         }
 
+        // Look for cost data from procurement proposal's extractedData
+        // This ensures cost-benefit analysis has accurate pricing data regardless of which evaluation is picked
+        const procurementProposal = proposals.find(
+          p => p.vendorName === vendorName && p.documentType === "procurement"
+        );
+        const procurementCost = (procurementProposal?.extractedData as any)?.costStructure || null;
+        
         // If evaluation exists, return it enriched with documents and scores
         if (evaluation) {
           return {
@@ -2143,6 +2150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             documents: vendorDocuments,
             excelScores,
             hybridScores,
+            // Override cost with procurement cost if available (more accurate than AI-generated)
+            cost: procurementCost || evaluation.cost || "Not specified",
           };
         }
         
@@ -2154,7 +2163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           overallScore: 0,
           technicalFit: 0,
           deliveryRisk: 0,
-          cost: "Not evaluated",
+          cost: procurementCost || "Not evaluated",
           compliance: 0,
           status: "under-review" as const,
           aiRationale: "Evaluation pending",

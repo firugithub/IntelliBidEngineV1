@@ -504,9 +504,18 @@ export async function generateVendorResponses(rftId: string) {
     const [productResponse, nfrResponse, securityResponse, agileResponse] = fillResults;
     
     // Fill procurement questionnaire with cost data (separate handling for multi-sheet Excel)
+    // Returns both buffer and cost summary for database storage
     let procurementResponse: Buffer | null = null;
+    let procurementCostSummary: { 
+      year1Total: number; year2Total: number; year3Total: number; 
+      year4Total: number; year5Total: number; tcoTotal: number; 
+      formatted: string; pricingTier: string 
+    } | null = null;
     if (procurementBuffer) {
-      procurementResponse = await fillProcurementQuestionnaireWithCosts(procurementBuffer, vendorName);
+      const procurementResult = await fillProcurementQuestionnaireWithCosts(procurementBuffer, vendorName);
+      procurementResponse = procurementResult.buffer;
+      procurementCostSummary = procurementResult.costSummary;
+      console.log(`  💰 Cost summary for ${vendorName}: ${procurementCostSummary.formatted}`);
     }
 
     // Upload filled questionnaires to Azure Blob Storage
@@ -577,13 +586,27 @@ export async function generateVendorResponses(rftId: string) {
       },
     ];
     
-    // Add procurement proposal if available
+    // Add procurement proposal if available - includes cost summary for Cost-Benefit Analysis
     if (procurementUpload) {
       proposalConfigs.push({
         documentType: "procurement",
         fileName: "Procurement_Response.xlsx",
         blobUrl: procurementUpload.blobUrl,
-        extractedData: { type: "procurement-questionnaire-response" },
+        extractedData: { 
+          type: "procurement-questionnaire-response",
+          costSummary: procurementCostSummary ? {
+            year1Total: procurementCostSummary.year1Total,
+            year2Total: procurementCostSummary.year2Total,
+            year3Total: procurementCostSummary.year3Total,
+            year4Total: procurementCostSummary.year4Total,
+            year5Total: procurementCostSummary.year5Total,
+            tcoTotal: procurementCostSummary.tcoTotal,
+            formatted: procurementCostSummary.formatted,
+            pricingTier: procurementCostSummary.pricingTier,
+          } : undefined,
+          // Also store formatted cost directly for easy access by evaluation
+          costStructure: procurementCostSummary?.formatted || "Not specified",
+        },
       });
     }
     

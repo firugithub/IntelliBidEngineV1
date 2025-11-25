@@ -655,13 +655,28 @@ function generatePrice(min: number, max: number): number {
 }
 
 /**
+ * Cost summary returned from procurement questionnaire generation
+ */
+export interface ProcurementCostSummary {
+  year1Total: number;
+  year2Total: number;
+  year3Total: number;
+  year4Total: number;
+  year5Total: number;
+  tcoTotal: number;
+  formatted: string; // Human-readable format like "$2.5M - $3.0M"
+  pricingTier: string;
+}
+
+/**
  * Fill procurement questionnaire with cost data based on vendor commercial profile
  * Handles multi-sheet questionnaire: Commercial Terms, Cost Breakdown, TCO Summary
+ * Returns both the filled buffer and a cost summary for database storage
  */
 export async function fillProcurementQuestionnaireWithCosts(
   originalBuffer: Buffer,
   vendorName: string
-): Promise<Buffer> {
+): Promise<{ buffer: Buffer; costSummary: ProcurementCostSummary }> {
   // Create a deep copy of the buffer to ensure each vendor gets a completely fresh template
   // This prevents any potential mutation issues and preserves formulas for each vendor
   const bufferCopy = Buffer.from(originalBuffer);
@@ -676,6 +691,13 @@ export async function fillProcurementQuestionnaireWithCosts(
   const pricingTier = persona.commercialProfile?.pricingTier || "competitive";
   const validPricingTier = (pricingTier in PRICING_TIERS) ? pricingTier as keyof typeof PRICING_TIERS : "competitive";
   const pricing = PRICING_TIERS[validPricingTier];
+  
+  // Track cost totals for summary
+  let year1Total = 0;
+  let year2Total = 0;
+  let year3Total = 0;
+  let year4Total = 0;
+  let year5Total = 0;
   
   // ==========================================
   // SHEET 1: Commercial Terms (compliance + remarks)
@@ -830,10 +852,10 @@ export async function fillProcurementQuestionnaireWithCosts(
                         description.includes("training") ||
                         description.includes("base software");
       
-      // Fill in year costs
+      // Fill in year costs and track totals
       if (isOneTime) {
         // One-time costs only in Year 1
-        if (year1Col > 0) row.getCell(year1Col).value = basePrice;
+        if (year1Col > 0) { row.getCell(year1Col).value = basePrice; year1Total += basePrice; }
         if (year2Col > 0) row.getCell(year2Col).value = 0;
         if (year3Col > 0) row.getCell(year3Col).value = 0;
         if (year4Col > 0) row.getCell(year4Col).value = 0;
@@ -841,22 +863,32 @@ export async function fillProcurementQuestionnaireWithCosts(
       } else if (isRecurring) {
         // Recurring costs with small annual increases (2-5%)
         const annualIncrease = 1 + (Math.random() * 0.03 + 0.02);
-        if (year1Col > 0) row.getCell(year1Col).value = Math.round(basePrice);
-        if (year2Col > 0) row.getCell(year2Col).value = Math.round(basePrice * annualIncrease);
-        if (year3Col > 0) row.getCell(year3Col).value = Math.round(basePrice * Math.pow(annualIncrease, 2));
-        if (year4Col > 0) row.getCell(year4Col).value = Math.round(basePrice * Math.pow(annualIncrease, 3));
-        if (year5Col > 0) row.getCell(year5Col).value = Math.round(basePrice * Math.pow(annualIncrease, 4));
+        const y1 = Math.round(basePrice);
+        const y2 = Math.round(basePrice * annualIncrease);
+        const y3 = Math.round(basePrice * Math.pow(annualIncrease, 2));
+        const y4 = Math.round(basePrice * Math.pow(annualIncrease, 3));
+        const y5 = Math.round(basePrice * Math.pow(annualIncrease, 4));
+        if (year1Col > 0) { row.getCell(year1Col).value = y1; year1Total += y1; }
+        if (year2Col > 0) { row.getCell(year2Col).value = y2; year2Total += y2; }
+        if (year3Col > 0) { row.getCell(year3Col).value = y3; year3Total += y3; }
+        if (year4Col > 0) { row.getCell(year4Col).value = y4; year4Total += y4; }
+        if (year5Col > 0) { row.getCell(year5Col).value = y5; year5Total += y5; }
       } else {
         // Per-use costs (day rates, per-request) - estimate usage
         const estimatedUsage = description.includes("day") ? 
           Math.floor(Math.random() * 30 + 10) : // 10-40 days
           Math.floor(Math.random() * 20 + 5);   // 5-25 requests
         
-        if (year1Col > 0) row.getCell(year1Col).value = basePrice * estimatedUsage;
-        if (year2Col > 0) row.getCell(year2Col).value = Math.round(basePrice * estimatedUsage * 0.8);
-        if (year3Col > 0) row.getCell(year3Col).value = Math.round(basePrice * estimatedUsage * 0.6);
-        if (year4Col > 0) row.getCell(year4Col).value = Math.round(basePrice * estimatedUsage * 0.5);
-        if (year5Col > 0) row.getCell(year5Col).value = Math.round(basePrice * estimatedUsage * 0.4);
+        const y1 = basePrice * estimatedUsage;
+        const y2 = Math.round(basePrice * estimatedUsage * 0.8);
+        const y3 = Math.round(basePrice * estimatedUsage * 0.6);
+        const y4 = Math.round(basePrice * estimatedUsage * 0.5);
+        const y5 = Math.round(basePrice * estimatedUsage * 0.4);
+        if (year1Col > 0) { row.getCell(year1Col).value = y1; year1Total += y1; }
+        if (year2Col > 0) { row.getCell(year2Col).value = y2; year2Total += y2; }
+        if (year3Col > 0) { row.getCell(year3Col).value = y3; year3Total += y3; }
+        if (year4Col > 0) { row.getCell(year4Col).value = y4; year4Total += y4; }
+        if (year5Col > 0) { row.getCell(year5Col).value = y5; year5Total += y5; }
       }
       
       // Add notes based on vendor characteristics
@@ -885,7 +917,32 @@ export async function fillProcurementQuestionnaireWithCosts(
     }
   }
   
-  return await workbook.xlsx.writeBuffer() as Buffer;
+  // Calculate TCO total and format for display
+  const tcoTotal = year1Total + year2Total + year3Total + year4Total + year5Total;
+  
+  // Format cost for display (e.g., "$2.5M - $3.0M annually" or "$1.8M 5-year TCO")
+  const formatCost = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(0)}K`;
+    }
+    return `$${amount}`;
+  };
+  
+  const costSummary: ProcurementCostSummary = {
+    year1Total,
+    year2Total,
+    year3Total,
+    year4Total,
+    year5Total,
+    tcoTotal,
+    formatted: `${formatCost(tcoTotal)} 5-year TCO (${formatCost(year1Total)}/year avg)`,
+    pricingTier: validPricingTier,
+  };
+  
+  const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+  return { buffer, costSummary };
 }
 
 /**
