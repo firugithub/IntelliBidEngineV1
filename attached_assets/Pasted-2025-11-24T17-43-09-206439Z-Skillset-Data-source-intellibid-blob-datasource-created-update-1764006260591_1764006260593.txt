@@ -1,0 +1,22 @@
+2025-11-24T17:43:09.206439Z [Skillset]     ✓ Data source 'intellibid-blob-datasource' created/updated successfully (56ms)
+2025-11-24T17:43:09.2079745Z [Skillset]   - Creating/updating OCR skillset...
+2025-11-24T17:43:09.2080036Z [Skillset]     → Attempting to create/update skillset 'intellibid-ocr-skillset'...
+2025-11-24T17:43:09.2080062Z [Skillset]       Skills: OCR + Text Merge
+2025-11-24T17:43:09.2854952Z [Skillset]     ✓ Skillset 'intellibid-ocr-skillset' created/updated successfully (78ms)
+2025-11-24T17:43:09.2855355Z [Skillset]   - Creating/updating indexer...
+2025-11-24T17:43:09.2858464Z [Skillset]     → Attempting to create/update indexer 'intellibid-ocr-indexer'...
+2025-11-24T17:43:09.2858625Z [Skillset]       Data source: intellibid-blob-datasource
+2025-11-24T17:43:09.2858653Z [Skillset]       Target index: intellibid-blob-ocr
+2025-11-24T17:43:09.2858673Z [Skillset]       Skillset: intellibid-ocr-skillset
+2025-11-24T17:43:21.6087191Z [Skillset]     ✓ Indexer 'intellibid-ocr-indexer' created/updated successfully (12323ms)
+2025-11-24T17:43:21.6087522Z ================================================================================
+2025-11-24T17:43:21.6087565Z [Skillset] ✅ OCR skillset initialization completed successfully! (12512ms)
+2025-11-24T17:43:21.6087677Z [Skillset] Components created:
+2025-11-24T17:43:21.6087714Z [Skillset]   - Index: intellibid-blob-ocr
+2025-11-24T17:43:21.6087743Z [Skillset]   - Data Source: intellibid-blob-datasource
+2025-11-24T17:43:21.6088647Z [Skillset]   - Skillset: intellibid-ocr-skillset
+2025-11-24T17:43:21.6088703Z [Skillset]   - Indexer: intellibid-ocr-indexer
+2025-11-24T17:43:21.6088735Z ================================================================================
+2025-11-24T17:43:36.8099408Z [Skillset] OCR merged text not available for 'Top10 Technology Strategy.pdf' after 27715ms (timeout)
+2025-11-24T17:43:36.8099138Z [RAG] OCR text not available, using original text: Top10 Technology Strategy.pdf
+2025-11-24T17:43:36.8103614Z [RAG] Chunking document: Top10 Technology Strategy.pdf (OCR-enriched: false)
