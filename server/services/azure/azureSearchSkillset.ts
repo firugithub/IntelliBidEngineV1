@@ -604,6 +604,78 @@ export class AzureSearchSkillsetService {
     console.warn(`[Skillset] OCR merged text not available for '${blobName}' after ${elapsedMs}ms (timeout)`);
     return null;
   }
+
+  /**
+   * Query OCR index with text search
+   * Returns documents containing OCR-extracted merged_text
+   */
+  async queryOcrIndex(options: {
+    query: string;
+    topK?: number;
+    filter?: string;
+  }): Promise<Array<{
+    id: string;
+    content: string;
+    mergedText: string | null;
+    fileName: string;
+    blobPath: string;
+    lastModified: string;
+    score: number;
+  }>> {
+    if (!this.ocrSearchClient) {
+      console.warn("[Skillset] OCR search client not initialized - OCR querying unavailable");
+      return [];
+    }
+
+    try {
+      const { query, topK = 5, filter } = options;
+      
+      console.log(`[Skillset] Querying OCR index with query: "${query}", topK: ${topK}`);
+      
+      const searchResults = await this.ocrSearchClient.search(query, {
+        top: topK,
+        filter,
+        select: [
+          "id",
+          "content",
+          "merged_text",
+          "metadata_storage_name",
+          "metadata_storage_path",
+          "metadata_storage_last_modified"
+        ],
+        includeTotalCount: true,
+      });
+
+      const documents: Array<{
+        id: string;
+        content: string;
+        mergedText: string | null;
+        fileName: string;
+        blobPath: string;
+        lastModified: string;
+        score: number;
+      }> = [];
+
+      for await (const result of searchResults.results) {
+        documents.push({
+          id: result.document.id as string,
+          content: result.document.content as string || "",
+          mergedText: result.document.merged_text as string || null,
+          fileName: result.document.metadata_storage_name as string || "unknown",
+          blobPath: result.document.metadata_storage_path as string || "",
+          lastModified: result.document.metadata_storage_last_modified as string || "",
+          score: result.score || 0,
+        });
+      }
+
+      console.log(`[Skillset] OCR index query returned ${documents.length} documents`);
+      return documents;
+      
+    } catch (error: any) {
+      console.warn(`[Skillset] Failed to query OCR index:`, error.message);
+      return [];
+    }
+  }
 }
 
 // Singleton instance

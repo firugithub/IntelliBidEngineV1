@@ -270,7 +270,7 @@ export class AzureAISearchService {
       top?: number;
       filter?: string;
     }
-  ): Promise<SearchDocument[]> {
+  ): Promise<Array<SearchDocument & { score?: number }>> {
     if (!this.searchClient) {
       await this.initialize();
     }
@@ -294,9 +294,12 @@ export class AzureAISearchService {
       },
     });
 
-    const results: SearchDocument[] = [];
+    const results: Array<SearchDocument & { score?: number }> = [];
     for await (const result of searchResults.results) {
-      results.push(result.document);
+      results.push({
+        ...result.document,
+        score: result.score,
+      });
     }
 
     return results;
