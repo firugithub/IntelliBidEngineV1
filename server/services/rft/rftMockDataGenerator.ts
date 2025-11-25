@@ -5,9 +5,147 @@ import { generateAllQuestionnaires } from "./excelGenerator";
 import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";
 import { generateVendorProposal, formatProposalAsDocument } from "./vendorProposalGenerator";
 import { normalizeVendorName, deduplicateVendors } from "./vendorUtils";
+import { getOpenAIClient } from "../ai/aiAnalysis";
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
+
+/**
+ * Recursively search for objective-like fields in extractedData
+ * Looks for keys containing 'objective', 'goal', 'overview', 'description', etc.
+ */
+function extractBusinessObjectiveFromData(data: any, depth: number = 0): string {
+  if (!data || depth > 5) return ""; // Limit recursion depth
+  
+  // If it's a string, check if it looks like an objective (non-empty, reasonable length)
+  const trimmed = typeof data === 'string' ? data.trim() : '';
+  if (trimmed.length > 10 && trimmed.length < 2000) {
+    return trimmed;
+  }
+  
+  // If it's an array, try all elements (not just first)
+  if (Array.isArray(data) && data.length > 0) {
+    for (const item of data) {
+      if (typeof item === 'string' && item.trim().length > 10 && item.trim().length < 2000) {
+        return item.trim();
+      }
+      const result = extractBusinessObjectiveFromData(item, depth + 1);
+      if (result && result.length > 10) return result;
+    }
+    return "";
+  }
+  
+  // If it's an object, search for objective-like keys
+  if (typeof data === 'object' && data !== null) {
+    // Priority keys to check first - comprehensive list covering various structures
+    const priorityKeys = [
+      'businessObjective', 'objective', 'objectives', 'goal', 'goals',
+      'projectObjective', 'projectDescription', 'description',
+      'overview', 'projectOverview', 'summary', 'synopsis',
+      'projectSummary', 'businessSummary', 'summarySection',
+      'businessNeed', 'need', 'needs', 'mission', 'purpose', 'vision',
+      'initiative', 'initiativeDescription', 'scope', 'projectScope',
+      'executiveSummary', 'content', 'text', 'body'
+    ];
+    
+    // Check priority keys first
+    for (const key of priorityKeys) {
+      if (data[key]) {
+        const result = extractBusinessObjectiveFromData(data[key], depth + 1);
+        if (result && result.length > 10) return result;
+      }
+    }
+    
+    // Define keywords to match in key names
+    const matchKeywords = [
+      'objective', 'goal', 'overview', 'description', 'summary',
+      'need', 'mission', 'purpose', 'vision', 'initiative', 'scope'
+    ];
+    
+    // Then check nested objects with fuzzy matching
+    for (const [key, value] of Object.entries(data)) {
+      const keyLower = key.toLowerCase();
+      for (const keyword of matchKeywords) {
+        if (keyLower.includes(keyword)) {
+          const result = extractBusinessObjectiveFromData(value, depth + 1);
+          if (result && result.length > 10) return result;
+          break;
+        }
+      }
+    }
+  }
+  
+  return "";
+}
+
+/**
+ * Fetch top 3 market-relevant vendors for a given business objective using AI
+ * Reuses the vendor intelligence logic from /api/vendor-intel endpoint
+ */
+async function fetchTopVendorsForObjective(businessObjective: string): Promise<string[]> {
+  // Generic enterprise technology vendors as fallback (not aviation-specific)
+  const fallbackVendors = ["Oracle Corporation", "SAP SE", "Microsoft"];
+  
+  if (!businessObjective || businessObjective.length < 10) {
+    console.log("Business objective too short, using generic enterprise vendors");
+    return fallbackVendors;
+  }
+  
+  try {
+    const openai = await getOpenAIClient();
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a procurement research analyst specializing in enterprise software and the aviation/airline industry. Your task is to identify real vendors that are market leaders for the given business requirement. Only include actual companies that exist - never make up fictional vendors.`
+        },
+        {
+          role: "user",
+          content: `For the following business objective, identify the TOP 3 market-leading vendors/companies that provide solutions:
+
+"${businessObjective}"
+
+Focus on established vendors with strong market presence. Prioritize:
+1. Global market leaders with proven track record
+2. Companies with enterprise-grade solutions
+3. Vendors commonly seen in aviation/airline RFT responses
+
+Return ONLY a JSON object with a "vendors" array containing exactly 3 company names (exact legal names):
+{
+  "vendors": ["Company Name 1", "Company Name 2", "Company Name 3"]
+}
+
+Only return real companies. If the objective is aviation-specific, include relevant airline technology vendors.`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+      max_tokens: 500
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn("No response from OpenAI for vendor lookup, using fallback vendors");
+      return fallbackVendors;
+    }
+
+    const parsed = JSON.parse(content);
+    const vendors = parsed.vendors || parsed.Vendors || [];
+    
+    if (Array.isArray(vendors) && vendors.length >= 3) {
+      console.log(`✓ Fetched top 3 market vendors for objective: ${vendors.join(", ")}`);
+      return vendors.slice(0, 3);
+    }
+    
+    console.warn("Invalid vendor response from AI, using fallback vendors");
+    return fallbackVendors;
+  } catch (error) {
+    console.error("Error fetching market vendors:", error);
+    return fallbackVendors;
+  }
+}
 
 // RFT topic configurations
 const RFT_TOPICS = {
@@ -387,10 +525,46 @@ export async function generateVendorResponses(rftId: string) {
     throw new Error("Project not found");
   }
 
-  // Use project vendorList if available, otherwise use real aviation vendors with detailed personas
-  const rawVendors = project.vendorList && project.vendorList.length > 0
-    ? project.vendorList.slice(0, 3)
-    : ["Amadeus IT Group", "Sabre Corporation", "SITA"];
+  // Get business objective from project or business case for vendor lookup
+  let businessObjective = (project as any).businessObjective || "";
+  
+  // If no business objective in project, try to get it from business case
+  if (!businessObjective && project.businessCaseId) {
+    try {
+      const businessCase = await storage.getBusinessCase(project.businessCaseId);
+      if (businessCase) {
+        // Use recursive extraction to find objective in any nested structure
+        businessObjective = extractBusinessObjectiveFromData(businessCase.extractedData);
+        
+        // If still empty, try to extract from documentContent (first paragraph)
+        if (!businessObjective && businessCase.documentContent) {
+          // Get first paragraph or first 300 chars, whichever is shorter
+          const firstNewline = businessCase.documentContent.indexOf('\n\n');
+          const endIndex = firstNewline > 50 ? Math.min(firstNewline, 500) : 300;
+          businessObjective = businessCase.documentContent.substring(0, endIndex).trim();
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch business case for objective:", err);
+    }
+  }
+  
+  // Fallback to project name if still no objective
+  if (!businessObjective || businessObjective.trim().length < 10) {
+    businessObjective = `${project.name} - Enterprise solution for aviation industry`;
+  }
+  
+  console.log(`Business objective for vendor lookup: "${businessObjective.substring(0, 100)}..."`)
+
+  // Use project vendorList if available, otherwise fetch market-relevant vendors using AI
+  let rawVendors: string[];
+  if (project.vendorList && project.vendorList.length > 0) {
+    rawVendors = project.vendorList.slice(0, 3);
+    console.log(`Using project's predefined vendor list: ${rawVendors.join(", ")}`);
+  } else {
+    console.log(`Fetching top 3 market vendors for: "${businessObjective.substring(0, 100)}..."`);
+    rawVendors = await fetchTopVendorsForObjective(businessObjective);
+  }
   
   // CRITICAL: Normalize and deduplicate vendor names to prevent duplicate proposals
   const vendors = deduplicateVendors(rawVendors);
