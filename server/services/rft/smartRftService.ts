@@ -6,6 +6,18 @@ import { getSectionMapping, STAKEHOLDER_ROLES, type SectionMapping } from "./sta
 import { ragRetrievalService } from "../knowledgebase/ragRetrieval";
 import type { AgentRole } from "../ai/multiAgentEvaluator";
 
+/**
+ * Centralized questionnaire question counts for consistency across all generation paths
+ * Product (50), NFR (75), Cybersecurity (40), Agile (40), Procurement (20)
+ */
+export const QUESTIONNAIRE_COUNTS = {
+  product: 50,
+  nfr: 75,
+  cybersecurity: 40,
+  agile: 40,
+  procurement: 20,
+} as const;
+
 interface RftSection {
   sectionId: string;
   title: string;
@@ -742,15 +754,15 @@ export async function generateRftFromBusinessCase(
 
   console.log(`Generated ${sections.length} RFT sections`);
 
-  // Generate all 5 questionnaires using AI
-  // Production-quality coverage: increased question counts for comprehensive vendor evaluation
+  // Generate all 5 questionnaires using AI with centralized counts
+  // Production-quality coverage: Product (50), NFR (75), Cybersecurity (40), Agile (40), Procurement (20)
   console.log("Generating questionnaires...");
   const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
-    generateQuestionnaireQuestions(businessCaseExtract, "product", 50),
-    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 75),
-    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 40),
-    generateQuestionnaireQuestions(businessCaseExtract, "agile", 40),
-    generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "product", QUESTIONNAIRE_COUNTS.product),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", QUESTIONNAIRE_COUNTS.agile),
+    generateQuestionnaireQuestions(businessCaseExtract, "procurement", QUESTIONNAIRE_COUNTS.procurement),
   ]);
 
   console.log("Generated all questionnaire questions, creating Excel files...");
@@ -900,13 +912,14 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
     successCriteria: ["On-time delivery", "Budget adherence"],
   };
 
-  // Generate questionnaires with AI (30, 50, 20, 20)
+  // Generate all 5 questionnaires with AI using centralized counts
   console.log("Generating AI-powered questionnaires...");
-  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
-    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
-    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
-    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
-    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
+    generateQuestionnaireQuestions(businessCaseExtract, "product", QUESTIONNAIRE_COUNTS.product),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", QUESTIONNAIRE_COUNTS.agile),
+    generateQuestionnaireQuestions(businessCaseExtract, "procurement", QUESTIONNAIRE_COUNTS.procurement),
   ]);
 
   // Generate Excel files
@@ -916,6 +929,7 @@ export async function publishRftFilesToAzure(rftId: string): Promise<{
     nfr: nfrQuestions,
     cybersecurity: cybersecurityQuestions,
     agile: agileQuestions,
+    procurement: procurementQuestions,
   });
 
   // Generate DOCX document

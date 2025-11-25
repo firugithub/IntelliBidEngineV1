@@ -1,6 +1,6 @@
 import { storage } from "../../storage";
 import { azureBlobStorageService } from "../azure/azureBlobStorage";
-import { generateQuestionnaireQuestions } from "./smartRftService";
+import { generateQuestionnaireQuestions, QUESTIONNAIRE_COUNTS } from "./smartRftService";
 import { generateAllQuestionnaires } from "./excelGenerator";
 import { generateDocxDocument, generatePdfDocument } from "./documentGenerator";
 import { generateVendorProposal, formatProposalAsDocument } from "./vendorProposalGenerator";
@@ -240,13 +240,13 @@ export async function generateRftPack(rftId: string) {
 
   console.log(`Generating AI-powered questionnaires for: ${rft.name}`);
 
-  // Generate all 5 questionnaires using AI with proper counts
+  // Generate all 5 questionnaires using AI with centralized counts
   const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
-    generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
-    generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
-    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
-    generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
-    generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "product", QUESTIONNAIRE_COUNTS.product),
+    generateQuestionnaireQuestions(businessCaseExtract, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+    generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+    generateQuestionnaireQuestions(businessCaseExtract, "agile", QUESTIONNAIRE_COUNTS.agile),
+    generateQuestionnaireQuestions(businessCaseExtract, "procurement", QUESTIONNAIRE_COUNTS.procurement),
   ]);
 
   console.log("Generated questionnaires, creating Excel files...");
@@ -439,11 +439,11 @@ export async function generateVendorResponses(rftId: string) {
     };
     
     const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
-      generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
-      generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
-      generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
-      generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
-      generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
+      generateQuestionnaireQuestions(businessCaseExtract, "product", QUESTIONNAIRE_COUNTS.product),
+      generateQuestionnaireQuestions(businessCaseExtract, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+      generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+      generateQuestionnaireQuestions(businessCaseExtract, "agile", QUESTIONNAIRE_COUNTS.agile),
+      generateQuestionnaireQuestions(businessCaseExtract, "procurement", QUESTIONNAIRE_COUNTS.procurement),
     ]);
     
     // Use the imported generateAllQuestionnaires from excelGenerator (top of file)
