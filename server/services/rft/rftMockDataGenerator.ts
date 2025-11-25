@@ -79,38 +79,6 @@ function extractBusinessObjectiveFromData(data: any, depth: number = 0): string 
 }
 
 /**
- * Normalize vendor name to prevent duplicates from formatting differences
- * - Trims whitespace
- * - Removes duplicate spaces
- * - Standardizes common suffixes (Inc, Inc., Corp, Corporation, etc.)
- */
-function normalizeVendorName(name: string): string {
-  if (!name) return name;
-  
-  // Trim and collapse multiple spaces
-  let normalized = name.trim().replace(/\s+/g, ' ');
-  
-  // Remove trailing punctuation like comma, period
-  normalized = normalized.replace(/[,.\s]+$/, '');
-  
-  // Standardize common suffixes (case insensitive replacement)
-  // "Inc." or "Inc" -> "Inc."
-  normalized = normalized.replace(/\bInc\.?$/i, 'Inc.');
-  // "Corp." or "Corp" -> "Corp."
-  normalized = normalized.replace(/\bCorp\.?$/i, 'Corp.');
-  // "Corporation" -> "Corp."
-  normalized = normalized.replace(/\bCorporation$/i, 'Corp.');
-  // "Ltd." or "Ltd" -> "Ltd."
-  normalized = normalized.replace(/\bLtd\.?$/i, 'Ltd.');
-  // "Limited" -> "Ltd."
-  normalized = normalized.replace(/\bLimited$/i, 'Ltd.');
-  // "LLC" or "L.L.C." -> "LLC"
-  normalized = normalized.replace(/\bL\.?L\.?C\.?$/i, 'LLC');
-  
-  return normalized;
-}
-
-/**
  * Fetch top 3 market-relevant vendors for a given business objective using AI
  * Reuses the vendor intelligence logic from /api/vendor-intel endpoint
  */
