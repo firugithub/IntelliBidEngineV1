@@ -4702,15 +4702,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Step 3: Generate all 4 questionnaires with proper question counts
+      // Step 3: Generate all 5 questionnaires with proper question counts
       console.log("📊 Generating questionnaires...");
       const { generateQuestionnaireQuestions } = await import("./services/rft/smartRftService");
       
-      const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+      const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
         generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
         generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
         generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
         generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+        generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
       ]);
 
       console.log("📝 Creating Excel questionnaire files...");
@@ -4719,6 +4720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nfr: nfrQuestions,
         cybersecurity: cybersecurityQuestions,
         agile: agileQuestions,
+        procurement: procurementQuestions,
       });
 
       console.log("✅ Excel questionnaires created successfully");
@@ -4734,6 +4736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nfrQuestionnairePath: questionnairePaths.nfrPath,
         cybersecurityQuestionnairePath: questionnairePaths.cybersecurityPath,
         agileQuestionnairePath: questionnairePaths.agilePath,
+        procurementQuestionnairePath: questionnairePaths.procurementPath,
         status: "draft",
         version: 1,
         metadata: {
@@ -4748,6 +4751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             nfrQuestions: nfrQuestions.length,
             cybersecurityQuestions: cybersecurityQuestions.length,
             agileQuestions: agileQuestions.length,
+            procurementQuestions: procurementQuestions.length,
           },
         },
       };

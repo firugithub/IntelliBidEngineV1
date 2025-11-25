@@ -12,6 +12,7 @@ export interface VendorProfile {
   nfrStrength: number;
   cybersecurityStrength: number;
   agileStrength: number;
+  procurementStrength: number; // 0-1, commercial competitiveness
 }
 
 // Define realistic vendor profiles with different strengths (using vendor personas)
@@ -28,6 +29,7 @@ export function createVendorProfiles(vendorNames: string[]): VendorProfile[] {
       nfrStrength: persona.scoringProfile.nfrStrength,
       cybersecurityStrength: persona.scoringProfile.cybersecurityStrength,
       agileStrength: persona.scoringProfile.agileStrength,
+      procurementStrength: persona.scoringProfile.procurementStrength,
     });
   }
   
@@ -281,7 +283,7 @@ function generateRemark(
 export async function fillQuestionnaireWithScores(
   originalBuffer: Buffer,
   vendorProfile: VendorProfile,
-  questionnaireType: "Product" | "NFR" | "Cybersecurity" | "Agile"
+  questionnaireType: "Product" | "NFR" | "Cybersecurity" | "Agile" | "Procurement"
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(originalBuffer);
@@ -305,6 +307,9 @@ export async function fillQuestionnaireWithScores(
       break;
     case "Agile":
       strength = vendorProfile.agileStrength;
+      break;
+    case "Procurement":
+      strength = vendorProfile.procurementStrength;
       break;
   }
   

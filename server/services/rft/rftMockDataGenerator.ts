@@ -240,12 +240,13 @@ export async function generateRftPack(rftId: string) {
 
   console.log(`Generating AI-powered questionnaires for: ${rft.name}`);
 
-  // Generate all 4 questionnaires using AI with proper counts (30, 50, 20, 20)
-  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+  // Generate all 5 questionnaires using AI with proper counts
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
     generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
     generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
     generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
     generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+    generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
   ]);
 
   console.log("Generated questionnaires, creating Excel files...");
@@ -256,6 +257,7 @@ export async function generateRftPack(rftId: string) {
     nfr: nfrQuestions,
     cybersecurity: cybersecurityQuestions,
     agile: agileQuestions,
+    procurement: procurementQuestions,
   });
 
   console.log("Generating professional RFT document content using AI...");
@@ -293,7 +295,7 @@ export async function generateRftPack(rftId: string) {
   console.log("Uploading individual files to Azure Blob Storage...");
 
   // Upload all files individually to Azure Blob Storage
-  const uploadResults = await Promise.all([
+  const uploadPromises = [
     // Upload RFT document (DOCX)
     azureBlobStorageService.uploadDocument(
       `project-${project.id}/RFT_Generated/${rft.name.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
@@ -324,7 +326,19 @@ export async function generateRftPack(rftId: string) {
       `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
       fs.readFileSync(questionnairePaths.agilePath)
     ),
-  ]);
+  ];
+  
+  // Upload Procurement Questionnaire if it exists
+  if (questionnairePaths.procurementPath) {
+    uploadPromises.push(
+      azureBlobStorageService.uploadDocument(
+        `project-${project.id}/RFT_Generated/Procurement_Questionnaire.xlsx`,
+        fs.readFileSync(questionnairePaths.procurementPath)
+      )
+    );
+  }
+  
+  const uploadResults = await Promise.all(uploadPromises);
   
   console.log(`Uploaded ${uploadResults.length} files to Azure Blob Storage successfully`);
 
@@ -336,6 +350,9 @@ export async function generateRftPack(rftId: string) {
     fs.unlinkSync(questionnairePaths.nfrPath);
     fs.unlinkSync(questionnairePaths.cybersecurityPath);
     fs.unlinkSync(questionnairePaths.agilePath);
+    if (questionnairePaths.procurementPath) {
+      fs.unlinkSync(questionnairePaths.procurementPath);
+    }
   } catch (error) {
     console.error("Error cleaning up temporary files:", error);
   }
@@ -387,19 +404,22 @@ export async function generateVendorResponses(rftId: string) {
     nfr: `project-${project.id}/RFT_Generated/NFR_Questionnaire.xlsx`,
     cybersecurity: `project-${project.id}/RFT_Generated/Cybersecurity_Questionnaire.xlsx`,
     agile: `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
+    procurement: `project-${project.id}/RFT_Generated/Procurement_Questionnaire.xlsx`,
   };
   
   // Try to download questionnaires from Azure, fallback to generating fresh ones if not found
-  let productBuffer: Buffer, nfrBuffer: Buffer, cybersecurityBuffer: Buffer, agileBuffer: Buffer;
+  let productBuffer: Buffer, nfrBuffer: Buffer, cybersecurityBuffer: Buffer, agileBuffer: Buffer, procurementBuffer: Buffer | null;
   
   try {
     console.log("Attempting to download questionnaires from Azure Blob Storage...");
-    [productBuffer, nfrBuffer, cybersecurityBuffer, agileBuffer] = await Promise.all([
+    const downloadResults = await Promise.all([
       azureBlobStorageService.downloadDocument(questionnairePaths.product),
       azureBlobStorageService.downloadDocument(questionnairePaths.nfr),
       azureBlobStorageService.downloadDocument(questionnairePaths.cybersecurity),
       azureBlobStorageService.downloadDocument(questionnairePaths.agile),
+      azureBlobStorageService.downloadDocument(questionnairePaths.procurement).catch(() => null), // Procurement optional
     ]);
+    [productBuffer, nfrBuffer, cybersecurityBuffer, agileBuffer, procurementBuffer] = downloadResults;
     console.log("Successfully downloaded questionnaires from Azure Blob Storage");
   } catch (downloadError: any) {
     console.warn("Failed to download questionnaires from Azure Blob Storage, generating fresh ones:", downloadError.message);
@@ -418,11 +438,12 @@ export async function generateVendorResponses(rftId: string) {
       successCriteria: ["On-time delivery", "Budget adherence", "User adoption"]
     };
     
-    const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+    const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
       generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
       generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
       generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
       generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+      generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
     ]);
     
     // Use the imported generateAllQuestionnaires from excelGenerator (top of file)
@@ -431,6 +452,7 @@ export async function generateVendorResponses(rftId: string) {
       nfr: nfrQuestions,
       cybersecurity: cybersecurityQuestions,
       agile: agileQuestions,
+      procurement: procurementQuestions,
     });
     
     // Read the freshly generated files
@@ -438,6 +460,7 @@ export async function generateVendorResponses(rftId: string) {
     nfrBuffer = fs.readFileSync(freshQuestionnairePaths.nfrPath);
     cybersecurityBuffer = fs.readFileSync(freshQuestionnairePaths.cybersecurityPath);
     agileBuffer = fs.readFileSync(freshQuestionnairePaths.agilePath);
+    procurementBuffer = freshQuestionnairePaths.procurementPath ? fs.readFileSync(freshQuestionnairePaths.procurementPath) : null;
     
     // Clean up temporary files
     try {
@@ -445,6 +468,9 @@ export async function generateVendorResponses(rftId: string) {
       fs.unlinkSync(freshQuestionnairePaths.nfrPath);
       fs.unlinkSync(freshQuestionnairePaths.cybersecurityPath);
       fs.unlinkSync(freshQuestionnairePaths.agilePath);
+      if (freshQuestionnairePaths.procurementPath) {
+        fs.unlinkSync(freshQuestionnairePaths.procurementPath);
+      }
     } catch (cleanupError) {
       console.error("Error cleaning up temporary questionnaire files:", cleanupError);
     }
@@ -464,21 +490,30 @@ export async function generateVendorResponses(rftId: string) {
     const vendorName = vendors[i];
     const profile = vendorProfiles[i];
     
-    console.log(`Generating responses for ${vendorName} with profile: Product ${profile.productStrength}, NFR ${profile.nfrStrength}, Security ${profile.cybersecurityStrength}, Agile ${profile.agileStrength}`);
+    console.log(`Generating responses for ${vendorName} with profile: Product ${profile.productStrength}, NFR ${profile.nfrStrength}, Security ${profile.cybersecurityStrength}, Agile ${profile.agileStrength}, Procurement ${profile.procurementStrength}`);
     
     // Fill questionnaires with vendor-specific scores
-    const [productResponse, nfrResponse, securityResponse, agileResponse] = await Promise.all([
+    const fillPromises: Promise<Buffer>[] = [
       fillQuestionnaireWithScores(productBuffer, profile, "Product"),
       fillQuestionnaireWithScores(nfrBuffer, profile, "NFR"),
       fillQuestionnaireWithScores(cybersecurityBuffer, profile, "Cybersecurity"),
       fillQuestionnaireWithScores(agileBuffer, profile, "Agile"),
-    ]);
+    ];
+    
+    // Add procurement if available
+    if (procurementBuffer) {
+      fillPromises.push(fillQuestionnaireWithScores(procurementBuffer, profile, "Procurement"));
+    }
+    
+    const fillResults = await Promise.all(fillPromises);
+    const [productResponse, nfrResponse, securityResponse, agileResponse] = fillResults;
+    const procurementResponse = procurementBuffer ? fillResults[4] : null;
 
     // Upload filled questionnaires to Azure Blob Storage
     // Use underscores for consistency and avoid encoding issues
     // Scope responses to specific RFT to avoid mixing responses from different RFTs
     const vendorPathSafe = vendorName.replace(/[^a-zA-Z0-9]/g, '_');
-    const [productUpload, nfrUpload, securityUpload, agileUpload] = await Promise.all([
+    const uploadPromises = [
       azureBlobStorageService.uploadDocument(
         `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Product_Response.xlsx`,
         productResponse
@@ -495,7 +530,21 @@ export async function generateVendorResponses(rftId: string) {
         `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Agile_Response.xlsx`,
         agileResponse
       ),
-    ]);
+    ];
+    
+    // Upload procurement response if available
+    if (procurementResponse) {
+      uploadPromises.push(
+        azureBlobStorageService.uploadDocument(
+          `project-${project.id}/RFT_Responses/${rftId}/${vendorPathSafe}/Procurement_Response.xlsx`,
+          procurementResponse
+        )
+      );
+    }
+    
+    const uploadResults = await Promise.all(uploadPromises);
+    const [productUpload, nfrUpload, securityUpload, agileUpload] = uploadResults;
+    const procurementUpload = procurementResponse ? uploadResults[4] : null;
     
     // Create proposal database records for each questionnaire response
     // Check per documentType to avoid duplicate key errors but allow partial completion
@@ -527,6 +576,16 @@ export async function generateVendorResponses(rftId: string) {
         extractedData: { type: "agile-questionnaire-response" },
       },
     ];
+    
+    // Add procurement proposal if available
+    if (procurementUpload) {
+      proposalConfigs.push({
+        documentType: "procurement",
+        fileName: "Procurement_Response.xlsx",
+        blobUrl: procurementUpload.blobUrl,
+        extractedData: { type: "procurement-questionnaire-response" },
+      });
+    }
     
     // Update existing proposals or create new ones
     await Promise.all(

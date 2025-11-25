@@ -118,7 +118,7 @@ export async function generateQuestionnaire(config: QuestionnaireConfig): Promis
 }
 
 /**
- * Generate all 4 RFT questionnaires
+ * Generate all 5 RFT questionnaires (including Procurement)
  */
 export async function generateAllQuestionnaires(
   projectId: string,
@@ -127,12 +127,14 @@ export async function generateAllQuestionnaires(
     nfr: QuestionnaireQuestion[];
     cybersecurity: QuestionnaireQuestion[];
     agile: QuestionnaireQuestion[];
+    procurement?: QuestionnaireQuestion[];
   }
 ): Promise<{
   productPath: string;
   nfrPath: string;
   cybersecurityPath: string;
   agilePath: string;
+  procurementPath?: string;
 }> {
   const timestamp = Date.now();
 
@@ -159,10 +161,21 @@ export async function generateAllQuestionnaires(
     })
   ]);
 
+  // Generate Procurement questionnaire if questions provided
+  let procurementPath: string | undefined;
+  if (questions.procurement && questions.procurement.length > 0) {
+    procurementPath = await generateQuestionnaire({
+      title: 'Procurement & Commercial Questionnaire',
+      questions: questions.procurement,
+      filename: `${projectId}_procurement_${timestamp}.xlsx`
+    });
+  }
+
   return {
     productPath,
     nfrPath,
     cybersecurityPath,
-    agilePath
+    agilePath,
+    procurementPath
   };
 }

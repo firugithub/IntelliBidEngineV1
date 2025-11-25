@@ -46,6 +46,17 @@ export interface VendorPersona {
     nfrStrength: number;
     cybersecurityStrength: number;
     agileStrength: number;
+    procurementStrength: number; // 0-1 (commercial competitiveness)
+  };
+  
+  // Commercial profile for procurement responses
+  commercialProfile: {
+    pricingTier: "premium" | "competitive" | "value" | "budget";
+    licensingModel: string;
+    typicalImplementationMonths: number;
+    annualMaintenancePercent: number; // % of license cost
+    slaUptime: string;
+    paymentTerms: string;
   };
 }
 
@@ -114,6 +125,16 @@ export const AVIATION_VENDOR_PERSONAS: Record<string, VendorPersona> = {
       nfrStrength: 0.85,
       cybersecurityStrength: 0.85,
       agileStrength: 0.75,
+      procurementStrength: 0.65, // Premium pricing limits competitiveness
+    },
+    
+    commercialProfile: {
+      pricingTier: "premium",
+      licensingModel: "Per-passenger transaction fee + annual platform license",
+      typicalImplementationMonths: 15,
+      annualMaintenancePercent: 20,
+      slaUptime: "99.99%",
+      paymentTerms: "Net 30, milestone-based for implementation",
     }
   },
   
@@ -178,6 +199,16 @@ export const AVIATION_VENDOR_PERSONAS: Record<string, VendorPersona> = {
       nfrStrength: 0.90,
       cybersecurityStrength: 0.80,
       agileStrength: 0.70,
+      procurementStrength: 0.75, // Flexible commercial models
+    },
+    
+    commercialProfile: {
+      pricingTier: "competitive",
+      licensingModel: "SaaS subscription + usage-based pricing for transactions",
+      typicalImplementationMonths: 12,
+      annualMaintenancePercent: 18,
+      slaUptime: "99.95%",
+      paymentTerms: "Net 45, quarterly billing options",
     }
   },
   
@@ -243,6 +274,16 @@ export const AVIATION_VENDOR_PERSONAS: Record<string, VendorPersona> = {
       nfrStrength: 0.75,
       cybersecurityStrength: 0.90,
       agileStrength: 0.80,
+      procurementStrength: 0.85, // Very competitive pricing for mid-size carriers
+    },
+    
+    commercialProfile: {
+      pricingTier: "value",
+      licensingModel: "Annual subscription with tiered passenger volume pricing",
+      typicalImplementationMonths: 9,
+      annualMaintenancePercent: 15,
+      slaUptime: "99.9%",
+      paymentTerms: "Net 60, flexible payment plans available",
     }
   },
   
@@ -281,6 +322,16 @@ export const AVIATION_VENDOR_PERSONAS: Record<string, VendorPersona> = {
       nfrStrength: 0.75,
       cybersecurityStrength: 0.75,
       agileStrength: 0.75,
+      procurementStrength: 0.80, // Competitive pricing as challenger
+    },
+    
+    commercialProfile: {
+      pricingTier: "competitive",
+      licensingModel: "SaaS subscription with annual commitment",
+      typicalImplementationMonths: 10,
+      annualMaintenancePercent: 17,
+      slaUptime: "99.9%",
+      paymentTerms: "Net 30, standard enterprise terms",
     }
   }
 };

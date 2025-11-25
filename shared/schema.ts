@@ -300,22 +300,25 @@ export const generatedRfts = pgTable("generated_rfts", {
   templateId: varchar("template_id").notNull(),
   name: text("name").notNull(),
   sections: jsonb("sections").notNull(), // Generated RFT content by section
-  productQuestionnairePath: text("product_questionnaire_path"), // Local path to Product Excel (30 questions)
-  nfrQuestionnairePath: text("nfr_questionnaire_path"), // Local path to NFR Excel (50 questions)
-  cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Local path to Cybersecurity Excel (20 questions)
-  agileQuestionnairePath: text("agile_questionnaire_path"), // Local path to Agile Delivery Excel (20 questions)
+  productQuestionnairePath: text("product_questionnaire_path"), // Local path to Product Excel (50 questions)
+  nfrQuestionnairePath: text("nfr_questionnaire_path"), // Local path to NFR Excel (75 questions)
+  cybersecurityQuestionnairePath: text("cybersecurity_questionnaire_path"), // Local path to Cybersecurity Excel (40 questions)
+  agileQuestionnairePath: text("agile_questionnaire_path"), // Local path to Agile Delivery Excel (40 questions)
+  procurementQuestionnairePath: text("procurement_questionnaire_path"), // Local path to Procurement & Commercial Excel (20 questions)
   docxBlobUrl: text("docx_blob_url"), // Azure Blob Storage URL for DOCX file (DEPRECATED - use docxBlobName)
   pdfBlobUrl: text("pdf_blob_url"), // Azure Blob Storage URL for PDF file (DEPRECATED - use pdfBlobName)
   productQuestionnaireBlobUrl: text("product_questionnaire_blob_url"), // Azure URL for Product Excel (DEPRECATED - use productQuestionnaireBlobName)
   nfrQuestionnaireBlobUrl: text("nfr_questionnaire_blob_url"), // Azure URL for NFR Excel (DEPRECATED - use nfrQuestionnaireBlobName)
   cybersecurityQuestionnaireBlobUrl: text("cybersecurity_questionnaire_blob_url"), // Azure URL for Cybersecurity Excel (DEPRECATED - use cybersecurityQuestionnaireBlobName)
   agileQuestionnaireBlobUrl: text("agile_questionnaire_blob_url"), // Azure URL for Agile Excel (DEPRECATED - use agileQuestionnaireBlobName)
+  procurementQuestionnaireBlobUrl: text("procurement_questionnaire_blob_url"), // Azure URL for Procurement Excel (DEPRECATED - use procurementQuestionnaireBlobName)
   docxBlobName: text("docx_blob_name"), // Azure Blob Storage path for DOCX file
   pdfBlobName: text("pdf_blob_name"), // Azure Blob Storage path for PDF file
   productQuestionnaireBlobName: text("product_questionnaire_blob_name"), // Azure path for Product Excel
   nfrQuestionnaireBlobName: text("nfr_questionnaire_blob_name"), // Azure path for NFR Excel
   cybersecurityQuestionnaireBlobName: text("cybersecurity_questionnaire_blob_name"), // Azure path for Cybersecurity Excel
   agileQuestionnaireBlobName: text("agile_questionnaire_blob_name"), // Azure path for Agile Excel
+  procurementQuestionnaireBlobName: text("procurement_questionnaire_blob_name"), // Azure path for Procurement Excel
   status: text("status").notNull().default("draft"), // 'draft', 'review', 'published', 'archived'
   version: integer("version").notNull().default(1),
   publishedAt: timestamp("published_at"),

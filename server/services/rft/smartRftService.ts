@@ -349,7 +349,7 @@ Return ONLY valid JSON, no additional text.`;
  */
 export async function generateQuestionnaireQuestions(
   businessCaseExtract: BusinessCaseExtract,
-  questionnaireType: "product" | "nfr" | "cybersecurity" | "agile",
+  questionnaireType: "product" | "nfr" | "cybersecurity" | "agile" | "procurement",
   count: number
 ): Promise<QuestionnaireQuestion[]> {
   
@@ -456,7 +456,35 @@ Cover:
 - Quality assurance approach for success criteria
 - Team structure and expertise for the scope
 - Change management process
-- Progress reporting frequency and format`
+- Progress reporting frequency and format`,
+
+    procurement: `Generate ${count} procurement and commercial questions to enable data-driven Cost-Benefit Analysis.
+
+APPROACH:
+1. Reference the Budget (${businessCaseExtract.budget}) in all pricing-related questions
+2. Consider the Timeline (${businessCaseExtract.timeline}) for implementation and maintenance costs
+3. Ask about licensing models appropriate for the scope and stakeholder count
+4. Ensure questions capture Total Cost of Ownership (TCO) components
+
+Example: If budget is "$2M over 3 years" and scope includes "200+ users":
+✓ GOOD: "Provide your licensing model breakdown for 200+ concurrent users, including base license fees, per-user costs, and any volume discounts applicable to a 3-year commitment."
+✗ BAD: "What is your pricing?" (too vague, doesn't enable comparison)
+
+Cover the following commercial areas with specific context:
+- Licensing Models: Perpetual vs subscription, per-user vs enterprise, concurrent vs named licenses aligned with scope
+- Base Costs: Initial license/subscription fees, setup charges, environment provisioning
+- Implementation Costs: Professional services, customization, integration work for the scope
+- Maintenance & Support: Annual maintenance percentages, support tiers, SLA guarantees
+- Training Costs: Initial training, certification programs, ongoing enablement for stakeholders
+- Infrastructure Costs: Hosting (if applicable), data storage, bandwidth requirements
+- Hidden Costs: Data migration, change request rates, out-of-scope charges, contract penalties
+- Payment Terms: Payment schedules, milestone-based payments, financing options
+- Volume Discounts: Tiered pricing, multi-year discounts, bundle savings
+- TCO Projections: 3-year and 5-year total cost estimates including all components
+- Commercial Flexibility: Contract exit terms, scalability pricing, price protection guarantees
+- Value Guarantees: Performance-based pricing, outcome commitments, risk-sharing models
+
+Each question MUST request specific pricing data, percentages, or commercial terms to enable quantitative vendor comparison.`
   };
 
   const prompt = `You are creating a vendor evaluation questionnaire for: ${businessCaseExtract.projectName}
@@ -714,14 +742,15 @@ export async function generateRftFromBusinessCase(
 
   console.log(`Generated ${sections.length} RFT sections`);
 
-  // Generate all 4 questionnaires using AI
+  // Generate all 5 questionnaires using AI
   // Production-quality coverage: increased question counts for comprehensive vendor evaluation
   console.log("Generating questionnaires...");
-  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+  const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
     generateQuestionnaireQuestions(businessCaseExtract, "product", 50),
     generateQuestionnaireQuestions(businessCaseExtract, "nfr", 75),
     generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 40),
     generateQuestionnaireQuestions(businessCaseExtract, "agile", 40),
+    generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
   ]);
 
   console.log("Generated all questionnaire questions, creating Excel files...");
@@ -732,6 +761,7 @@ export async function generateRftFromBusinessCase(
     nfr: nfrQuestions,
     cybersecurity: cybersecurityQuestions,
     agile: agileQuestions,
+    procurement: procurementQuestions,
   });
 
   console.log("Excel questionnaires created successfully");
@@ -747,6 +777,7 @@ export async function generateRftFromBusinessCase(
     nfrQuestionnairePath: questionnairePaths.nfrPath,
     cybersecurityQuestionnairePath: questionnairePaths.cybersecurityPath,
     agileQuestionnairePath: questionnairePaths.agilePath,
+    procurementQuestionnairePath: questionnairePaths.procurementPath,
     status: "draft",
     version: 1,
     metadata: {
@@ -759,6 +790,7 @@ export async function generateRftFromBusinessCase(
         nfrQuestions: nfrQuestions.length,
         cybersecurityQuestions: cybersecurityQuestions.length,
         agileQuestions: agileQuestions.length,
+        procurementQuestions: procurementQuestions.length,
       },
     },
   };

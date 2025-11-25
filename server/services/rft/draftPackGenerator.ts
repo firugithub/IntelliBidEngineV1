@@ -24,6 +24,7 @@ interface PackGenerationResult {
       nfr: { name: string; url: string };
       cybersecurity: { name: string; url: string };
       agile: { name: string; url: string };
+      procurement?: { name: string; url: string };
     };
   };
   error?: string;
@@ -105,12 +106,13 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
 
     console.log(`[RFT Pack] Generating AI-powered questionnaires...`);
     
-    // Generate all 4 questionnaires using AI
-    const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions] = await Promise.all([
+    // Generate all 5 questionnaires using AI
+    const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
       generateQuestionnaireQuestions(businessCaseExtract, "product", 30),
       generateQuestionnaireQuestions(businessCaseExtract, "nfr", 50),
       generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", 20),
       generateQuestionnaireQuestions(businessCaseExtract, "agile", 20),
+      generateQuestionnaireQuestions(businessCaseExtract, "procurement", 20),
     ]);
 
     const questionnairePaths = await generateAllQuestionnaires(project.id, {
@@ -118,6 +120,7 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
       nfr: nfrQuestions,
       cybersecurity: cybersecurityQuestions,
       agile: agileQuestions,
+      procurement: procurementQuestions,
     });
 
     // Generate Product Technical Questionnaire with context diagram (if business case exists)
@@ -165,8 +168,8 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
 
     console.log(`[RFT Pack] Uploading all files to Azure Blob Storage...`);
 
-    // Upload base files (always present)
-    const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload] = await Promise.all([
+    // Build upload promises array
+    const uploadPromises = [
       azureBlobStorageService.uploadDocument(
         `project-${project.id}/RFT_Generated/RFT_Document.docx`,
         docxBuffer
@@ -191,7 +194,21 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
         `project-${project.id}/RFT_Generated/Agile_Questionnaire.xlsx`,
         fs.readFileSync(questionnairePaths.agilePath)
       ),
-    ]);
+    ];
+    
+    // Add procurement questionnaire if it exists
+    if (questionnairePaths.procurementPath) {
+      uploadPromises.push(
+        azureBlobStorageService.uploadDocument(
+          `project-${project.id}/RFT_Generated/Procurement_Questionnaire.xlsx`,
+          fs.readFileSync(questionnairePaths.procurementPath)
+        )
+      );
+    }
+    
+    const uploadResults = await Promise.all(uploadPromises);
+    const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload] = uploadResults;
+    const procurementUpload = questionnairePaths.procurementPath ? uploadResults[6] : null;
     
     // Upload Product Technical Questionnaire if generated
     let productTechnicalUpload = null;
@@ -209,6 +226,9 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
       fs.unlinkSync(questionnairePaths.nfrPath);
       fs.unlinkSync(questionnairePaths.cybersecurityPath);
       fs.unlinkSync(questionnairePaths.agilePath);
+      if (questionnairePaths.procurementPath) {
+        fs.unlinkSync(questionnairePaths.procurementPath);
+      }
       if (productTechnicalPath) {
         fs.unlinkSync(productTechnicalPath);
       }
@@ -216,9 +236,14 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
       console.error("Error cleaning up temporary files:", error);
     }
 
+    // Calculate file count: base 6 + optional procurement + optional product technical
+    let filesCount = 6;
+    if (procurementUpload) filesCount++;
+    if (productTechnicalUpload) filesCount++;
+
     const packResult: PackGenerationResult = {
       status: "completed",
-      filesCount: productTechnicalUpload ? 7 : 6,
+      filesCount,
       files: {
         docx: { name: "RFT_Document.docx", url: docxUpload.blobUrl },
         pdf: { name: "RFT_Document.pdf", url: pdfUpload.blobUrl },
@@ -231,6 +256,7 @@ export async function generateRftPackFromDraft(draftId: string): Promise<PackGen
           nfr: { name: "NFR_Questionnaire.xlsx", url: nfrUpload.blobUrl },
           cybersecurity: { name: "Cybersecurity_Questionnaire.xlsx", url: cybersecurityUpload.blobUrl },
           agile: { name: "Agile_Questionnaire.xlsx", url: agileUpload.blobUrl },
+          procurement: procurementUpload ? { name: "Procurement_Questionnaire.xlsx", url: procurementUpload.blobUrl } : undefined,
         },
       },
     };
