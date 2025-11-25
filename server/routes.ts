@@ -2140,7 +2140,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const procurementProposal = proposals.find(
           p => p.vendorName === vendorName && p.documentType === "procurement"
         );
-        const procurementCost = (procurementProposal?.extractedData as any)?.costStructure || null;
+        // Extract the formatted cost from costSummary (e.g., "$6.7M 5-year TCO ($2.4M/year avg)")
+        const extractedData = procurementProposal?.extractedData as any;
+        const procurementCost = extractedData?.costSummary?.formatted || extractedData?.costStructure || null;
         
         // If evaluation exists, return it enriched with documents and scores
         if (evaluation) {
