@@ -63,6 +63,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { encryptApiKey, decryptApiKey } from "./utils/encryption";
+import { normalizeVendorName } from "./services/rft/vendorUtils";
 
 function normalizeNullables<T extends Record<string, any>>(
   record: Record<string, any>
@@ -1814,11 +1815,8 @@ storage.deleteRequirement = async function(id: string): Promise<void> {
 
 // Override proposal methods to use PostgreSQL
 storage.createProposal = async function(insertProposal: InsertProposal): Promise<Proposal> {
-  // Normalize vendor name to prevent duplicates like "Salesforce, Inc." vs "Salesforce Inc"
-  const normalizedVendorName = insertProposal.vendorName
-    .replace(/[^a-zA-Z0-9\s]/g, '')  // Remove ALL special characters
-    .replace(/\s+/g, ' ')             // Collapse multiple spaces
-    .trim();
+  // Normalize vendor name using centralized function to prevent duplicates
+  const normalizedVendorName = normalizeVendorName(insertProposal.vendorName);
   
   const created = await db.insert(proposals)
     .values({
@@ -1853,11 +1851,8 @@ storage.updateProposal = async function(id: string, updates: Partial<InsertPropo
   const updateData: Record<string, any> = {};
   if (updates.projectId !== undefined) updateData.projectId = updates.projectId;
   if (updates.vendorName !== undefined) {
-    // Normalize vendor name to prevent duplicates
-    updateData.vendorName = updates.vendorName
-      .replace(/[^a-zA-Z0-9\s]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Normalize vendor name using centralized function to prevent duplicates
+    updateData.vendorName = normalizeVendorName(updates.vendorName);
   }
   if (updates.documentType !== undefined) updateData.documentType = updates.documentType;
   if (updates.fileName !== undefined) updateData.fileName = updates.fileName;
