@@ -1814,10 +1814,16 @@ storage.deleteRequirement = async function(id: string): Promise<void> {
 
 // Override proposal methods to use PostgreSQL
 storage.createProposal = async function(insertProposal: InsertProposal): Promise<Proposal> {
+  // Normalize vendor name to prevent duplicates like "Salesforce, Inc." vs "Salesforce Inc"
+  const normalizedVendorName = insertProposal.vendorName
+    .replace(/[^a-zA-Z0-9\s]/g, '')  // Remove ALL special characters
+    .replace(/\s+/g, ' ')             // Collapse multiple spaces
+    .trim();
+  
   const created = await db.insert(proposals)
     .values({
       projectId: insertProposal.projectId,
-      vendorName: insertProposal.vendorName,
+      vendorName: normalizedVendorName,
       documentType: insertProposal.documentType || "proposal",
       fileName: insertProposal.fileName,
       blobUrl: insertProposal.blobUrl || null,
@@ -1846,7 +1852,13 @@ storage.updateProposal = async function(id: string, updates: Partial<InsertPropo
   // Only include fields that are explicitly provided (not undefined)
   const updateData: Record<string, any> = {};
   if (updates.projectId !== undefined) updateData.projectId = updates.projectId;
-  if (updates.vendorName !== undefined) updateData.vendorName = updates.vendorName;
+  if (updates.vendorName !== undefined) {
+    // Normalize vendor name to prevent duplicates
+    updateData.vendorName = updates.vendorName
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   if (updates.documentType !== undefined) updateData.documentType = updates.documentType;
   if (updates.fileName !== undefined) updateData.fileName = updates.fileName;
   if (updates.blobUrl !== undefined) updateData.blobUrl = updates.blobUrl;
