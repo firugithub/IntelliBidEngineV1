@@ -43,8 +43,8 @@ INSERT INTO organization_templates (
     created_by
 ) VALUES
     (
-        'Nujum Air Standard RFT Template',
-        'Official Nujum Air template for Request for Tender (RFT) procurement processes',
+        'Emirates Airlines Standard RFT Template',
+        'Official Emirates Airlines template for Request for Tender (RFT) procurement processes',
         'RFT',
         'docx',
         'https://your-storage-account.blob.core.windows.net/organization-templates/nujum-air-rft-template.docx',

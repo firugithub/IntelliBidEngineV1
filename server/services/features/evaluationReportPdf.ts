@@ -57,7 +57,7 @@ export async function generateEvaluationReportPdf(
         if (!skipHeader) {
           // Header
           doc.fontSize(9).fillColor('#666666');
-          doc.text('Nujum Air - RFT Evaluation Report', 50, 40, { align: 'left' });
+          doc.text('Emirates Airlines - RFT Evaluation Report', 50, 40, { align: 'left' });
           doc.text(new Date().toLocaleDateString(), 0, 40, { align: 'right' });
           doc.moveTo(50, 60).lineTo(545, 60).stroke('#CCCCCC');
         }
@@ -166,7 +166,7 @@ export async function generateEvaluationReportPdf(
       doc.moveDown(3);
       doc.fontSize(10).fillColor('#333333').text('Prepared by:', { align: 'center' });
       doc.text('IntelliBid AI Evaluation System', { align: 'center' });
-      doc.text('Nujum Air Procurement Division', { align: 'center' });
+      doc.text('Emirates Airlines Procurement Division', { align: 'center' });
       
       doc.addPage();
 
@@ -202,7 +202,7 @@ export async function generateEvaluationReportPdf(
       addSection('2. BACKGROUND & CONTEXT');
       doc.text(`RFT Reference: ${project.id}`);
       doc.text(`Project Name: ${project.name}`);
-      doc.text(`Business Owner: Nujum Air - IT Procurement`);
+      doc.text(`Business Owner: Emirates Airlines - IT Procurement`);
       doc.text(`Evaluation Period: ${new Date().toLocaleDateString()}`);
       doc.moveDown(0.5);
       doc.text('Tendering Process Summary:');

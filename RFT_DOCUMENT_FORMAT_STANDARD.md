@@ -154,7 +154,7 @@ When generating RFT documents using this format:
 1. **Consistency:** Always use these 10 sections in this exact order
 2. **Completeness:** Each section should contain 3-5 comprehensive paragraphs
 3. **Industry Context:** Reference relevant standards (IATA, ISO, etc.) where applicable
-4. **Aviation Focus:** For Nujum Air projects, include airline-specific requirements
+4. **Aviation Focus:** For Emirates Airlines projects, include airline-specific requirements
 5. **Professional Tone:** Use formal, enterprise-grade language
 6. **Clarity:** Ensure requirements are specific, measurable, and unambiguous
 7. **Compliance:** Include relevant regulatory and compliance requirements

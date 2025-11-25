@@ -28,7 +28,7 @@ BEGIN
     RAISE NOTICE '';
     RAISE NOTICE '📝 Example DOCX template structure:';
     RAISE NOTICE '   ---';
-    RAISE NOTICE '   Nujum Air - Request for Tender';
+    RAISE NOTICE '   Emirates Airlines - Request for Tender';
     RAISE NOTICE '   ';
     RAISE NOTICE '   Project: {{PROJECT_NAME}}';
     RAISE NOTICE '   Budget: {{BUDGET}}';

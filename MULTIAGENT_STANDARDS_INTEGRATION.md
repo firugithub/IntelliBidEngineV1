@@ -16,7 +16,7 @@ In the **Standards & Compliance** tab, you can:
 
 **Example:**
 ```
-Standard: "Nujum Air Information Security Policy"
+Standard: "Emirates Airlines Information Security Policy"
 Sections:
   - Data Encryption Requirements
   - Access Control & Authentication
@@ -35,7 +35,7 @@ When creating a **Project** or uploading **RFT requirements**:
 **Example:**
 ```
 Project: "Passenger Service System Upgrade"
-Standard: "Nujum Air Information Security Policy"
+Standard: "Emirates Airlines Information Security Policy"
 Tagged Sections:
   ✓ Data Encryption Requirements
   ✓ Access Control & Authentication
@@ -60,7 +60,7 @@ When evaluation runs, **ALL 6 agents** receive:
 #### **B. Organization-Specific Compliance Requirements**
 ```
 **ORGANIZATION-SPECIFIC COMPLIANCE REQUIREMENTS:**
-Standard: Nujum Air Information Security Policy
+Standard: Emirates Airlines Information Security Policy
 
 You MUST evaluate vendor compliance against these sections:
 - Data Encryption Requirements: All data must be encrypted at-rest (AES-256) and in-transit (TLS 1.3)
@@ -173,7 +173,7 @@ After evaluation, the system generates **section-level compliance scores**:
 ### Step 1: Create Compliance Standard
 ```
 Navigate to: Standards & Compliance → Documents Tab
-Action: Upload "Nujum Air Security Policy.pdf"
+Action: Upload "Emirates Airlines Security Policy.pdf"
 Result: AI extracts 12 sections, tags with "SecurityPolicy"
 ```
 
@@ -181,14 +181,14 @@ Result: AI extracts 12 sections, tags with "SecurityPolicy"
 ```
 Navigate to: Portfolios → Digital & Technology → New Project
 Project: "Cloud Migration Initiative"
-Select Standard: "Nujum Air Security Policy"
+Select Standard: "Emirates Airlines Security Policy"
 Tag Sections: Data Encryption, Access Control, Vendor Security (3 of 12 sections)
 ```
 
 ### Step 3: Upload Vendor Proposals
 ```
 Upload: Vendor A Proposal.pdf, Vendor B Proposal.pdf, Vendor C Proposal.pdf
-Link to Same Standard: "Nujum Air Security Policy"
+Link to Same Standard: "Emirates Airlines Security Policy"
 ```
 
 ### Step 4: Run AI Evaluation
@@ -217,7 +217,7 @@ Dashboard shows:
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Standards & Compliance                         │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │ ISO 27001 | GDPR | SOC 2 | Nujum Air Security Policy    │  │
+│  │ ISO 27001 | GDPR | SOC 2 | Emirates Airlines Security Policy │  │
 │  │ Sections: Data Encryption | Access Control | Auditing    │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └────────────────────────┬────────────────────────────────────────┘

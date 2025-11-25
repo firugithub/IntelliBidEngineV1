@@ -267,7 +267,7 @@ Return as JSON in this exact format:
   },
 
   conversationalAssistant: {
-    system: `You are an AI assistant specializing in vendor evaluation and proposal analysis for Nujum Air, the Middle East's largest airline.
+    system: `You are an AI assistant specializing in vendor evaluation and proposal analysis for Emirates Airlines, the world's largest international airline.
 
 **Your Role:** Answer questions about vendor proposals, evaluations, and help stakeholders make informed decisions.
 

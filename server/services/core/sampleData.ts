@@ -47,7 +47,7 @@ export async function seedSampleData() {
     const project = await storage.createProject({
       portfolioId: portfolio.id,
       name: "Passenger Service System Upgrade",
-      initiativeName: "Nujum Digital Experience 2025",
+      initiativeName: "Emirates Digital Experience 2025",
       vendorList: ["Amadeus IT Group", "Sabre Corporation", "SITA"],
       status: "completed",
     });
@@ -169,16 +169,16 @@ export async function seedSampleData() {
           compliance: 98,
           status: "recommended" as const,
           rationale:
-            "Amadeus IT Group demonstrates exceptional technical alignment with Nujum Air's passenger service system requirements, achieving a 95% technical fit score. The Altéa PSS Suite with full NDC capability ensures modern airline distribution and retailing. With the lowest delivery risk at 20% and outstanding compliance score of 98%, this vendor presents the optimal balance of airline-specific capability, proven MENA deployments, and IATA-certified security. The 12-16 month phased implementation timeline aligns with Nujum's digital transformation roadmap.",
+            "Amadeus IT Group demonstrates exceptional technical alignment with Emirates Airlines' passenger service system requirements, achieving a 95% technical fit score. The Altéa PSS Suite with full NDC capability ensures modern airline distribution and retailing. With the lowest delivery risk at 20% and outstanding compliance score of 98%, this vendor presents the optimal balance of airline-specific capability, proven MENA deployments, and IATA-certified security. The 12-16 month phased implementation timeline aligns with Emirates' digital transformation roadmap.",
           roleInsights: {
             delivery: [
               "12-16 month phased implementation minimizes operational disruption",
-              "NDC-enabled architecture supports Nujum's distribution strategy",
+              "NDC-enabled architecture supports Emirates' distribution strategy",
               "Proven deployments at 30+ airlines in MENA region",
               "Clear migration path from legacy PSS with data integrity guarantees",
             ],
             product: [
-              "95% coverage of Nujum's passenger service requirements",
+              "95% coverage of Emirates' passenger service requirements",
               "Full NDC/ONE Order support enables modern airline retailing",
               "Real-time inventory management across all sales channels",
               "Mobile-first design aligns with digital experience goals",
@@ -217,7 +217,7 @@ export async function seedSampleData() {
           compliance: 92,
           status: "under-review" as const,
           rationale:
-            "Sabre Corporation offers a strong airline PSS solution with excellent customization capabilities and proven deployment at full-service carriers globally. The 90% technical fit indicates strong alignment with Nujum's requirements, particularly in crew management and ancillary revenue optimization. Moderate delivery risk of 30% stems from 14-18 month timeline and integration complexity with existing loyalty systems. SOC 2 Type II and ISO 27001 certifications meet airline compliance standards.",
+            "Sabre Corporation offers a strong airline PSS solution with excellent customization capabilities and proven deployment at full-service carriers globally. The 90% technical fit indicates strong alignment with Emirates' requirements, particularly in crew management and ancillary revenue optimization. Moderate delivery risk of 30% stems from 14-18 month timeline and integration complexity with existing loyalty systems. SOC 2 Type II and ISO 27001 certifications meet airline compliance standards.",
           roleInsights: {
             delivery: [
               "14-18 month implementation timeline allows thorough testing and validation",
@@ -228,7 +228,7 @@ export async function seedSampleData() {
             product: [
               "SabreSonic platform designed specifically for full-service carrier operations",
               "Dynamic pricing and offers enable competitive revenue optimization",
-              "Strong loyalty program integration supports Nujum's frequent flyer strategy",
+              "Strong loyalty program integration supports Emirates' frequent flyer strategy",
               "Ancillary revenue capabilities exceed industry benchmarks",
             ],
             architecture: [
@@ -607,7 +607,7 @@ export async function seedAllMockData() {
       await storage.createStandard({
         name: "Corporate Branding Guidelines",
         category: "general",
-        description: "Brand identity standards for Nujum Air across all customer touchpoints",
+        description: "Brand identity standards for Emirates Airlines across all customer touchpoints",
         sections: [
           { id: "brand-001", name: "Visual Identity", description: "Logo usage, color palette, and typography" },
           { id: "brand-002", name: "Digital Presence", description: "Website, app, and social media guidelines" },
@@ -639,10 +639,10 @@ export async function seedAllMockData() {
     const connectors = await storage.getAllMcpConnectors();
     if (connectors.length === 0) {
       await storage.createMcpConnector({
-        name: "Nujum Air Confluence",
+        name: "Emirates Airlines Confluence",
         description: "Access to airline operations documentation and technical knowledge base",
-        serverUrl: "https://nujumair.atlassian.net/wiki",
-        apiKey: "demo-key-nujum-confluence-12345",
+        serverUrl: "https://emirates.atlassian.net/wiki",
+        apiKey: "demo-key-emirates-confluence-12345",
         connectorType: "rest",
         authType: "bearer",
         roleMapping: ["product", "architecture", "engineering"],

@@ -164,7 +164,7 @@ export async function generateRft(topicId: string) {
   const project = await storage.createProject({
     portfolioId: portfolio.id,
     name: topic.title,
-    initiativeName: `Nujum Air ${topic.title} Initiative`,
+    initiativeName: `Emirates Airlines ${topic.title} Initiative`,
     vendorList: topic.vendors,
     status: "draft",
   });

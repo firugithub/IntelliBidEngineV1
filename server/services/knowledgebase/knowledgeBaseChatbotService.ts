@@ -311,7 +311,7 @@ class KnowledgeBaseChatbotService {
    * System prompt that enforces knowledge-base-only responses
    */
   private getSystemPrompt(ragChunks: number, mcpConnectors: number): string {
-    return `You are a specialized Knowledge Base Assistant for IntelliBid, an AI-powered vendor evaluation platform for Nujum Air (Middle East's largest airline).
+    return `You are a specialized Knowledge Base Assistant for IntelliBid, an AI-powered vendor evaluation platform for Emirates Airlines (the world's largest international airline).
 
 **YOUR STRICT ROLE:**
 - Answer questions ONLY using the provided knowledge base documents and MCP connector data

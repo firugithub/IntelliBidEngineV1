@@ -312,7 +312,7 @@ Budget: ${businessCaseData.extractedData?.budget || "TBD"}
 Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
 Functional Requirements: ${(businessCaseData.extractedData?.functionalRequirements || "").substring(0, 400)}
 Non-functional Requirements: ${(businessCaseData.extractedData?.nonFunctionalRequirements || "").substring(0, 400)}
-Industry: Aviation/Airline (Nujum Air)
+Industry: Aviation/Airline (Emirates Airlines)
 
 TASK: Expand this section into comprehensive, detailed requirements with MINIMUM 20 specific requirements.
 
@@ -365,7 +365,7 @@ Budget: ${businessCaseData.extractedData?.budget || "TBD"}
 Timeline: ${businessCaseData.extractedData?.timeline || "TBD"}
 Functional Requirements: ${(businessCaseData.extractedData?.functionalRequirements || "").substring(0, 400)}
 Non-functional Requirements: ${(businessCaseData.extractedData?.nonFunctionalRequirements || "").substring(0, 400)}
-Industry: Aviation/Airline (Nujum Air)
+Industry: Aviation/Airline (Emirates Airlines)
 
 TASK: Expand this section into comprehensive, professional content that provides detailed context and clarity.
 
@@ -3744,7 +3744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const mergeData: any = {
           PROJECT_NAME: decodeHTML(businessCase.name || "Untitled Project"),
-          AIRLINE_NAME: decodeHTML(extractedData?.airline || "Nujum Air"),
+          AIRLINE_NAME: decodeHTML(extractedData?.airline || "Emirates Airlines"),
           DESCRIPTION: decodeHTML(businessCase.description || extractedData?.projectObjective || extractedData?.description || ""),
           BUDGET: decodeHTML(extractedData?.budget || "TBD"),
           TIMELINE: decodeHTML(extractedData?.timeline || "TBD"),

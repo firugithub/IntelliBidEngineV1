@@ -156,11 +156,11 @@ export default function HomePage() {
               <div className="flex items-center gap-3 mb-3">
                 <h1 className="text-5xl font-bold gradient-text-accent">IntelliBid</h1>
                 <Badge variant="secondary" className="text-sm px-3 py-1">
-                  Nujum Air
+                  Emirates Airlines
                 </Badge>
               </div>
               <p className="text-lg text-muted-foreground font-medium">
-                AI-Powered Vendor Shortlisting for Middle East's Largest Airline
+                AI-Powered Vendor Shortlisting for World's Largest International Airline
               </p>
             </div>
             <Link href="/standards">
