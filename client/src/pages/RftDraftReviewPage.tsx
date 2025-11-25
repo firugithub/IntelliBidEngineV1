@@ -455,6 +455,19 @@ export default function RftDraftReviewPage() {
                   <FileCheck className="h-4 w-4 mr-2" />
                   Agile Questionnaire (XLSX)
                 </Button>
+
+                {/* Procurement Questionnaire */}
+                {selectedDraft.metadata.pack.files.questionnaires.procurement && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => window.open(selectedDraft.metadata.pack.files.questionnaires.procurement.url, '_blank')}
+                    data-testid="button-download-procurement"
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    Procurement Questionnaire (XLSX)
+                  </Button>
+                )}
               </>
             )}
             

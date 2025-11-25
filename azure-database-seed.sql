@@ -47,7 +47,7 @@ INSERT INTO organization_templates (
         'Official Emirates Airlines template for Request for Tender (RFT) procurement processes',
         'RFT',
         'docx',
-        'https://your-storage-account.blob.core.windows.net/organization-templates/nujum-air-rft-template.docx',
+        'https://your-storage-account.blob.core.windows.net/organization-templates/emirates-airlines-rft-template.docx',
         '[
             {"name": "PROJECT_NAME", "type": "simple", "description": "Name of the project"},
             {"name": "AIRLINE_NAME", "type": "simple", "description": "Name of the airline"},
@@ -111,7 +111,7 @@ INSERT INTO organization_templates (
         ]',
         'true',
         'true',
-        '{"fileSize": "45KB", "originalFilename": "nujum-air-rft-template.docx", "uploadedVia": "seed-data"}',
+        '{"fileSize": "45KB", "originalFilename": "emirates-airlines-rft-template.docx", "uploadedVia": "seed-data"}',
         'system'
     ),
     (

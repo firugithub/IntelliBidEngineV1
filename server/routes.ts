@@ -3337,24 +3337,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       };
 
-      // Combine questions from all agents into 4 questionnaire categories
-      // Product questionnaire: Product + Procurement questions
+      // Combine questions from all agents into 5 questionnaire categories
+      // Product questionnaire: Product questions
       // NFR questionnaire: Architecture + Engineering questions  
       // Cybersecurity questionnaire: Security questions
-      // Agile questionnaire: Delivery + Engineering questions
+      // Agile questionnaire: Delivery questions
+      // Procurement questionnaire: Procurement questions (commercial/pricing)
       const questionnairePaths = await generateAllQuestionnaires(
         effectiveProjectId,
         {
-          product: convertToQuestions([
-            ...(productSection?.questionsForVendors || []),
-            ...(procurementSection?.questionsForVendors || [])
-          ]),
+          product: convertToQuestions(productSection?.questionsForVendors || []),
           nfr: convertToQuestions([
             ...(architectureSection?.questionsForVendors || []),
             ...(engineeringSection?.questionsForVendors || [])
           ]),
           cybersecurity: convertToQuestions(securitySection?.questionsForVendors || []),
-          agile: convertToQuestions(deliverySection?.questionsForVendors || [])
+          agile: convertToQuestions(deliverySection?.questionsForVendors || []),
+          procurement: convertToQuestions(procurementSection?.questionsForVendors || [])
         }
       );
 
@@ -3363,6 +3362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nfrBuffer = fs.readFileSync(questionnairePaths.nfrPath);
       const cybersecurityBuffer = fs.readFileSync(questionnairePaths.cybersecurityPath);
       const agileBuffer = fs.readFileSync(questionnairePaths.agilePath);
+      const procurementBuffer = fs.readFileSync(questionnairePaths.procurementPath);
 
       // Generate Product Technical Questionnaire with context diagram (if business case exists)
       let productTechnicalBuffer: Buffer | null = null;
@@ -3411,8 +3411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 5: Upload all files to Azure Blob Storage
       const { azureBlobStorageService } = await import("./services/azure/azureBlobStorage");
 
-      // Upload base files
-      const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload] = await Promise.all([
+      // Upload base files (now includes 5 questionnaires)
+      const [docxUpload, pdfUpload, productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload, procurementUpload] = await Promise.all([
         azureBlobStorageService.uploadDocument(
           `${folderPath}/${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_RFT.docx`,
           docxBuffer
@@ -3436,6 +3436,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         azureBlobStorageService.uploadDocument(
           `${folderPath}/Agile_Questionnaire.xlsx`,
           agileBuffer
+        ),
+        azureBlobStorageService.uploadDocument(
+          `${folderPath}/Procurement_Questionnaire.xlsx`,
+          procurementBuffer
         )
       ]);
       
@@ -3460,14 +3464,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Build upload results array explicitly to avoid index confusion
-      // Order: DOCX, PDF, [ProductTechnical?], ProductQuest, NFR, Cyber, Agile, [ContextDiagram?]
+      // Order: DOCX, PDF, [ProductTechnical?], ProductQuest, NFR, Cyber, Agile, Procurement, [ContextDiagram?]
       let uploadResults = [docxUpload, pdfUpload];
       
       if (productTechnicalUpload) {
         uploadResults.push(productTechnicalUpload);
       }
       
-      uploadResults.push(productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload);
+      uploadResults.push(productQuestUpload, nfrUpload, cybersecurityUpload, agileUpload, procurementUpload);
       
       if (contextDiagramUpload) {
         uploadResults.push(contextDiagramUpload);
@@ -3532,6 +3536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               nfrQuestionnaireBlobUrl: uploadResults[questStartIndex + 1].blobUrl,
               cybersecurityQuestionnaireBlobUrl: uploadResults[questStartIndex + 2].blobUrl,
               agileQuestionnaireBlobUrl: uploadResults[questStartIndex + 3].blobUrl,
+              procurementQuestionnaireBlobUrl: uploadResults[questStartIndex + 4].blobUrl,
               ...(productTechnicalUpload && { productTechnicalQuestionnaireBlobUrl: productTechnicalUpload.blobUrl }),
               ...(contextDiagramUpload && { contextDiagramBlobUrl: contextDiagramUpload.blobUrl }),
               // New nested structure expected by frontend
@@ -3544,7 +3549,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   product: { url: uploadResults[questStartIndex].blobUrl },
                   nfr: { url: uploadResults[questStartIndex + 1].blobUrl },
                   cybersecurity: { url: uploadResults[questStartIndex + 2].blobUrl },
-                  agile: { url: uploadResults[questStartIndex + 3].blobUrl }
+                  agile: { url: uploadResults[questStartIndex + 3].blobUrl },
+                  procurement: { url: uploadResults[questStartIndex + 4].blobUrl }
                 }
               },
               generatedAt: new Date().toISOString()
@@ -3562,6 +3568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.unlinkSync(questionnairePaths.nfrPath);
         fs.unlinkSync(questionnairePaths.cybersecurityPath);
         fs.unlinkSync(questionnairePaths.agilePath);
+        fs.unlinkSync(questionnairePaths.procurementPath);
         if (productTechnicalPath) {
           fs.unlinkSync(productTechnicalPath);
         }
@@ -3576,7 +3583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rftId: rftRecord?.id,
         draftId: draft?.id,
         projectName,
-        filesGenerated: contextDiagramBuffer ? 8 : (productTechnicalBuffer ? 7 : 6),
+        filesGenerated: contextDiagramBuffer ? 9 : (productTechnicalBuffer ? 8 : 7),
         uploadedFiles: uploadResults.map(r => r.blobUrl),
         productTechnicalQuestionnaireBlobUrl: productTechnicalUpload?.blobUrl || null,
         contextDiagramBlobUrl: contextDiagramUpload?.blobUrl || null,
@@ -4331,7 +4338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get all pack files from Azure Blob Storage (up to 8 files when context diagram is included)
+      // Get all pack files from Azure Blob Storage (up to 9 files when context diagram is included)
       // New structure: pack.files.docx.url, pack.files.pdf.url, pack.files.questionnaires.product.url
       // Legacy structure: pack.docxBlobUrl, pack.pdfBlobUrl, pack.productQuestionnaireBlobUrl
       const packFiles = pack.files || {};
@@ -4359,6 +4366,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { 
           blobUrl: packFiles.questionnaires?.agile?.url || pack.agileQuestionnaireBlobUrl, 
           name: "Agile_Delivery_Questionnaire.xlsx" 
+        },
+        { 
+          blobUrl: packFiles.questionnaires?.procurement?.url || pack.procurementQuestionnaireBlobUrl, 
+          name: "Procurement_Questionnaire.xlsx" 
         },
         {
           blobUrl: packFiles.productTechnical?.url || pack.productTechnicalQuestionnaireBlobUrl,
