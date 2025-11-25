@@ -1,6 +1,6 @@
 -- IntelliBid Database Setup for Azure PostgreSQL
--- Updated: November 21, 2025
--- Complete schema with all columns, constraints, and atomic duplicate prevention
+-- Updated: November 25, 2025
+-- Complete schema with all columns, constraints, atomic duplicate prevention, and 5th Procurement Questionnaire
 
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -388,6 +388,7 @@ CREATE TABLE generated_rfts (
   nfr_questionnaire_path TEXT,
   cybersecurity_questionnaire_path TEXT,
   agile_questionnaire_path TEXT,
+  procurement_questionnaire_path TEXT,
   -- Azure Blob URLs (DEPRECATED - use blob_name fields)
   docx_blob_url TEXT,
   pdf_blob_url TEXT,
@@ -395,6 +396,7 @@ CREATE TABLE generated_rfts (
   nfr_questionnaire_blob_url TEXT,
   cybersecurity_questionnaire_blob_url TEXT,
   agile_questionnaire_blob_url TEXT,
+  procurement_questionnaire_blob_url TEXT,
   -- Azure Blob Storage paths (CURRENT)
   docx_blob_name TEXT,
   pdf_blob_name TEXT,
@@ -402,6 +404,7 @@ CREATE TABLE generated_rfts (
   nfr_questionnaire_blob_name TEXT,
   cybersecurity_questionnaire_blob_name TEXT,
   agile_questionnaire_blob_name TEXT,
+  procurement_questionnaire_blob_name TEXT,
   status TEXT NOT NULL DEFAULT 'draft', -- 'draft', 'review', 'published', 'archived'
   version INTEGER NOT NULL DEFAULT 1,
   published_at TIMESTAMP,
