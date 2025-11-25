@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb, Edit, FileDown, FileCheck2 } from "lucide-react";
+import { FileText, Upload, Wand2, CheckCircle2, Loader2, Download, Lightbulb, Edit, FileDown, FileCheck2, Building2, MapPin, TrendingUp, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -95,6 +95,31 @@ export default function SmartRftBuilderPage() {
   // Fetch organization templates (template merge)
   const { data: orgTemplates = [], isLoading: orgTemplatesLoading } = useQuery<any[]>({
     queryKey: ["/api/templates"],
+  });
+
+  // Vendor Intelligence - fetch real market vendors based on objective
+  const [vendorSearchTrigger, setVendorSearchTrigger] = useState("");
+  
+  const { data: vendorIntel, isLoading: vendorIntelLoading, refetch: refetchVendorIntel } = useQuery<{
+    success: boolean;
+    domain: string;
+    vendors: Array<{
+      name: string;
+      position: string;
+      location: string;
+      description: string;
+    }>;
+  }>({
+    queryKey: ["/api/vendor-intel", vendorSearchTrigger],
+    queryFn: async () => {
+      if (!vendorSearchTrigger || vendorSearchTrigger.length < 10) return { success: false, domain: "", vendors: [] };
+      const params = new URLSearchParams({ objective: vendorSearchTrigger });
+      const response = await fetch(`/api/vendor-intel?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch vendor intel");
+      return response.json();
+    },
+    enabled: vendorSearchTrigger.length >= 10,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   // Auto-seed templates if empty
@@ -932,6 +957,79 @@ export default function SmartRftBuilderPage() {
                     className="min-h-20"
                   />
                 </div>
+
+                {/* Market Vendors Panel */}
+                {projectObjective.length >= 10 && (
+                  <div className="space-y-3 p-4 bg-muted/50 rounded-lg border" data-testid="vendor-intel-panel">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary" />
+                        <span className="font-medium text-sm">Top Market Vendors</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setVendorSearchTrigger(projectObjective)}
+                        disabled={vendorIntelLoading}
+                        data-testid="button-search-vendors"
+                      >
+                        {vendorIntelLoading ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Searching...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-3 h-3 mr-1" />
+                            Find Vendors
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {vendorIntel?.vendors && vendorIntel.vendors.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Top vendors for: {vendorIntel.domain}
+                        </p>
+                        <div className="grid gap-2">
+                          {vendorIntel.vendors.map((vendor, idx) => (
+                            <div 
+                              key={idx} 
+                              className="flex items-start gap-3 p-2 bg-background rounded border text-sm"
+                              data-testid={`vendor-card-${idx}`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium">{vendor.name}</span>
+                                  <Badge 
+                                    variant={vendor.position === "Leader" ? "default" : vendor.position === "Challenger" ? "secondary" : "outline"}
+                                    className="text-xs"
+                                  >
+                                    {vendor.position}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {vendor.description}
+                                </p>
+                                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                  <MapPin className="w-3 h-3" />
+                                  {vendor.location}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!vendorIntel?.vendors?.length && !vendorIntelLoading && vendorSearchTrigger && (
+                      <p className="text-xs text-muted-foreground text-center py-2">
+                        Click "Find Vendors" to discover top market vendors for your project domain.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <Button
                   onClick={handleGenerateBusinessCase}

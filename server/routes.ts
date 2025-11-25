@@ -3330,23 +3330,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateAllQuestionnaires } = await import("./services/rft/excelGenerator");
       const { generateQuestionnaireQuestions, QUESTIONNAIRE_COUNTS } = await import("./services/rft/smartRftService");
       
-      // Build context string from agent-generated content for question generation
-      const businessCaseContext = [
-        businessCase?.documentContent,
-        extractedData?.DESCRIPTION || extractedData?.description,
-        `Project: ${projectName}. Objective: ${businessObjective}. Scope: ${scope}. Systems: ${targetSystems}.`,
-        ...documentSections.map(s => s.content)
-      ].filter(Boolean).join('\n\n');
+      // Build BusinessCaseExtract object from agent-generated content for question generation
+      const businessCaseExtract = {
+        projectName,
+        businessObjective,
+        scope,
+        stakeholders: [],
+        budget: "",
+        timeline: "",
+        keyRequirements: documentSections.map(s => s.content.substring(0, 500)),
+        risks: [],
+        successCriteria: []
+      };
 
       console.log(`[Agent RFT] Generating questionnaire questions using centralized QUESTIONNAIRE_COUNTS...`);
       
       // Generate questions for all 5 questionnaire categories in parallel
       const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
-        generateQuestionnaireQuestions(businessCaseContext, "product", QUESTIONNAIRE_COUNTS.product),
-        generateQuestionnaireQuestions(businessCaseContext, "nfr", QUESTIONNAIRE_COUNTS.nfr),
-        generateQuestionnaireQuestions(businessCaseContext, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
-        generateQuestionnaireQuestions(businessCaseContext, "agile", QUESTIONNAIRE_COUNTS.agile),
-        generateQuestionnaireQuestions(businessCaseContext, "procurement", QUESTIONNAIRE_COUNTS.procurement),
+        generateQuestionnaireQuestions(businessCaseExtract, "product", QUESTIONNAIRE_COUNTS.product),
+        generateQuestionnaireQuestions(businessCaseExtract, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+        generateQuestionnaireQuestions(businessCaseExtract, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+        generateQuestionnaireQuestions(businessCaseExtract, "agile", QUESTIONNAIRE_COUNTS.agile),
+        generateQuestionnaireQuestions(businessCaseExtract, "procurement", QUESTIONNAIRE_COUNTS.procurement),
       ]);
 
       console.log(`[Agent RFT] Questions generated: Product=${productQuestions.length}, NFR=${nfrQuestions.length}, Cybersecurity=${cybersecurityQuestions.length}, Agile=${agileQuestions.length}, Procurement=${procurementQuestions.length}`);
@@ -6217,6 +6222,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           step3: "Verify storage account exists and key hasn't been rotated",
           step4: "Ensure storage account has proper permissions and isn't firewalled"
         }
+      });
+    }
+  });
+
+  // Vendor Intelligence API - Real-time market vendor lookup
+  app.get("/api/vendor-intel", async (req, res) => {
+    try {
+      const { domain, objective } = req.query;
+      
+      if (!domain && !objective) {
+        return res.status(400).json({ error: "Domain or objective is required" });
+      }
+      
+      const searchContext = `${objective || ''} ${domain || ''}`.trim();
+      
+      // Use OpenAI to fetch real market vendors for the domain
+      const openai = await getOpenAIClient();
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a procurement research analyst specializing in the aviation and airline industry. Your task is to provide accurate information about real vendors in the market. Only include actual companies that exist - never make up fictional vendors.`
+          },
+          {
+            role: "user",
+            content: `List the top 10 real vendors/companies that provide solutions for: "${searchContext}"
+
+Focus on vendors serving the aviation/airline industry. For each vendor, provide:
+1. Company name (exact legal name)
+2. Market position (Leader, Challenger, or Niche Player)
+3. Headquarters location (City, Country)
+4. A brief one-line description of their offering in this space
+
+Return as JSON array:
+[
+  {
+    "name": "Company Name",
+    "position": "Leader|Challenger|Niche",
+    "location": "City, Country",
+    "description": "Brief description of their solution"
+  }
+]
+
+Only return real companies. If you cannot find 10 vendors for this specific domain, return fewer rather than inventing companies.`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 2000
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        return res.status(500).json({ error: "Failed to fetch vendor data" });
+      }
+
+      const parsed = JSON.parse(content);
+      const vendors = Array.isArray(parsed) ? parsed : (parsed.vendors || []);
+
+      res.json({
+        success: true,
+        domain: searchContext,
+        vendors: vendors.slice(0, 10),
+        source: "market_intelligence",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Vendor intelligence error:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch vendor intelligence",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
