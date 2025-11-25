@@ -3324,45 +3324,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveProjectId = projectId || `temp-${Date.now()}`;
       const folderPath = `project-${effectiveProjectId}/RFT_Generated`;
 
-      // Step 4: Generate Excel questionnaires (extract questions from agent sections)
+      // Step 4: Generate Excel questionnaires using dedicated AI question generation
+      // Note: Agent sections' questionsForVendors arrays are often empty because AI doesn't
+      // reliably return them. Use generateQuestionnaireQuestions instead (same as AI-driven mode).
       const { generateAllQuestionnaires } = await import("./services/rft/excelGenerator");
+      const { generateQuestionnaireQuestions, QUESTIONNAIRE_COUNTS } = await import("./services/rft/smartRftService");
       
-      // Extract questions from ALL agent sections for questionnaire generation
-      const productSection = agentRft.sections.find(s => s.agentRole === "product");
-      const architectureSection = agentRft.sections.find(s => s.agentRole === "architecture");
-      const engineeringSection = agentRft.sections.find(s => s.agentRole === "engineering");
-      const securitySection = agentRft.sections.find(s => s.agentRole === "security");
-      const procurementSection = agentRft.sections.find(s => s.agentRole === "procurement");
-      const deliverySection = agentRft.sections.find(s => s.agentRole === "delivery");
+      // Build context string from agent-generated content for question generation
+      const businessCaseContext = [
+        businessCase?.documentContent,
+        extractedData?.DESCRIPTION || extractedData?.description,
+        `Project: ${projectName}. Objective: ${businessObjective}. Scope: ${scope}. Systems: ${targetSystems}.`,
+        ...documentSections.map(s => s.content)
+      ].filter(Boolean).join('\n\n');
 
-      // Convert question strings to questionnaire format
-      const convertToQuestions = (questions: string[]): any[] => {
-        return questions.map((q, i) => ({
-          id: `q${i + 1}`,
-          question: q,
-          type: "text" as const,
-          required: true,
-          maxScore: 10
-        }));
-      };
+      console.log(`[Agent RFT] Generating questionnaire questions using centralized QUESTIONNAIRE_COUNTS...`);
+      
+      // Generate questions for all 5 questionnaire categories in parallel
+      const [productQuestions, nfrQuestions, cybersecurityQuestions, agileQuestions, procurementQuestions] = await Promise.all([
+        generateQuestionnaireQuestions(businessCaseContext, "product", QUESTIONNAIRE_COUNTS.product),
+        generateQuestionnaireQuestions(businessCaseContext, "nfr", QUESTIONNAIRE_COUNTS.nfr),
+        generateQuestionnaireQuestions(businessCaseContext, "cybersecurity", QUESTIONNAIRE_COUNTS.cybersecurity),
+        generateQuestionnaireQuestions(businessCaseContext, "agile", QUESTIONNAIRE_COUNTS.agile),
+        generateQuestionnaireQuestions(businessCaseContext, "procurement", QUESTIONNAIRE_COUNTS.procurement),
+      ]);
 
-      // Combine questions from all agents into 5 questionnaire categories
-      // Product questionnaire: Product questions
-      // NFR questionnaire: Architecture + Engineering questions  
-      // Cybersecurity questionnaire: Security questions
-      // Agile questionnaire: Delivery questions
-      // Procurement questionnaire: Procurement questions (commercial/pricing)
+      console.log(`[Agent RFT] Questions generated: Product=${productQuestions.length}, NFR=${nfrQuestions.length}, Cybersecurity=${cybersecurityQuestions.length}, Agile=${agileQuestions.length}, Procurement=${procurementQuestions.length}`);
+
+      // Generate Excel questionnaire files with AI-generated questions
       const questionnairePaths = await generateAllQuestionnaires(
         effectiveProjectId,
         {
-          product: convertToQuestions(productSection?.questionsForVendors || []),
-          nfr: convertToQuestions([
-            ...(architectureSection?.questionsForVendors || []),
-            ...(engineeringSection?.questionsForVendors || [])
-          ]),
-          cybersecurity: convertToQuestions(securitySection?.questionsForVendors || []),
-          agile: convertToQuestions(deliverySection?.questionsForVendors || []),
-          procurement: convertToQuestions(procurementSection?.questionsForVendors || [])
+          product: productQuestions,
+          nfr: nfrQuestions,
+          cybersecurity: cybersecurityQuestions,
+          agile: agileQuestions,
+          procurement: procurementQuestions
         }
       );
 
