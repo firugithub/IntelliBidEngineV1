@@ -479,7 +479,7 @@ export async function generateVendorResponses(rftId: string) {
   }
   
   // Create vendor profiles with varied strengths
-  const { createVendorProfiles, fillQuestionnaireWithScores } = await import("./excelQuestionnaireHandler");
+  const { createVendorProfiles, fillQuestionnaireWithScores, fillProcurementQuestionnaireWithCosts } = await import("./excelQuestionnaireHandler");
   const vendorProfiles = createVendorProfiles(vendors);
   
   // Fetch existing proposals once before the loop for efficiency
@@ -500,14 +500,14 @@ export async function generateVendorResponses(rftId: string) {
       fillQuestionnaireWithScores(agileBuffer, profile, "Agile"),
     ];
     
-    // Add procurement if available
-    if (procurementBuffer) {
-      fillPromises.push(fillQuestionnaireWithScores(procurementBuffer, profile, "Procurement"));
-    }
-    
     const fillResults = await Promise.all(fillPromises);
     const [productResponse, nfrResponse, securityResponse, agileResponse] = fillResults;
-    const procurementResponse = procurementBuffer ? fillResults[4] : null;
+    
+    // Fill procurement questionnaire with cost data (separate handling for multi-sheet Excel)
+    let procurementResponse: Buffer | null = null;
+    if (procurementBuffer) {
+      procurementResponse = await fillProcurementQuestionnaireWithCosts(procurementBuffer, vendorName);
+    }
 
     // Upload filled questionnaires to Azure Blob Storage
     // Use underscores for consistency and avoid encoding issues

@@ -570,3 +570,399 @@ export async function createExcelQuestionnaire(
   
   return await workbook.xlsx.writeBuffer() as Buffer;
 }
+
+/**
+ * Base pricing tiers by vendor pricing category (USD)
+ * These represent typical enterprise software costs for aviation industry
+ */
+const PRICING_TIERS = {
+  premium: {
+    baseLicense: { min: 800000, max: 1500000 },
+    annualRenewal: { min: 600000, max: 1200000 },
+    implementation: { min: 400000, max: 800000 },
+    dataMigration: { min: 100000, max: 250000 },
+    systemIntegration: { min: 150000, max: 350000 },
+    userTraining: { min: 30000, max: 60000 },
+    adminTraining: { min: 50000, max: 100000 },
+    annualSupport: { min: 150000, max: 300000 },
+    premiumSupport: { min: 80000, max: 150000 },
+    cloudHosting: { min: 120000, max: 250000 },
+    storagePerTB: { min: 5000, max: 12000 },
+    customDevDay: { min: 2000, max: 3500 },
+    consultingDay: { min: 2500, max: 4000 },
+    changeRequest: { min: 8000, max: 15000 },
+    additionalUser: { min: 800, max: 1500 },
+  },
+  competitive: {
+    baseLicense: { min: 500000, max: 900000 },
+    annualRenewal: { min: 400000, max: 700000 },
+    implementation: { min: 250000, max: 500000 },
+    dataMigration: { min: 60000, max: 150000 },
+    systemIntegration: { min: 100000, max: 220000 },
+    userTraining: { min: 20000, max: 40000 },
+    adminTraining: { min: 35000, max: 70000 },
+    annualSupport: { min: 100000, max: 200000 },
+    premiumSupport: { min: 50000, max: 100000 },
+    cloudHosting: { min: 80000, max: 160000 },
+    storagePerTB: { min: 3000, max: 7000 },
+    customDevDay: { min: 1500, max: 2500 },
+    consultingDay: { min: 1800, max: 3000 },
+    changeRequest: { min: 5000, max: 10000 },
+    additionalUser: { min: 500, max: 1000 },
+  },
+  value: {
+    baseLicense: { min: 300000, max: 550000 },
+    annualRenewal: { min: 250000, max: 450000 },
+    implementation: { min: 150000, max: 300000 },
+    dataMigration: { min: 40000, max: 100000 },
+    systemIntegration: { min: 60000, max: 140000 },
+    userTraining: { min: 12000, max: 25000 },
+    adminTraining: { min: 20000, max: 45000 },
+    annualSupport: { min: 60000, max: 120000 },
+    premiumSupport: { min: 30000, max: 60000 },
+    cloudHosting: { min: 50000, max: 100000 },
+    storagePerTB: { min: 2000, max: 4500 },
+    customDevDay: { min: 1000, max: 1800 },
+    consultingDay: { min: 1200, max: 2200 },
+    changeRequest: { min: 3000, max: 7000 },
+    additionalUser: { min: 300, max: 600 },
+  },
+  budget: {
+    baseLicense: { min: 150000, max: 350000 },
+    annualRenewal: { min: 120000, max: 280000 },
+    implementation: { min: 80000, max: 180000 },
+    dataMigration: { min: 25000, max: 60000 },
+    systemIntegration: { min: 35000, max: 90000 },
+    userTraining: { min: 8000, max: 18000 },
+    adminTraining: { min: 12000, max: 30000 },
+    annualSupport: { min: 35000, max: 75000 },
+    premiumSupport: { min: 18000, max: 40000 },
+    cloudHosting: { min: 30000, max: 65000 },
+    storagePerTB: { min: 1000, max: 2500 },
+    customDevDay: { min: 600, max: 1200 },
+    consultingDay: { min: 800, max: 1500 },
+    changeRequest: { min: 1500, max: 4000 },
+    additionalUser: { min: 150, max: 350 },
+  },
+};
+
+/**
+ * Generate random price within a range
+ */
+function generatePrice(min: number, max: number): number {
+  const price = Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.round(price / 100) * 100; // Round to nearest 100
+}
+
+/**
+ * Fill procurement questionnaire with cost data based on vendor commercial profile
+ * Handles multi-sheet questionnaire: Commercial Terms, Cost Breakdown, TCO Summary
+ */
+export async function fillProcurementQuestionnaireWithCosts(
+  originalBuffer: Buffer,
+  vendorName: string
+): Promise<Buffer> {
+  // Create a deep copy of the buffer to ensure each vendor gets a completely fresh template
+  // This prevents any potential mutation issues and preserves formulas for each vendor
+  const bufferCopy = Buffer.from(originalBuffer);
+  
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(bufferCopy);
+  
+  const persona = getVendorPersona(vendorName);
+  const strength = persona.scoringProfile?.procurementStrength ?? 0.5;
+  
+  // Safe access to pricing tier with fallback to competitive
+  const pricingTier = persona.commercialProfile?.pricingTier || "competitive";
+  const validPricingTier = (pricingTier in PRICING_TIERS) ? pricingTier as keyof typeof PRICING_TIERS : "competitive";
+  const pricing = PRICING_TIERS[validPricingTier];
+  
+  // ==========================================
+  // SHEET 1: Commercial Terms (compliance + remarks)
+  // ==========================================
+  const termsSheet = workbook.worksheets[0];
+  if (termsSheet) {
+    // Find column indices
+    const headerRow = termsSheet.getRow(1);
+    let complianceCol = -1;
+    let remarksCol = -1;
+    let questionCol = -1;
+    let licensingCol = -1;
+    let paymentCol = -1;
+    
+    headerRow.eachCell((cell, colNumber) => {
+      const cellValue = cell.value?.toString().toLowerCase() || "";
+      if (cellValue.includes("compliance")) complianceCol = colNumber;
+      else if (cellValue.includes("remark") || cellValue.includes("detail")) remarksCol = colNumber;
+      else if (cellValue.includes("question")) questionCol = colNumber;
+      else if (cellValue.includes("licensing")) licensingCol = colNumber;
+      else if (cellValue.includes("payment")) paymentCol = colNumber;
+    });
+    
+    // Fill in commercial terms responses
+    termsSheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      
+      const questionCell = questionCol > 0 ? row.getCell(questionCol) : null;
+      if (!questionCell || !questionCell.value) return;
+      
+      const questionText = questionCell.value.toString();
+      
+      // Set compliance score
+      if (complianceCol > 0) {
+        const complianceScore = getRandomComplianceScore(strength);
+        row.getCell(complianceCol).value = complianceScore;
+      }
+      
+      // Set licensing model
+      if (licensingCol > 0) {
+        const licensingOptions = [
+          "Perpetual License",
+          "Annual Subscription",
+          "Per-User/Seat License",
+          "Enterprise License",
+          "Usage-Based/Pay-as-you-go",
+          "Hybrid Model"
+        ];
+        // Higher strength vendors offer more flexible options
+        const optionIndex = Math.floor(Math.random() * Math.min(licensingOptions.length, Math.ceil(strength * 6)));
+        row.getCell(licensingCol).value = licensingOptions[optionIndex] || persona.commercialProfile.licensingModel;
+      }
+      
+      // Set payment terms
+      if (paymentCol > 0) {
+        row.getCell(paymentCol).value = persona.commercialProfile.paymentTerms;
+      }
+      
+      // Generate remarks
+      if (remarksCol > 0) {
+        const remark = generateProcurementRemark(questionText, persona);
+        row.getCell(remarksCol).value = remark;
+      }
+    });
+  }
+  
+  // ==========================================
+  // SHEET 2: Cost Breakdown (pricing data)
+  // ==========================================
+  const costSheet = workbook.getWorksheet("Cost Breakdown");
+  if (costSheet) {
+    // Find column indices
+    const costHeaderRow = costSheet.getRow(1);
+    let unitPriceCol = -1;
+    let year1Col = -1;
+    let year2Col = -1;
+    let year3Col = -1;
+    let year4Col = -1;
+    let year5Col = -1;
+    let descriptionCol = -1;
+    let notesCol = -1;
+    
+    costHeaderRow.eachCell((cell, colNumber) => {
+      const cellValue = cell.value?.toString().toLowerCase() || "";
+      if (cellValue.includes("unit price")) unitPriceCol = colNumber;
+      else if (cellValue.includes("year 1")) year1Col = colNumber;
+      else if (cellValue.includes("year 2")) year2Col = colNumber;
+      else if (cellValue.includes("year 3")) year3Col = colNumber;
+      else if (cellValue.includes("year 4")) year4Col = colNumber;
+      else if (cellValue.includes("year 5")) year5Col = colNumber;
+      else if (cellValue.includes("description")) descriptionCol = colNumber;
+      else if (cellValue.includes("notes")) notesCol = colNumber;
+    });
+    
+    // Cost item mappings to pricing tier keys
+    const costItemMappings: Record<string, keyof typeof pricing> = {
+      "base software license": "baseLicense",
+      "annual license renewal": "annualRenewal",
+      "implementation": "implementation",
+      "data migration": "dataMigration",
+      "system integration": "systemIntegration",
+      "end-user training": "userTraining",
+      "administrator": "adminTraining",
+      "annual support": "annualSupport",
+      "premium support": "premiumSupport",
+      "cloud hosting": "cloudHosting",
+      "additional storage": "storagePerTB",
+      "custom development": "customDevDay",
+      "consulting services": "consultingDay",
+      "change request": "changeRequest",
+      "additional user": "additionalUser",
+    };
+    
+    // Fill in cost data
+    costSheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      
+      const descriptionCell = descriptionCol > 0 ? row.getCell(descriptionCol) : null;
+      if (!descriptionCell || !descriptionCell.value) return;
+      
+      const description = descriptionCell.value.toString().toLowerCase();
+      
+      // Find matching pricing key
+      let pricingKey: keyof typeof pricing | null = null;
+      for (const [keyword, key] of Object.entries(costItemMappings)) {
+        if (description.includes(keyword)) {
+          pricingKey = key;
+          break;
+        }
+      }
+      
+      if (!pricingKey) return;
+      
+      const priceRange = pricing[pricingKey];
+      const basePrice = generatePrice(priceRange.min, priceRange.max);
+      
+      // Set unit price
+      if (unitPriceCol > 0) {
+        row.getCell(unitPriceCol).value = basePrice;
+      }
+      
+      // Determine if this is a one-time or recurring cost
+      const isRecurring = description.includes("annual") || 
+                          description.includes("year") ||
+                          description.includes("hosting") ||
+                          description.includes("storage") ||
+                          description.includes("support");
+      
+      const isOneTime = description.includes("implementation") ||
+                        description.includes("migration") ||
+                        description.includes("integration") ||
+                        description.includes("training") ||
+                        description.includes("base software");
+      
+      // Fill in year costs
+      if (isOneTime) {
+        // One-time costs only in Year 1
+        if (year1Col > 0) row.getCell(year1Col).value = basePrice;
+        if (year2Col > 0) row.getCell(year2Col).value = 0;
+        if (year3Col > 0) row.getCell(year3Col).value = 0;
+        if (year4Col > 0) row.getCell(year4Col).value = 0;
+        if (year5Col > 0) row.getCell(year5Col).value = 0;
+      } else if (isRecurring) {
+        // Recurring costs with small annual increases (2-5%)
+        const annualIncrease = 1 + (Math.random() * 0.03 + 0.02);
+        if (year1Col > 0) row.getCell(year1Col).value = Math.round(basePrice);
+        if (year2Col > 0) row.getCell(year2Col).value = Math.round(basePrice * annualIncrease);
+        if (year3Col > 0) row.getCell(year3Col).value = Math.round(basePrice * Math.pow(annualIncrease, 2));
+        if (year4Col > 0) row.getCell(year4Col).value = Math.round(basePrice * Math.pow(annualIncrease, 3));
+        if (year5Col > 0) row.getCell(year5Col).value = Math.round(basePrice * Math.pow(annualIncrease, 4));
+      } else {
+        // Per-use costs (day rates, per-request) - estimate usage
+        const estimatedUsage = description.includes("day") ? 
+          Math.floor(Math.random() * 30 + 10) : // 10-40 days
+          Math.floor(Math.random() * 20 + 5);   // 5-25 requests
+        
+        if (year1Col > 0) row.getCell(year1Col).value = basePrice * estimatedUsage;
+        if (year2Col > 0) row.getCell(year2Col).value = Math.round(basePrice * estimatedUsage * 0.8);
+        if (year3Col > 0) row.getCell(year3Col).value = Math.round(basePrice * estimatedUsage * 0.6);
+        if (year4Col > 0) row.getCell(year4Col).value = Math.round(basePrice * estimatedUsage * 0.5);
+        if (year5Col > 0) row.getCell(year5Col).value = Math.round(basePrice * estimatedUsage * 0.4);
+      }
+      
+      // Add notes based on vendor characteristics
+      if (notesCol > 0) {
+        const notes = generatePricingNote(description, persona);
+        row.getCell(notesCol).value = notes;
+      }
+    });
+  }
+  
+  // ==========================================
+  // SHEET 3: TCO Summary (vendor name)
+  // ==========================================
+  const tcoSheet = workbook.getWorksheet("TCO Summary");
+  if (tcoSheet) {
+    // Set vendor name in row 2
+    const vendorRow = tcoSheet.getRow(2);
+    if (vendorRow) {
+      vendorRow.getCell(2).value = vendorName;
+    }
+    
+    // Set solution name in row 3
+    const solutionRow = tcoSheet.getRow(3);
+    if (solutionRow) {
+      solutionRow.getCell(2).value = `${vendorName} Enterprise Solution`;
+    }
+  }
+  
+  return await workbook.xlsx.writeBuffer() as Buffer;
+}
+
+/**
+ * Generate procurement-specific remarks based on vendor persona
+ */
+function generateProcurementRemark(questionText: string, persona: ReturnType<typeof getVendorPersona>): string {
+  const questionLower = questionText.toLowerCase();
+  const remarks: string[] = [];
+  
+  // Pricing-related questions
+  if (questionLower.includes("price") || questionLower.includes("cost") || questionLower.includes("fee")) {
+    if (persona.commercialProfile.pricingTier === "premium") {
+      remarks.push("Premium pricing reflects our market-leading capabilities and enterprise-grade support");
+      remarks.push(`Investment aligned with ${persona.commercialProfile.slaUptime} uptime SLA and comprehensive coverage`);
+    } else if (persona.commercialProfile.pricingTier === "competitive") {
+      remarks.push("Competitive pricing with flexible options to meet budget requirements");
+      remarks.push("Value-driven pricing with transparent cost structure");
+    } else if (persona.commercialProfile.pricingTier === "value") {
+      remarks.push("Cost-effective solution optimized for ROI-focused implementations");
+      remarks.push("Efficient pricing model designed for mid-market requirements");
+    } else {
+      remarks.push("Budget-friendly options available with scalable pricing tiers");
+    }
+  }
+  
+  // Licensing questions
+  if (questionLower.includes("license") || questionLower.includes("subscription")) {
+    remarks.push(`${persona.commercialProfile.licensingModel} - flexible terms available`);
+    remarks.push(`Standard terms with ${persona.commercialProfile.paymentTerms}`);
+  }
+  
+  // Implementation questions
+  if (questionLower.includes("implement") || questionLower.includes("deploy")) {
+    remarks.push(`Typical implementation: ${persona.commercialProfile.typicalImplementationMonths} months with phased rollout options`);
+    remarks.push("Dedicated implementation team with proven methodology");
+  }
+  
+  // Support/maintenance questions
+  if (questionLower.includes("support") || questionLower.includes("maintenance")) {
+    remarks.push(`Annual maintenance at ${persona.commercialProfile.annualMaintenancePercent}% of license cost`);
+    remarks.push(`${persona.commercialProfile.slaUptime} availability with 24/7 critical support`);
+  }
+  
+  // Default remark
+  if (remarks.length === 0) {
+    remarks.push("Full details available upon request - contact our commercial team");
+    remarks.push("Flexible terms negotiable for enterprise agreements");
+  }
+  
+  return remarks[Math.floor(Math.random() * remarks.length)];
+}
+
+/**
+ * Generate pricing notes for cost breakdown items
+ */
+function generatePricingNote(description: string, persona: ReturnType<typeof getVendorPersona>): string {
+  const notes: string[] = [];
+  
+  if (description.includes("license")) {
+    notes.push(`${persona.commercialProfile.licensingModel}`);
+    notes.push("Volume discounts available for 3+ year commitments");
+  } else if (description.includes("implementation")) {
+    notes.push(`Phased approach over ${persona.commercialProfile.typicalImplementationMonths} months`);
+    notes.push("Fixed-price option available with defined scope");
+  } else if (description.includes("support")) {
+    notes.push(`${persona.commercialProfile.slaUptime} uptime SLA included`);
+    notes.push("24/7 critical incident support included");
+  } else if (description.includes("training")) {
+    notes.push("Online and on-site options available");
+    notes.push("Train-the-trainer program included");
+  } else if (description.includes("hosting") || description.includes("infrastructure")) {
+    notes.push("Multi-region deployment available");
+    notes.push("Includes disaster recovery capabilities");
+  } else if (description.includes("storage")) {
+    notes.push("Auto-scaling available");
+    notes.push("Includes backup and archival");
+  }
+  
+  return notes.length > 0 ? notes[Math.floor(Math.random() * notes.length)] : "";
+}
