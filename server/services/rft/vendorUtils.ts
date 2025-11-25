@@ -35,11 +35,18 @@ export function getVendorSlug(vendorName: string): string {
 }
 
 /**
- * Normalize vendor name for storage
- * Returns consistent format: spaces (not underscores)
+ * Normalize vendor name for storage - AGGRESSIVELY removes ALL special characters
+ * This prevents duplicates like "Salesforce, Inc." vs "Salesforce Inc" 
+ * Returns: only alphanumeric characters and single spaces
  */
 export function normalizeVendorName(vendorName: string): string {
-  return normalizeVendorDisplayName(vendorName);
+  return vendorName
+    // Remove ALL special characters (commas, periods, quotes, etc.) - keep only letters, numbers, spaces
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    // Collapse multiple spaces into single space
+    .replace(/\s+/g, ' ')
+    // Trim whitespace
+    .trim();
 }
 
 /**
