@@ -79,6 +79,38 @@ function extractBusinessObjectiveFromData(data: any, depth: number = 0): string 
 }
 
 /**
+ * Normalize vendor name to prevent duplicates from formatting differences
+ * - Trims whitespace
+ * - Removes duplicate spaces
+ * - Standardizes common suffixes (Inc, Inc., Corp, Corporation, etc.)
+ */
+function normalizeVendorName(name: string): string {
+  if (!name) return name;
+  
+  // Trim and collapse multiple spaces
+  let normalized = name.trim().replace(/\s+/g, ' ');
+  
+  // Remove trailing punctuation like comma, period
+  normalized = normalized.replace(/[,.\s]+$/, '');
+  
+  // Standardize common suffixes (case insensitive replacement)
+  // "Inc." or "Inc" -> "Inc."
+  normalized = normalized.replace(/\bInc\.?$/i, 'Inc.');
+  // "Corp." or "Corp" -> "Corp."
+  normalized = normalized.replace(/\bCorp\.?$/i, 'Corp.');
+  // "Corporation" -> "Corp."
+  normalized = normalized.replace(/\bCorporation$/i, 'Corp.');
+  // "Ltd." or "Ltd" -> "Ltd."
+  normalized = normalized.replace(/\bLtd\.?$/i, 'Ltd.');
+  // "Limited" -> "Ltd."
+  normalized = normalized.replace(/\bLimited$/i, 'Ltd.');
+  // "LLC" or "L.L.C." -> "LLC"
+  normalized = normalized.replace(/\bL\.?L\.?C\.?$/i, 'LLC');
+  
+  return normalized;
+}
+
+/**
  * Fetch top 3 market-relevant vendors for a given business objective using AI
  * Reuses the vendor intelligence logic from /api/vendor-intel endpoint
  */
@@ -135,15 +167,17 @@ Only return real companies. If the objective is aviation-specific, include relev
     const vendors = parsed.vendors || parsed.Vendors || [];
     
     if (Array.isArray(vendors) && vendors.length >= 3) {
-      console.log(`✓ Fetched top 3 market vendors for objective: ${vendors.join(", ")}`);
-      return vendors.slice(0, 3);
+      // Normalize vendor names to prevent duplicates
+      const normalizedVendors = vendors.slice(0, 3).map(v => normalizeVendorName(v));
+      console.log(`✓ Fetched top 3 market vendors for objective: ${normalizedVendors.join(", ")}`);
+      return normalizedVendors;
     }
     
     console.warn("Invalid vendor response from AI, using fallback vendors");
-    return fallbackVendors;
+    return fallbackVendors.map(v => normalizeVendorName(v));
   } catch (error) {
     console.error("Error fetching market vendors:", error);
-    return fallbackVendors;
+    return fallbackVendors.map(v => normalizeVendorName(v));
   }
 }
 
@@ -661,7 +695,8 @@ export async function generateVendorResponses(rftId: string) {
   
   // Generate responses for each vendor
   for (let i = 0; i < vendors.length; i++) {
-    const vendorName = vendors[i];
+    // Normalize vendor name to prevent duplicates from formatting differences
+    const vendorName = normalizeVendorName(vendors[i]);
     const profile = vendorProfiles[i];
     
     console.log(`Generating responses for ${vendorName} with profile: Product ${profile.productStrength}, NFR ${profile.nfrStrength}, Security ${profile.cybersecurityStrength}, Agile ${profile.agileStrength}, Procurement ${profile.procurementStrength}`);
@@ -731,7 +766,8 @@ export async function generateVendorResponses(rftId: string) {
     
     // Create proposal database records for each questionnaire response
     // Check per documentType to avoid duplicate key errors but allow partial completion
-    const existingVendorProposals = existingProposals.filter(p => p.vendorName === vendorName);
+    // Normalize existing vendor names for comparison to handle legacy data with inconsistent formatting
+    const existingVendorProposals = existingProposals.filter(p => normalizeVendorName(p.vendorName) === vendorName);
     
     const proposalConfigs = [
       {
@@ -854,7 +890,8 @@ export async function generateEvaluation(rftId: string) {
 
   // Create proposals and evaluations for each vendor
   for (let i = 0; i < vendors.length; i++) {
-    const vendorName = vendors[i];
+    // Normalize vendor name to prevent duplicates from formatting differences
+    const vendorName = normalizeVendorName(vendors[i]);
     const baseScore = 75 + (i * 5); // Varying scores
 
     console.log(`🎭 Generating AI-powered proposal for ${vendorName}...`);
@@ -1007,13 +1044,13 @@ export async function generateVendorStages(projectId?: string) {
       continue;
     }
     
-    // Extract unique vendor names from proposals
-    const vendorNameSet = new Set(proposals.map(p => p.vendorName));
+    // Extract unique vendor names from proposals (normalize to prevent duplicates)
+    const vendorNameSet = new Set(proposals.map(p => normalizeVendorName(p.vendorName)));
     const uniqueVendorNames = Array.from(vendorNameSet);
     
     // Get existing vendor stages for this project
     const existingStages = await storage.getVendorStagesByProject(project.id);
-    const existingVendorNames = new Set(existingStages.map((s: any) => s.vendorName));
+    const existingVendorNames = new Set(existingStages.map((s: any) => normalizeVendorName(s.vendorName)));
     
     // Find vendors that don't already have stage tracking
     const vendorsToCreate = uniqueVendorNames.filter(name => !existingVendorNames.has(name));
