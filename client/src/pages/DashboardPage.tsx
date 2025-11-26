@@ -258,14 +258,14 @@ export default function DashboardPage() {
     stageStatuses: stage.stageStatuses || {},
   })) || [];
 
-  // Calculate aggregated metrics
-  const avgFunctionalFit = Math.round(
-    evaluations.reduce((sum, e) => sum + e.functionalFit, 0) / evaluations.length
-  );
+  // Calculate aggregated metrics (handle undefined values and empty arrays)
+  const avgFunctionalFit = evaluations.length > 0 
+    ? Math.round(evaluations.reduce((sum, e) => sum + (e.functionalFit || 0), 0) / evaluations.length)
+    : 0;
   
-  const avgTechnicalFit = Math.round(
-    evaluations.reduce((sum, e) => sum + e.technicalFit, 0) / evaluations.length
-  );
+  const avgTechnicalFit = evaluations.length > 0
+    ? Math.round(evaluations.reduce((sum, e) => sum + (e.technicalFit || 0), 0) / evaluations.length)
+    : 0;
   
   const lowestRisk = Math.min(...evaluations.map((e) => e.deliveryRisk));
   const lowestRiskVendor = evaluations.find((e) => e.deliveryRisk === lowestRisk);
