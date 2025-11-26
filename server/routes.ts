@@ -2135,14 +2135,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Failed to calculate Excel scores for ${vendorName}:`, error);
         }
 
-        // Look for cost data from procurement proposal's extractedData
-        // This ensures cost-benefit analysis has accurate pricing data regardless of which evaluation is picked
+        // Look for cost data from multiple sources (prioritized):
+        // 1. Excel-extracted cost from uploaded Procurement questionnaire (only if tcoTotal > 0)
+        // 2. Proposal's extractedData.costSummary.formatted (from generation)
+        // 3. Proposal's extractedData.costStructure (legacy field)
         const procurementProposal = proposals.find(
           p => p.vendorName === vendorName && p.documentType === "procurement"
         );
-        // Extract the formatted cost from costSummary (e.g., "$6.7M 5-year TCO ($2.4M/year avg)")
         const extractedData = procurementProposal?.extractedData as any;
-        const procurementCost = extractedData?.costSummary?.formatted || extractedData?.costStructure || null;
+        
+        // Only use Excel-extracted cost if it has valid data (tcoTotal > 0 means formatted will be non-empty)
+        const excelExtractedCost = excelScores?.procurementCostSummary?.tcoTotal && 
+          excelScores.procurementCostSummary.tcoTotal > 0 
+            ? excelScores.procurementCostSummary.formatted 
+            : null;
+        
+        const procurementCost = 
+          excelExtractedCost ||                               // From uploaded Excel (only if valid)
+          extractedData?.costSummary?.formatted ||            // From proposal extractedData
+          extractedData?.costStructure ||                     // Legacy field
+          null;
         
         // If evaluation exists, return it enriched with documents and scores
         if (evaluation) {

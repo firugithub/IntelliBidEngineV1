@@ -1,4 +1,5 @@
-import { parseExcelQuestionnaire, QuestionnaireQuestion } from "./excelQuestionnaireHandler";
+import { parseExcelQuestionnaire, QuestionnaireQuestion, ProcurementCostSummary } from "./excelQuestionnaireHandler";
+import ExcelJS from "exceljs";
 
 export interface QuestionnaireScore {
   questionnaireType: string;
@@ -45,6 +46,8 @@ export interface VendorExcelScores {
   nfrScore: QuestionnaireScore | null;
   cybersecurityScore: QuestionnaireScore | null;
   agileScore: QuestionnaireScore | null;
+  procurementScore: QuestionnaireScore | null;
+  procurementCostSummary: ProcurementCostSummary | null;
   averageScore: number;
   nfrSectionScores?: NFRSectionScores;
   characteristicScores?: CharacteristicScores;
@@ -181,6 +184,121 @@ export function mapNFRToCharacteristics(
   };
 }
 
+/**
+ * Parse cost data from uploaded Procurement questionnaire Excel
+ * Reads the "Cost Breakdown" sheet to extract year 1-5 totals and calculate TCO
+ */
+export async function parseProcurementCostFromExcel(buffer: Buffer): Promise<ProcurementCostSummary> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  
+  // Initialize default values
+  let year1Total = 0;
+  let year2Total = 0;
+  let year3Total = 0;
+  let year4Total = 0;
+  let year5Total = 0;
+  let pricingTier: "premium" | "competitive" | "value" | "budget" = "competitive";
+  
+  // Try to find the Cost Breakdown sheet
+  const costSheet = workbook.getWorksheet("Cost Breakdown");
+  
+  if (costSheet) {
+    // Find column indices from header row
+    const headerRow = costSheet.getRow(1);
+    let costCategoryCol = 1; // Usually first column
+    let year1Col = -1, year2Col = -1, year3Col = -1, year4Col = -1, year5Col = -1, totalCol = -1;
+    
+    headerRow.eachCell((cell, colNumber) => {
+      const value = String(cell.value || "").toLowerCase().trim();
+      if (value.includes("cost category") || value.includes("category")) costCategoryCol = colNumber;
+      else if (value.includes("year 1") || value === "year1cost") year1Col = colNumber;
+      else if (value.includes("year 2") || value === "year2cost") year2Col = colNumber;
+      else if (value.includes("year 3") || value === "year3cost") year3Col = colNumber;
+      else if (value.includes("year 4") || value === "year4cost") year4Col = colNumber;
+      else if (value.includes("year 5") || value === "year5cost") year5Col = colNumber;
+      else if (value.includes("5-year") || value.includes("total")) totalCol = colNumber;
+    });
+    
+    const parseNumber = (value: ExcelJS.CellValue): number => {
+      if (value === null || value === undefined) return 0;
+      if (typeof value === "number") return value;
+      if (typeof value === "string") {
+        // Remove currency symbols, commas, and parse
+        const cleaned = value.replace(/[$,]/g, "").trim();
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      // Handle formula results
+      if (typeof value === "object" && "result" in value) {
+        return parseNumber(value.result);
+      }
+      return 0;
+    };
+    
+    // Iterate through data rows and sum up costs (skip Total/Summary rows)
+    costSheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      
+      // Check if this is a Total/Summary row (skip it to avoid double-counting)
+      const categoryValue = String(row.getCell(costCategoryCol).value || "").toLowerCase().trim();
+      if (categoryValue.includes("total") || categoryValue.includes("summary") || categoryValue.includes("grand total")) {
+        return; // Skip total rows
+      }
+      
+      if (year1Col > 0) year1Total += parseNumber(row.getCell(year1Col).value);
+      if (year2Col > 0) year2Total += parseNumber(row.getCell(year2Col).value);
+      if (year3Col > 0) year3Total += parseNumber(row.getCell(year3Col).value);
+      if (year4Col > 0) year4Total += parseNumber(row.getCell(year4Col).value);
+      if (year5Col > 0) year5Total += parseNumber(row.getCell(year5Col).value);
+    });
+  }
+  
+  // Calculate TCO total
+  const tcoTotal = year1Total + year2Total + year3Total + year4Total + year5Total;
+  
+  // Count populated years (years with non-zero values) for accurate averaging
+  const populatedYears = [year1Total, year2Total, year3Total, year4Total, year5Total]
+    .filter(y => y > 0).length;
+  
+  // Calculate actual per-year average based on populated years
+  const yearlyAverage = populatedYears > 0 ? tcoTotal / populatedYears : 0;
+  
+  // Determine pricing tier based on annual average (using corrected average)
+  if (yearlyAverage > 2000000) {
+    pricingTier = "premium";
+  } else if (yearlyAverage > 1000000) {
+    pricingTier = "competitive";
+  } else if (yearlyAverage > 500000) {
+    pricingTier = "value";
+  } else {
+    pricingTier = "budget";
+  }
+  
+  // Format cost for display
+  const formatCost = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(0)}K`;
+    }
+    return `$${amount.toFixed(0)}`;
+  };
+  
+  return {
+    year1Total,
+    year2Total,
+    year3Total,
+    year4Total,
+    year5Total,
+    tcoTotal,
+    formatted: tcoTotal > 0 
+      ? `${formatCost(tcoTotal)} 5-year TCO (${formatCost(yearlyAverage)}/year avg)`
+      : "",  // Return empty string when no data - fallback will be used
+    pricingTier,
+  };
+}
+
 export async function calculateExcelScoresForVendor(
   vendorDocuments: Array<{ fileName: string; blobUrl: string; documentType: string; blobName?: string }>
 ): Promise<VendorExcelScores> {
@@ -193,6 +311,8 @@ export async function calculateExcelScoresForVendor(
     nfrScore: null,
     cybersecurityScore: null,
     agileScore: null,
+    procurementScore: null,
+    procurementCostSummary: null,
     averageScore: 0,
   };
   
@@ -208,10 +328,28 @@ export async function calculateExcelScoresForVendor(
         buffer = await azureService.downloadDocument(blobName);
       }
       
+      const fileName = doc.fileName.toLowerCase();
+      
+      // Handle Procurement questionnaire differently - extract cost data
+      if (fileName.includes('procurement') || fileName.includes('commercial')) {
+        try {
+          const costSummary = await parseProcurementCostFromExcel(buffer);
+          scores.procurementCostSummary = costSummary;
+          
+          // Also parse questions for compliance score
+          const questions = await parseExcelQuestionnaire(buffer);
+          const score = calculateQuestionnaireScore(questions);
+          score.questionnaireType = 'Procurement';
+          scores.procurementScore = score;
+        } catch (procError) {
+          console.error(`Failed to parse procurement cost data from ${doc.fileName}:`, procError);
+        }
+        continue;
+      }
+      
       const questions = await parseExcelQuestionnaire(buffer);
       
       const score = calculateQuestionnaireScore(questions);
-      const fileName = doc.fileName.toLowerCase();
       
       if (fileName.includes('product')) {
         score.questionnaireType = 'Product';
